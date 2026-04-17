@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Factory, Shield, Globe, TrendingUp, Scissors, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-factory.jpg";
-import fabricImage from "@/assets/fabric-texture.jpg";
-import qualityImage from "@/assets/quality-inspection.jpg";
+import heroImage from "@/assets/hero-factory-enen.jpg";
+import fabricImage from "@/assets/proc-fabric.jpg";
+import qualityImage from "@/assets/proc-qc.jpg";
 
 // Fade-in animation variant for scroll reveals
 const fadeUp = {
@@ -12,12 +12,12 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-// Key statistics to display in the stats strip
+// Headline statistics for the hero strip
 const stats = [
-  { value: "15+", label: "Years Experience" },
-  { value: "50+", label: "Global Clients" },
-  { value: "1M+", label: "Units / Year" },
-  { value: "100%", label: "Quality Inspected" },
+  { value: "30+", label: "Years Heritage" },
+  { value: "80+", label: "Employees" },
+  { value: "60+", label: "Sewing Machines" },
+  { value: "10+", label: "QC Staff" },
 ];
 
 // Core capabilities shown in the grid section
@@ -25,32 +25,32 @@ const capabilities = [
   {
     icon: Scissors,
     title: "Cut & Sew",
-    description: "Full-service pattern making, cutting, and assembly for all garment types.",
+    description: "Full pattern making, cutting, and assembly across all garment categories.",
   },
   {
     icon: Factory,
-    title: "Mass Production",
-    description: "Scalable manufacturing from 500 to 100,000+ units per order.",
+    title: "In-House Weaving",
+    description: "Cotton-to-cloth conversion on our own loom plus 60+ sewing machines.",
   },
   {
     icon: Shield,
     title: "Quality Assurance",
-    description: "AQL 2.5 inspection standard with dedicated QC team at every stage.",
+    description: "Dedicated 10+ member QC team inspects every batch before dispatch.",
   },
   {
     icon: Globe,
-    title: "Export Ready",
-    description: "Shipping to 30+ countries with full export documentation support.",
+    title: "Global Exports",
+    description: "Trusted shipping partners delivering to clients across the globe.",
   },
   {
     icon: Package,
-    title: "Private Label",
-    description: "Custom branding, labeling, and packaging tailored to your brand.",
+    title: "Local Vendor Supply",
+    description: "Reliable bulk supply for established local retail and wholesale vendors.",
   },
   {
     icon: TrendingUp,
-    title: "Competitive Pricing",
-    description: "Direct factory pricing with transparent cost breakdowns.",
+    title: "Three Generations",
+    description: "Family-run since the 1990s with a top-down managerial structure.",
   },
 ];
 
@@ -59,11 +59,10 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-        {/* Background image with overlay */}
         <div className="absolute inset-0">
           <img
             src={heroImage}
-            alt="Modern garment manufacturing facility"
+            alt="En En Garments manufacturing floor with rows of sewing machines"
             className="w-full h-full object-cover"
             width={1920}
             height={1080}
@@ -85,24 +84,26 @@ export default function HomePage() {
               variants={fadeUp}
               className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight"
             >
-              Precision Garment Manufacturing for Global Brands
+              Precision Garment Manufacturing — 30+ Years of Heritage
             </motion.h1>
             <motion.p
               variants={fadeUp}
               className="mt-6 text-lg text-primary-foreground/80 font-body leading-relaxed max-w-xl"
             >
-              From prototype to production, we deliver premium quality garments
-              with competitive pricing and reliable international logistics.
+              From a single tailor in the 1990s to a full-fledged unit, En En Garments has been
+              crafting premium apparel for global exports and trusted local vendors for three
+              generations.
             </motion.p>
             <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-4">
               <Button asChild size="lg" variant="secondary">
                 <Link to="/contact?rfq=true">Request a Quote</Link>
               </Button>
+              {/* Capabilities CTA — solid white border + white text reads cleanly on the navy overlay */}
               <Button
                 asChild
                 size="lg"
                 variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
+                className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
               >
                 <Link to="/capabilities">Our Capabilities</Link>
               </Button>
@@ -140,7 +141,8 @@ export default function HomePage() {
               Manufacturing Capabilities
             </h2>
             <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-              End-to-end garment production with modern machinery and skilled workforce.
+              End-to-end garment production powered by experienced workers and a top-down
+              managerial structure.
             </p>
           </motion.div>
 
@@ -185,19 +187,20 @@ export default function HomePage() {
           >
             <div className="divider-gold mb-4" />
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">
-              Crafted With Care, Built For Scale
+              Three Generations of Craftsmanship
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              With over 15 years in garment manufacturing, we combine traditional
-              craftsmanship with modern production techniques. Our facility houses
-              state-of-the-art machinery and a dedicated team of 50-100 skilled professionals.
+              Founded by Nazim Ud Din — who began as a worker stitching socks and trousers — En En
+              Garments grew from a single tailor into a manufacturing unit with 80+ skilled
+              employees. Today, his son Zubair Nazim leads the company as Owner and CEO, partnered
+              with grandson Firas Ahmad as a top-level manager and partial owner.
             </p>
             <p className="mt-3 text-muted-foreground leading-relaxed">
-              We serve both local and international B2B clients, offering end-to-end
-              solutions from fabric sourcing to finished product delivery.
+              We serve both international export clients and trusted local vendors, with cutting,
+              stitching, quality check, and press departments under one roof.
             </p>
             <Button asChild className="mt-6" variant="default">
-              <Link to="/about">Learn More About Us</Link>
+              <Link to="/about">Read Our Story</Link>
             </Button>
           </motion.div>
 
@@ -210,15 +213,15 @@ export default function HomePage() {
           >
             <img
               src={fabricImage}
-              alt="Premium fabric texture"
+              alt="Premium fabric stacks at En En Garments"
               className="rounded-lg object-cover w-full h-48 md:h-64"
               loading="lazy"
               width={800}
-              height={800}
+              height={600}
             />
             <img
               src={qualityImage}
-              alt="Garment quality inspection"
+              alt="Quality inspection at En En Garments"
               className="rounded-lg object-cover w-full h-48 md:h-64 mt-8"
               loading="lazy"
               width={800}
@@ -241,8 +244,8 @@ export default function HomePage() {
             Ready to Start Your Next Order?
           </h2>
           <p className="mt-4 text-primary-foreground/70 max-w-lg mx-auto">
-            Get a competitive quote within 24 hours. Our team is ready to discuss
-            your requirements, MOQs, and delivery timelines.
+            Whether you are exporting overseas or supplying local retail, get a competitive quote
+            within 24 hours from our team.
           </p>
           <Button asChild size="lg" variant="secondary" className="mt-8">
             <Link to="/contact?rfq=true">Request a Quote</Link>
