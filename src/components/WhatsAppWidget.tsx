@@ -1,10 +1,10 @@
 import { MessageCircle } from "lucide-react";
 
-// Floating WhatsApp contact button
-// Replace the phone number with the actual business WhatsApp number
-const WHATSAPP_NUMBER = "923001234567";
+// Floating WhatsApp contact button for the En En Garments owner line.
+// Number is stored in international format without the leading plus or zero.
+const WHATSAPP_NUMBER = "923008408936";
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  "Hello, I am interested in your garment manufacturing services. Could you share more details?"
+  "Hello En En Garments, I am interested in your manufacturing services. Could you share more details?"
 );
 
 export default function WhatsAppWidget() {
@@ -15,7 +15,7 @@ export default function WhatsAppWidget() {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Contact us on WhatsApp"
+      aria-label="Contact En En Garments on WhatsApp"
       className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg hover:scale-105 transition-transform"
     >
       <MessageCircle size={26} />
