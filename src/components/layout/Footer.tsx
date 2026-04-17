@@ -9,6 +9,7 @@ const footerLinks = {
   support: [
     { label: "Contact", path: "/contact" },
     { label: "Request a Quote", path: "/contact?rfq=true" },
+    { label: "Client Portal", path: "/portal" },
   ],
 };
 
@@ -19,9 +20,10 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Brand column */}
           <div>
-            <h3 className="font-heading text-xl font-bold mb-3">GarmentCo</h3>
+            <h3 className="font-heading text-xl font-bold mb-3">En En Garments</h3>
             <p className="text-sm opacity-70 leading-relaxed max-w-xs">
-              Premium garment manufacturing for global B2B clients. Quality craftsmanship, reliable delivery, competitive pricing.
+              30+ years of garment manufacturing heritage. Trusted partner for global exports and
+              local vendors, built on craftsmanship, scale, and reliability.
             </p>
           </div>
 
@@ -66,7 +68,7 @@ export default function Footer() {
 
         <div className="divider-gold mt-12 mb-6 opacity-40" />
         <p className="text-xs opacity-50 text-center">
-          {new Date().getFullYear()} GarmentCo Manufacturing. All rights reserved.
+          {new Date().getFullYear()} En En Garments. All rights reserved.
         </p>
       </div>
     </footer>
