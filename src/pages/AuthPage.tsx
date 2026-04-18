@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-// Validation schemas for sign-in and sign-up
+// Validation schemas for sign-in and sign-up.
+// Required string + email so TypeScript narrows to non-optional.
 const signInSchema = z.object({
-  email: z.string().trim().email("Invalid email").max(255),
-  password: z.string().min(6, "Password must be at least 6 characters").max(72),
+  email: z.string({ required_error: "Email is required" }).trim().email("Invalid email").max(255),
+  password: z.string({ required_error: "Password is required" }).min(6, "Password must be at least 6 characters").max(72),
 });
 
 const signUpSchema = signInSchema.extend({
