@@ -40,15 +40,18 @@ export default function AuthPage() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = signInSchema.safeParse({
-      email: fd.get("email"),
-      password: fd.get("password"),
+      email: String(fd.get("email") ?? ""),
+      password: String(fd.get("password") ?? ""),
     });
     if (!parsed.success) {
       toast({ title: "Invalid input", description: parsed.error.issues[0].message, variant: "destructive" });
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: parsed.data.email,
+      password: parsed.data.password,
+    });
     setLoading(false);
     if (error) {
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
@@ -61,11 +64,12 @@ export default function AuthPage() {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const companyVal = String(fd.get("company") ?? "").trim();
     const parsed = signUpSchema.safeParse({
-      email: fd.get("email"),
-      password: fd.get("password"),
-      fullName: fd.get("fullName"),
-      company: fd.get("company") || undefined,
+      email: String(fd.get("email") ?? ""),
+      password: String(fd.get("password") ?? ""),
+      fullName: String(fd.get("fullName") ?? ""),
+      company: companyVal || undefined,
     });
     if (!parsed.success) {
       toast({ title: "Invalid input", description: parsed.error.issues[0].message, variant: "destructive" });
