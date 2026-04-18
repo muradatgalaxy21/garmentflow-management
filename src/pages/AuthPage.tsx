@@ -89,7 +89,15 @@ export default function AuthPage() {
     });
     setLoading(false);
     if (error) {
-      toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
+      // Friendlier copy for the most common signup errors
+      let description = error.message;
+      if ((error as { code?: string }).code === "weak_password" || /pwned|weak/i.test(error.message)) {
+        description =
+          "This password has appeared in a known data breach. Please choose a stronger, unique password (mix letters, numbers, symbols).";
+      } else if (/already registered|already exists/i.test(error.message)) {
+        description = "An account with this email already exists. Try signing in instead.";
+      }
+      toast({ title: "Sign up failed", description, variant: "destructive" });
       return;
     }
     toast({
