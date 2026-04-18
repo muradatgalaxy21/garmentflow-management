@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import contactHero from "@/assets/contact-hero.jpg";
 
 // Validation schema for the contact / RFQ form
 const contactSchema = z.object({
@@ -14,7 +16,6 @@ const contactSchema = z.object({
   email: z.string().trim().email("Invalid email address").max(255),
   company: z.string().trim().max(200).optional(),
   phone: z.string().trim().max(30).optional(),
-  // Product type is required only for RFQ submissions
   productType: z.string().trim().max(200).optional(),
   quantity: z.string().trim().max(50).optional(),
   message: z.string().trim().min(1, "Message is required").max(2000, "Message is too long"),
@@ -46,10 +47,7 @@ export default function ContactPage() {
 
   const handleChange = (field: keyof ContactFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error on change
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: undefined }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,24 +59,36 @@ export default function ContactPage() {
       const fieldErrors: typeof errors = {};
       for (const issue of result.error.issues) {
         const field = issue.path[0] as keyof ContactFormData;
-        if (!fieldErrors[field]) {
-          fieldErrors[field] = issue.message;
-        }
+        if (!fieldErrors[field]) fieldErrors[field] = issue.message;
       }
       setErrors(fieldErrors);
       return;
     }
 
     setSubmitting(true);
-    // Simulate submission delay (replace with actual backend call)
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Persist the inquiry as an RFQ row regardless of whether it was a
+      // general message or a quote — the staff inbox prioritizes by status.
+      const { error } = await supabase.from("rfqs").insert({
+        name: result.data.name,
+        email: result.data.email,
+        company: result.data.company || null,
+        phone: result.data.phone || null,
+        product_type: result.data.productType || null,
+        quantity: result.data.quantity || null,
+        message: result.data.message,
+        status: "new",
+      });
+
+      if (error) throw error;
+
       toast({
         title: isRFQ ? "Quote Request Submitted" : "Message Sent",
         description: "We will get back to you within 24 hours.",
       });
       setFormData({ name: "", email: "", company: "", phone: "", productType: "", quantity: "", message: "" });
-    } catch {
+    } catch (err) {
+      console.error("RFQ submit failed", err);
       toast({
         title: "Submission Failed",
         description: "Please try again or contact us via WhatsApp.",
@@ -91,9 +101,19 @@ export default function ContactPage() {
 
   return (
     <>
-      {/* Header */}
-      <section className="section-padding bg-primary text-primary-foreground text-center">
-        <div className="container-narrow">
+      {/* Header with image background */}
+      <section className="relative py-24 overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src={contactHero}
+            alt="En En Garments factory exterior"
+            className="w-full h-full object-cover"
+            width={1600}
+            height={900}
+          />
+          <div className="absolute inset-0 bg-primary/85" />
+        </div>
+        <div className="relative z-10 container-narrow text-center text-primary-foreground px-6">
           <div className="divider-gold mx-auto mb-4" />
           <h1 className="font-heading text-4xl md:text-5xl font-bold">
             {isRFQ ? "Request a Quote" : "Contact Us"}
@@ -109,7 +129,6 @@ export default function ContactPage() {
       {/* Form + Contact Info */}
       <section className="section-padding bg-background">
         <div className="container-wide grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Form */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -157,13 +176,12 @@ export default function ContactPage() {
                   <Input
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    placeholder="+92 300 1234567"
+                    placeholder="+92 300 8408936"
                     className="mt-1"
                   />
                 </div>
               </div>
 
-              {/* RFQ-specific fields */}
               {isRFQ && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
@@ -224,23 +242,29 @@ export default function ContactPage() {
                   <Mail className="w-5 h-5 text-accent mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-foreground">Email</p>
-                    <p className="text-sm text-muted-foreground">info@garmentco.com</p>
+                    <a
+                      href="mailto:zubair.nazim@accounts.ffclothings.com"
+                      className="text-sm text-muted-foreground hover:text-accent break-all"
+                    >
+                      zubair.nazim@accounts.ffclothings.com
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Phone className="w-5 h-5 text-accent mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">Phone</p>
-                    <p className="text-sm text-muted-foreground">+92 42 1234 5678</p>
+                    <p className="text-sm font-medium text-foreground">Phone (Owner)</p>
+                    <a href="tel:+923008408936" className="text-sm text-muted-foreground hover:text-accent">
+                      0300 8408936
+                    </a>
+                    <p className="text-xs text-muted-foreground/80 mt-0.5">Zubair Nazim — Owner & CEO</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-accent mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">Address</p>
-                    <p className="text-sm text-muted-foreground">
-                      Industrial Area, Kot Lakhpat, Lahore, Pakistan
-                    </p>
+                    <p className="text-sm font-medium text-foreground">Location</p>
+                    <p className="text-sm text-muted-foreground">Pakistan — Shipping worldwide</p>
                   </div>
                 </div>
               </div>
@@ -249,7 +273,8 @@ export default function ContactPage() {
             <div className="p-5 rounded-lg bg-secondary/60 border border-border">
               <h4 className="font-heading font-semibold text-foreground text-sm">Response Time</h4>
               <p className="mt-1 text-sm text-muted-foreground">
-                We respond to all inquiries within 24 business hours. For urgent orders, reach us on WhatsApp.
+                We respond to all inquiries within 24 business hours. For urgent orders, reach us
+                on WhatsApp.
               </p>
             </div>
           </motion.div>
