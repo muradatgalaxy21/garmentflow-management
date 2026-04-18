@@ -46,8 +46,11 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* RFQ CTA on the right */}
-        <div className="hidden lg:flex items-center gap-4">
+        {/* RFQ CTA + Sign In on the right */}
+        <div className="hidden lg:flex items-center gap-3">
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/auth">Sign In</Link>
+          </Button>
           <Button asChild size="sm">
             <Link to="/contact?rfq=true">Request Quote</Link>
           </Button>
@@ -80,7 +83,12 @@ export default function Header() {
               </Link>
             ))}
           </nav>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-2">
+            <Button asChild variant="outline" size="sm" className="w-full">
+              <Link to="/auth" onClick={() => setMobileOpen(false)}>
+                Sign In
+              </Link>
+            </Button>
             <Button asChild size="sm" className="w-full">
               <Link to="/contact?rfq=true" onClick={() => setMobileOpen(false)}>
                 Request Quote
