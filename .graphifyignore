@@ -1,0 +1,25 @@
+# Build and internal tool directories
+.lovable/
+graphify-out/
+node_modules/
+dist/
+build/
+.next/
+
+# Package manager lock files
+bun.lock
+bun.lockb
+package-lock.json
+yarn.lock
+
+# Configuration files (Optional, but recommended for cleaner graphs)
+eslint.config.js
+postcss.config.js
+tailwind.config.ts
+tsconfig.json
+tsconfig.app.json
+tsconfig.node.json
+vite.config.ts
+vitest.config.ts
+playwright.config.ts
+components.json
