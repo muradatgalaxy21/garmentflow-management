@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,11 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({ full_name: "", company: "", phone: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Derive initials from full_name or email for the avatar placeholder
+  const initials = profile.full_name
+    ? profile.full_name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.email?.slice(0, 2).toUpperCase() ?? "?";
 
   useEffect(() => {
     if (!user) return;
@@ -68,43 +74,116 @@ export default function ProfilePage() {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Profile updated" });
+    // Update local state so initials refresh instantly
+    setProfile((prev) => ({ ...prev, full_name: parsed.data.full_name }));
+    toast({ title: "Profile updated", description: "Your changes have been saved." });
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl">
-      <Card>
+    <div className="space-y-8 max-w-2xl">
+      <div>
+        <h1 className="font-heading text-3xl font-bold text-foreground">My Profile</h1>
+        <p className="text-base text-muted-foreground mt-1">Manage your account details and contact information.</p>
+      </div>
+
+      {/* Avatar / identity section */}
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
+          <CardTitle className="text-base">Account Identity</CardTitle>
+          <CardDescription>Your display name and avatar used across the portal.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={user?.email ?? ""} disabled className="mt-1" />
+          <div className="flex items-center gap-5">
+            {/* Avatar placeholder: shows initials until image upload is implemented */}
+            <div
+              className="w-16 h-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xl font-bold font-heading shadow-inner shrink-0"
+              title="Profile avatar placeholder — image upload coming soon"
+            >
+              {initials}
             </div>
             <div>
-              <Label htmlFor="full_name">Full Name *</Label>
-              <Input id="full_name" name="full_name" defaultValue={profile.full_name ?? ""} required maxLength={100} className="mt-1" />
+              <p className="font-semibold text-foreground text-base">{profile.full_name || "—"}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <p className="text-xs text-muted-foreground/60 mt-1 flex items-center gap-1">
+                <User className="w-3 h-3" /> Profile image upload — coming soon
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile edit form */}
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-base">Contact Details</CardTitle>
+          <CardDescription>Update your name, company, and phone number.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSave} className="space-y-5">
+            {/* Email is read-only — managed by Supabase Auth */}
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                value={user?.email ?? ""}
+                disabled
+                className="mt-1.5 bg-muted/50 cursor-not-allowed"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Email is managed by your account authentication.</p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <Label htmlFor="full_name">Full Name <span className="text-destructive">*</span></Label>
+              <Input
+                id="full_name"
+                name="full_name"
+                defaultValue={profile.full_name ?? ""}
+                required
+                maxLength={100}
+                autoComplete="name"
+                className="mt-1.5"
+              />
             </div>
             <div>
-              <Label htmlFor="company">Company</Label>
-              <Input id="company" name="company" defaultValue={profile.company ?? ""} maxLength={200} className="mt-1" />
+              <Label htmlFor="company">Company Name</Label>
+              <Input
+                id="company"
+                name="company"
+                defaultValue={profile.company ?? ""}
+                maxLength={200}
+                autoComplete="organization"
+                className="mt-1.5"
+              />
             </div>
             <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" defaultValue={profile.phone ?? ""} maxLength={30} className="mt-1" />
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                defaultValue={profile.phone ?? ""}
+                maxLength={30}
+                autoComplete="tel"
+                className="mt-1.5"
+              />
             </div>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save Changes"}
+
+            <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+              {saving ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+              ) : (
+                "Save Changes"
+              )}
             </Button>
           </form>
         </CardContent>
