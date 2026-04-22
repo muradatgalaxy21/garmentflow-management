@@ -1,51 +1,109 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Home, Package, User, LogOut } from "lucide-react";
+import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
+import { Home, Package, User, LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 
-// Lightweight client-portal layout — top tabs instead of a sidebar to keep
-// the experience simple for B2B clients.
+// Portal navigation tabs
 const portalNav = [
   { to: "/portal", label: "Overview", icon: Home, end: true },
   { to: "/portal/orders", label: "My Orders", icon: Package, end: false },
   { to: "/portal/profile", label: "Profile", icon: User, end: false },
 ];
 
+// Lightweight client-portal layout with full-width layout and navigation improvements
 export default function PortalLayout() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin, isStaff } = useAuth();
   const navigate = useNavigate();
+
+  // Extract initials from email for the avatar placeholder
+  const initials = user?.email ? user.email.slice(0, 2).toUpperCase() : "?";
 
   return (
     <div className="min-h-screen flex flex-col bg-secondary/30">
-      <header className="bg-primary text-primary-foreground">
-        <div className="container-wide flex items-center justify-between h-16 px-6">
-          <div>
-            <p className="font-heading font-bold">En En Garments</p>
-            <p className="text-xs opacity-70">Client Portal</p>
+      <header className="bg-primary text-primary-foreground shadow-md">
+        <div className="w-full max-w-screen-2xl mx-auto flex items-center justify-between h-16 px-6 lg:px-10">
+
+          {/* Left: Back to website + brand */}
+          <div className="flex items-center gap-4">
+            {/* Back to main website — visible while staying logged in */}
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            >
+              <Link to="/">
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-xs">Website</span>
+              </Link>
+            </Button>
+
+            {/* Brand logo + name */}
+            <div className="flex items-center gap-2.5">
+              {/* Logo placeholder — drop public/logo.png to activate */}
+              <div
+                className="w-7 h-7 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 flex items-center justify-center text-primary-foreground text-[8px] font-bold shrink-0"
+                title="Add public/logo.png to replace this"
+              >
+                EEG
+              </div>
+              <div>
+                <p className="font-heading font-bold leading-tight text-base">En En Garments</p>
+                <p className="text-[10px] opacity-60 leading-none">Client Portal</p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs opacity-70 hidden sm:inline">{user?.email}</span>
+
+          {/* Right: email, profile avatar, sign out */}
+          <div className="flex items-center gap-2">
+            {(isAdmin || isStaff) && (
+              <Button
+                asChild
+                variant="default"
+                size="sm"
+                className="hidden sm:flex bg-gold hover:bg-gold/90 text-primary-foreground mr-2 font-semibold"
+              >
+                <Link to="/admin">Admin Dashboard</Link>
+              </Button>
+            )}
+            <span className="text-xs opacity-60 hidden md:inline truncate max-w-[200px]">{user?.email}</span>
+
+            {/* Profile avatar — click to go to profile page */}
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground font-semibold text-xs"
+              title="My Profile"
+            >
+              <Link to="/portal/profile">{initials}</Link>
+            </Button>
+
+            {/* Sign out */}
             <Button
               variant="ghost"
               size="sm"
-              className="text-primary-foreground hover:bg-primary-foreground/10"
+              className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
               onClick={async () => {
                 await signOut();
                 navigate("/");
               }}
             >
-              <LogOut className="w-4 h-4 mr-2" /> Sign out
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign out</span>
             </Button>
           </div>
         </div>
-        <nav className="container-wide px-6 flex gap-1 overflow-x-auto">
+
+        {/* Portal tab navigation */}
+        <nav className="w-full max-w-screen-2xl mx-auto px-6 lg:px-10 flex gap-1 overflow-x-auto">
           {portalNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors ${
+                `flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   isActive
                     ? "border-gold text-gold"
                     : "border-transparent text-primary-foreground/70 hover:text-primary-foreground"
@@ -57,7 +115,9 @@ export default function PortalLayout() {
           ))}
         </nav>
       </header>
-      <main className="flex-1 container-wide px-6 py-8">
+
+      {/* Main content: full width with generous padding */}
+      <main className="flex-1 w-full max-w-screen-2xl mx-auto px-6 lg:px-10 py-10">
         <Outlet />
       </main>
     </div>
