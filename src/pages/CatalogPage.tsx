@@ -10,8 +10,8 @@ import catWorkwear from "@/assets/cat-workwear.jpg";
 // Product categories paired with their own background image for richer cards
 const categories = [
   { name: "T-Shirts & Polos", types: "Round neck, V-neck, Polo, Henley", moq: "500 pcs", bg: catTshirts },
-  { name: "Shirts & Blouses", types: "Formal, Casual, Linen, Oxford", moq: "300 pcs", bg: catShirts },
-  { name: "Trousers & Chinos", types: "Formal, Casual, Cargo, Joggers", moq: "300 pcs", bg: catTrousers },
+  { name: "Shirts", types: "Formal, Casual, Linen, Oxford", moq: "300 pcs", bg: catShirts },
+  { name: "Trousers", types: "Formal, Casual, Cargo, Joggers", moq: "300 pcs", bg: catTrousers },
   { name: "Jackets & Outerwear", types: "Bomber, Windbreaker, Puffer, Blazer", moq: "200 pcs", bg: catJackets },
   { name: "Activewear", types: "Leggings, Sports Bra, Shorts, Hoodies", moq: "500 pcs", bg: catActivewear },
   { name: "Workwear & Uniforms", types: "Industrial, Corporate, Hospitality", moq: "200 pcs", bg: catWorkwear },
@@ -21,7 +21,7 @@ export default function CatalogPage() {
   return (
     <>
       {/* Header with image background */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative h-[460px] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={catalogHero}
@@ -67,12 +67,16 @@ export default function CatalogPage() {
                 height={600}
               />
               {/* Gradient veil keeps text readable while the image still shows through */}
-              <div className="absolute inset-0 bg-gradient-to-br from-card/90 via-card/70 to-card/40" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[hsl(0,0%,100%,0)] via-[hsl(0,0%,7.72%,0.17)] to-[hsl(0,0%,0%,0.2)]" />
 
               <div className="relative z-10 p-6 flex flex-col justify-end h-full min-h-[260px]">
                 <h3 className="font-heading text-xl font-semibold text-card-foreground">{cat.name}</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{cat.types}</p>
-                <p className="mt-3 text-xs font-medium text-accent">MOQ: {cat.moq}</p>
+                <div className="mt-4">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-accent/45 text-[hsl(38_96.78%_17.37%)] border border-accent/20 text-xs font-bold backdrop-blur-md shadow-sm">
+                    MOQ: {cat.moq}
+                  </span>
+                </div>
               </div>
             </motion.div>
           ))}

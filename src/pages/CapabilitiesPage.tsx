@@ -46,7 +46,7 @@ export default function CapabilitiesPage() {
   return (
     <>
       {/* Header */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative h-[460px] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={capabilitiesHero}

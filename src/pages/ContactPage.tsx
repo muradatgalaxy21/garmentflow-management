@@ -102,7 +102,7 @@ export default function ContactPage() {
   return (
     <>
       {/* Header with image background */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative h-[460px] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={contactHero}
