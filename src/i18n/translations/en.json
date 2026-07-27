@@ -22,6 +22,7 @@
       "submit": "Look Up Batch",
       "notFound": "Batch not found. Please check the QR code.",
       "cameraError": "Camera access denied. Please use manual entry.",
+      "insecureContext": "Camera requires HTTPS or localhost. Open this app via a secure (https://) URL, or use manual entry below.",
       "scanning": "Scanning..."
     },
     "entry": {

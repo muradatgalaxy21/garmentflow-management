@@ -16,6 +16,7 @@ export default function QrScannerPage() {
   const [manualCode, setManualCode] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
   const [cameraError, setCameraError] = useState(false);
+  const [insecureContext, setInsecureContext] = useState(false);
   const scannerRef = useRef<HTMLDivElement>(null);
 
   const lookupBatch = useCallback(
@@ -44,6 +45,11 @@ export default function QrScannerPage() {
   );
 
   useEffect(() => {
+    if (!window.isSecureContext) {
+      setInsecureContext(true);
+      return;
+    }
+
     let scannerInstance: { stop: () => Promise<void> } | null = null;
 
     const initScanner = async () => {
@@ -78,7 +84,12 @@ export default function QrScannerPage() {
       <h1 className="text-xl font-bold text-white">{t("factory.scanner.title")}</h1>
       <Card className="bg-slate-800 border-slate-700 overflow-hidden">
         <CardContent className="p-0">
-          {cameraError ? (
+          {insecureContext ? (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
+              <AlertTriangle className="w-10 h-10 text-amber-400" />
+              <p className="text-sm text-slate-300">{t("factory.scanner.insecureContext")}</p>
+            </div>
+          ) : cameraError ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
               <AlertTriangle className="w-10 h-10 text-amber-400" />
               <p className="text-sm text-slate-300">{t("factory.scanner.cameraError")}</p>

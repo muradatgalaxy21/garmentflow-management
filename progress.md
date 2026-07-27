@@ -59,3 +59,17 @@ Root causes found and fixed:
 `profiles` table had no `email` column, so the "New Order" client dropdown showed every profile (worker/admin/staff included) with no way to show email. Added migration `20260727010000_profiles_email.sql`: adds `profiles.email`, backfills from `auth.users`, updates `handle_new_user` trigger to populate it going forward. `OrdersAdminPage.tsx` now joins `user_roles` and filters the dropdown to `role = 'client'` only, showing email under the name in muted small text.
 
 **Needs Attention**: migration not yet applied to the hosted Supabase project — run it via the Supabase dashboard/CLI before this fix takes effect live. `types.ts` updated by hand to match.
+
+## 2026-07-27 (QR scanner white screen on mobile over http://LAN-IP)
+
+User opened the dev server via `http://192.168.0.119:8080` on a phone, signed in as worker, and the QR scan page showed a permanent blank white screen — even navigating back to `/factory` stayed blank until a manual reload.
+
+Root cause, two parts:
+1. Camera (`getUserMedia`) is only available in a secure context (`https://` or `localhost`). Over a plain-`http://LAN-IP` origin, `navigator.mediaDevices` is `undefined`, and `html5-qrcode` (`camera/permissions.js`) calls `navigator.mediaDevices.enumerateDevices()` with no guard.
+2. The app had **no ErrorBoundary anywhere**, and `vite.config.ts` has `hmr.overlay: false`. Any uncaught render-time error unmounts the whole React tree silently — no red overlay, no fallback, just white — and since it's a SPA, client-side route changes can't recover a dead root; only a full reload restarts React.
+
+Fixes:
+- `QrScannerPage.tsx`: check `window.isSecureContext` before touching the camera; show a clear "needs HTTPS/localhost" message (new `factory.scanner.insecureContext` i18n key, en+ur) instead of attempting init.
+- Added `src/components/ErrorBoundary.tsx`, wrapped `<App />` with it in `main.tsx` — any future uncaught error now shows a fallback with a Reload button instead of a silent permanent blank screen.
+
+**Needs Attention**: to actually test QR scanning on a phone, the dev server must be served over HTTPS (e.g. `vite --https` / a tunnel like ngrok/cloudflared) or accessed via `localhost` (e.g. via `adb reverse` for Android). Plain LAN-IP http will never get camera access — that's a browser policy, not fixable in app code.
