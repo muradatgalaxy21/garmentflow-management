@@ -1,0 +1,72 @@
+{
+  "factory": {
+    "title": "En En Garments",
+    "subtitle": "Factory Floor",
+    "dashboard": {
+      "welcome": "Welcome",
+      "today": "Today",
+      "piecesToday": "Pieces Today",
+      "activeBatches": "Active Batches",
+      "scanQr": "Scan QR Code",
+      "recentBatches": "Recent Batches",
+      "noBatches": "No batches found. Scan a QR code to begin.",
+      "style": "Style",
+      "quantity": "Quantity",
+      "status": "Status"
+    },
+    "scanner": {
+      "title": "Scan QR Code",
+      "instruction": "Point your camera at the batch QR code",
+      "manualEntry": "Or enter QR code manually",
+      "placeholder": "Enter QR code hash...",
+      "submit": "Look Up Batch",
+      "notFound": "Batch not found. Please check the QR code.",
+      "cameraError": "Camera access denied. Please use manual entry.",
+      "scanning": "Scanning..."
+    },
+    "entry": {
+      "title": "Log Production",
+      "batchDetails": "Batch Details",
+      "styleNumber": "Style Number",
+      "expectedQuantity": "Expected Quantity",
+      "currentPhase": "Current Phase",
+      "selectPhase": "Select Phase",
+      "ratePerPiece": "Rate per Piece",
+      "rateNotSet": "Rate not set by admin",
+      "quantityCompleted": "Pieces Completed",
+      "quantityWasted": "Pieces Wasted",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Describe any defects or issues...",
+      "submit": "Submit Entry",
+      "submitting": "Submitting...",
+      "success": "Entry recorded successfully!",
+      "error": "Failed to submit. Please try again.",
+      "savedOffline": "Saved offline. Will sync when connected."
+    },
+    "myWork": {
+      "title": "My Work",
+      "noEntries": "No entries yet. Scan a QR code to start.",
+      "completed": "Completed",
+      "wasted": "Wasted",
+      "phase": "Phase",
+      "batch": "Batch"
+    },
+    "nav": {
+      "scan": "Scan",
+      "myWork": "My Work",
+      "home": "Home"
+    },
+    "common": {
+      "signOut": "Sign Out",
+      "loading": "Loading...",
+      "error": "Something went wrong",
+      "retry": "Retry",
+      "offline": "You are offline",
+      "pendingSync": "Pending sync",
+      "language": "Language",
+      "pieces": "pcs",
+      "inProgress": "In Progress",
+      "completed": "Completed"
+    }
+  }
+}

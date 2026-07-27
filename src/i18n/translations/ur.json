@@ -1,0 +1,72 @@
+{
+  "factory": {
+    "title": "این این گارمنٹس",
+    "subtitle": "فیکٹری فلور",
+    "dashboard": {
+      "welcome": "خوش آمدید",
+      "today": "آج",
+      "piecesToday": "آج کے ٹکڑے",
+      "activeBatches": "فعال بیچز",
+      "scanQr": "QR کوڈ اسکین کریں",
+      "recentBatches": "حالیہ بیچز",
+      "noBatches": "کوئی بیچ نہیں ملا۔ شروع کرنے کے لیے QR کوڈ اسکین کریں۔",
+      "style": "اسٹائل",
+      "quantity": "مقدار",
+      "status": "حالت"
+    },
+    "scanner": {
+      "title": "QR کوڈ اسکین کریں",
+      "instruction": "بیچ کے QR کوڈ پر کیمرہ رکھیں",
+      "manualEntry": "یا QR کوڈ دستی طور پر درج کریں",
+      "placeholder": "QR کوڈ ہیش درج کریں...",
+      "submit": "بیچ تلاش کریں",
+      "notFound": "بیچ نہیں ملا۔ براہ کرم QR کوڈ چیک کریں۔",
+      "cameraError": "کیمرے تک رسائی نہیں ہو سکی۔ دستی اندراج استعمال کریں۔",
+      "scanning": "اسکین ہو رہا ہے..."
+    },
+    "entry": {
+      "title": "پیداوار ریکارڈ کریں",
+      "batchDetails": "بیچ کی تفصیلات",
+      "styleNumber": "اسٹائل نمبر",
+      "expectedQuantity": "متوقع مقدار",
+      "currentPhase": "موجودہ مرحلہ",
+      "selectPhase": "مرحلہ منتخب کریں",
+      "ratePerPiece": "فی پیس ریٹ",
+      "rateNotSet": "ایڈمن نے ریٹ مقرر نہیں کیا",
+      "quantityCompleted": "مکمل ٹکڑے",
+      "quantityWasted": "ضائع شدہ ٹکڑے",
+      "notes": "نوٹس (اختیاری)",
+      "notesPlaceholder": "کسی بھی نقص یا مسئلے کی وضاحت کریں...",
+      "submit": "اندراج جمع کریں",
+      "submitting": "جمع ہو رہا ہے...",
+      "success": "اندراج کامیابی سے ریکارڈ ہو گیا!",
+      "error": "جمع کرنے میں ناکامی۔ دوبارہ کوشش کریں۔",
+      "savedOffline": "آف لائن محفوظ ہو گیا۔ کنکشن ہونے پر خود بخود بھیجا جائے گا۔"
+    },
+    "myWork": {
+      "title": "میرا کام",
+      "noEntries": "ابھی تک کوئی اندراج نہیں۔ شروع کرنے کے لیے QR کوڈ اسکین کریں۔",
+      "completed": "مکمل",
+      "wasted": "ضائع",
+      "phase": "مرحلہ",
+      "batch": "بیچ"
+    },
+    "nav": {
+      "scan": "اسکین",
+      "myWork": "میرا کام",
+      "home": "ہوم"
+    },
+    "common": {
+      "signOut": "لاگ آؤٹ",
+      "loading": "لوڈ ہو رہا ہے...",
+      "error": "کچھ غلط ہو گیا",
+      "retry": "دوبارہ کوشش کریں",
+      "offline": "آپ آف لائن ہیں",
+      "pendingSync": "بھیجنا باقی ہے",
+      "language": "زبان",
+      "pieces": "پیس",
+      "inProgress": "جاری ہے",
+      "completed": "مکمل"
+    }
+  }
+}

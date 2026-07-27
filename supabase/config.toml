@@ -1,5 +1,12 @@
-project_id = "onpygxbdvjqadcvayppj"
+project_id = "bwfpqkplwdjwjzrymhuh"
 
 # Public chatbot — no auth required so visitors can chat with the assistant
 [functions.chat]
+verify_jwt = false
+
+# Admin signup flow — called before the caller has a session
+[functions.admin-request-code]
+verify_jwt = false
+
+[functions.admin-verify-signup]
 verify_jwt = false

@@ -1,7 +1,8 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Inbox, Package, ClipboardList, Users, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Inbox, Package, ClipboardList, Users, Factory, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import NotificationBell from "@/components/NotificationBell";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +22,7 @@ const adminNav = [
   { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false },
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false },
+  { title: "Batches", url: "/admin/batches", icon: Factory, end: false },
   { title: "Clients", url: "/admin/clients", icon: Users, end: false },
 ];
 
@@ -98,16 +100,19 @@ export default function AdminLayout() {
                 {isAdmin ? "Admin" : "Staff"} • {user.email}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={async () => {
-                await signOut();
-                navigate("/");
-              }}
-            >
-              <LogOut className="w-4 h-4 mr-2" /> Sign out
-            </Button>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  await signOut();
+                  navigate("/");
+                }}
+              >
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </Button>
+            </div>
           </header>
           <main className="flex-1 overflow-auto p-6">
             <Outlet />
