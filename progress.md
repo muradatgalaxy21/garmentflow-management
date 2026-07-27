@@ -1,6 +1,16 @@
 # Progress Log
 
-## 2026-07-27 16:52
+## 2026-07-27 (later) — repo cleanup + real worker-portal bug
+
+### Committed all outstanding work into proper per-feature commits
+- Previously dirty working tree (12+ uncommitted feature areas) split into logical commits: gitignore/cleanup, role-based auth + hidden admin signup, factory tracking module, admin dashboard analytics/kanban/notifications, branding + nav role-fix, docs.
+- `.gitignore` updated: raw design asset kit (`/assets/`) and local dev/test artifacts (`.playwright-mcp/`, `supabase/.temp/`) excluded from repo — images to be hosted externally per user's call.
+- `.env` left uncommitted intentionally — flagged to user (rotates to a different Supabase project's anon/publishable key; already tracked from an earlier commit, so not a new exposure, but confirming before pushing).
+
+### Real root cause of "worker can't reach /factory" found and fixed
+Reported symptom: clicking "My Portal" as a worker showed a blink of blank screen then bounced to the homepage, even though the account has the `worker` role in `user_roles`.
+- Root cause: `useAuth.ts` set `loading: false` as soon as the Supabase session resolved, but role fetch (`fetchRoles`) runs as a separate async call afterward. `ProtectedRoute` (which mounts its own independent `useAuth()` instance per route) hit a window where `loading` was already `false` but `roles` was still `[]`, so the `requireRoles={["worker"]}` check on `/factory` failed and redirected to `/` — before the real roles ever arrived.
+- Fix: `loading` now stays `true` until the roles fetch itself resolves (success or error), in both the initial `getSession()` path and the `onAuthStateChange` callback.
 
 ## Done
 
@@ -42,3 +52,4 @@ Root causes found and fixed:
 3. **Re-enable/confirm email verification or OTP is actually active** before real users sign up in prod (currently disabled for dev testing — must not ship with it off unless OTP replaces it).
 4. **Finish end-to-end worker login test** once a test account or disabled email confirmation unblocks it.
 5. Review all `?? console.error` / silent failure paths added under time pressure — not yet audited.
+6. Decide `.env` handling: keep tracked (current state) or move to local-only + commit an `.env.example` with placeholders.
