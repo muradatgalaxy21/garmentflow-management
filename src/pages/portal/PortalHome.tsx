@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Loader2, Package, Clock, ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Loader2, Package, Clock, ArrowRight, PlusCircle, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 
 interface OrderRow {
@@ -14,18 +15,18 @@ interface OrderRow {
   created_at: string;
 }
 
-// Status color helper shared with MyOrders page  
 const statusColors: Record<string, string> = {
-  pending: "bg-slate-500/15 text-slate-600",
-  in_production: "bg-blue-500/15 text-blue-600",
-  qc: "bg-purple-500/15 text-purple-600",
-  shipped: "bg-amber-500/15 text-amber-600",
-  delivered: "bg-emerald-500/15 text-emerald-600",
-  cancelled: "bg-red-500/15 text-red-600",
+  pending: "bg-slate-500/15 text-slate-600 border-slate-500/30",
+  in_production: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  qc: "bg-purple-500/15 text-purple-600 border-purple-500/30",
+  shipped: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+  delivered: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+  cancelled: "bg-red-500/15 text-red-600 border-red-500/30",
 };
 
 export default function PortalHome() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,15 +48,27 @@ export default function PortalHome() {
 
   return (
     <div className="space-y-8">
-      {/* Page heading */}
-      <div>
-        <h1 className="font-heading text-3xl font-bold text-foreground">Welcome back</h1>
-        <p className="text-base text-muted-foreground mt-1">
-          Here is a quick overview of your account, {user?.email?.split("@")[0]}.
-        </p>
+      {/* Page heading with Place Direct Order CTA */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-accent/5 p-6 rounded-2xl border border-accent/20">
+        <div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-accent/10 text-accent mb-2">
+            <Sparkles className="w-3.5 h-3.5" /> Client Portal
+          </span>
+          <h1 className="font-heading text-3xl font-bold text-foreground">Welcome back</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track ongoing garment batches or place a new direct production order.
+          </p>
+        </div>
+        <Button
+          size="lg"
+          className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md whitespace-nowrap shrink-0"
+          onClick={() => navigate("/portal/direct-order")}
+        >
+          <PlusCircle className="w-5 h-5 mr-2" /> Place Direct Production Order
+        </Button>
       </div>
 
-      {/* Stats cards — wider, more breathing room */}
+      {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         <Card className="border-border/80 shadow-sm hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -89,7 +102,7 @@ export default function PortalHome() {
         </Card>
       </div>
 
-      {/* Recent orders card — expanded with status badge */}
+      {/* Recent orders card */}
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Recent Orders</CardTitle>
@@ -106,11 +119,7 @@ export default function PortalHome() {
             <div className="text-center py-10">
               <Package className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
               <p className="text-sm text-muted-foreground">
-                You have no orders yet.{" "}
-                <Link to="/contact?rfq=true" className="text-accent hover:underline">
-                  Submit a quote
-                </Link>{" "}
-                on the website to get started.
+                You have no orders yet. Click above to place your first direct production order!
               </p>
             </div>
           ) : (
@@ -143,3 +152,4 @@ export default function PortalHome() {
     </div>
   );
 }
+

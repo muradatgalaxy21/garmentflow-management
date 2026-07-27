@@ -48,3 +48,8 @@ graphify-out/
 # Local test/dev artifacts
 .playwright-mcp/
 supabase/.temp/
+
+# Exclude all markdown files
+*.md
+*.MD
+

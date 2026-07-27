@@ -1,28 +1,17 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { QrCode, ClipboardList, Home, LogOut, Loader2, Globe, Wifi, WifiOff } from "lucide-react";
+import { QrCode, ClipboardList, Home, LogOut, Loader2, WifiOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LanguageProvider, useLanguage } from "@/i18n/LanguageContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPendingCount, registerSyncListeners } from "@/lib/offlineSync";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
-// ---------------------------------------------------------------
-// FactoryLayout
-//
-// Mobile-first layout for the /factory route group. Designed for
-// factory floor workers using phones or tablets. Features:
-//   - Compact top bar with language toggle and sign-out
-//   - Bottom tab navigation (Scan, Home, My Work)
-//   - Offline status indicator with pending sync count
-//   - RTL support for Urdu language
-// ---------------------------------------------------------------
-
-/** Inner layout that consumes the language context */
-function FactoryLayoutInner() {
+export default function FactoryLayout() {
   const { user, loading, signOut } = useAuth();
-  const { toggleLanguage, language, isRtl } = useLanguage();
+  const { isRtl } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -114,16 +103,12 @@ function FactoryLayoutInner() {
               </Badge>
             )}
 
-            {/* Language toggle */}
-            <Button
+            {/* Language & Urdu Font Switcher */}
+            <LanguageSwitcher
               variant="ghost"
               size="sm"
-              onClick={toggleLanguage}
               className="text-slate-300 hover:text-white hover:bg-slate-700 text-xs px-2"
-            >
-              <Globe className="w-3.5 h-3.5 mr-1" />
-              {language === "en" ? "اردو" : "EN"}
-            </Button>
+            />
 
             {/* Sign out */}
             <Button
@@ -169,17 +154,5 @@ function FactoryLayoutInner() {
         </div>
       </nav>
     </div>
-  );
-}
-
-/**
- * Exported layout wrapper that provides the LanguageProvider
- * context to all child routes under /factory.
- */
-export default function FactoryLayout() {
-  return (
-    <LanguageProvider>
-      <FactoryLayoutInner />
-    </LanguageProvider>
   );
 }

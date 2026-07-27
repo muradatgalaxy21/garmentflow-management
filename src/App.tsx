@@ -31,10 +31,14 @@ import MyOrders from "@/pages/portal/MyOrders";
 import OrderDetail from "@/pages/portal/OrderDetail";
 import ProfilePage from "@/pages/portal/ProfilePage";
 
+import DirectOrderPage from "@/pages/portal/DirectOrderPage";
+
 import FactoryDashboard from "@/pages/factory/FactoryDashboard";
 import QrScannerPage from "@/pages/factory/QrScannerPage";
 import BatchEntryPage from "@/pages/factory/BatchEntryPage";
 import MyWorkPage from "@/pages/factory/MyWorkPage";
+
+import { LanguageProvider } from "@/i18n/LanguageContext";
 
 const queryClient = new QueryClient();
 
@@ -43,73 +47,76 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Public marketing site */}
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/capabilities" element={<CapabilitiesPage />} />
-            <Route path="/catalog" element={<CatalogPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-          </Route>
+      <LanguageProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public marketing site */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/capabilities" element={<CapabilitiesPage />} />
+              <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/contact" element={<ContactPage />} />
+            </Route>
 
-          {/* Auth (no chrome) */}
-          <Route path="/auth" element={<AuthPage />} />
+            {/* Auth (no chrome) */}
+            <Route path="/auth" element={<AuthPage />} />
 
-          {/* Hidden admin sign-in / provisioning — reached via 4x logo click, never linked */}
-          <Route path="/system-access" element={<AdminAuthPage />} />
+            {/* Hidden admin sign-in / provisioning — reached via 4x logo click, never linked */}
+            <Route path="/system-access" element={<AdminAuthPage />} />
 
-          {/* Admin portal — admin or staff only */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireRoles={["admin", "staff"]}>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="rfqs" element={<RfqInbox />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="orders" element={<OrdersAdminPage />} />
-            <Route path="batches" element={<BatchManagementPage />} />
-            <Route path="clients" element={<ClientsPage />} />
-          </Route>
+            {/* Admin portal — admin or staff only */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireRoles={["admin", "staff"]}>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="rfqs" element={<RfqInbox />} />
+              <Route path="inventory" element={<InventoryPage />} />
+              <Route path="orders" element={<OrdersAdminPage />} />
+              <Route path="batches" element={<BatchManagementPage />} />
+              <Route path="clients" element={<ClientsPage />} />
+            </Route>
 
-          {/* Client portal — any authenticated user */}
-          <Route
-            path="/portal"
-            element={
-              <ProtectedRoute>
-                <PortalLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<PortalHome />} />
-            <Route path="orders" element={<MyOrders />} />
-            <Route path="orders/:id" element={<OrderDetail />} />
-            <Route path="profile" element={<ProfilePage />} />
-          </Route>
+            {/* Client portal — any authenticated user */}
+            <Route
+              path="/portal"
+              element={
+                <ProtectedRoute>
+                  <PortalLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<PortalHome />} />
+              <Route path="direct-order" element={<DirectOrderPage />} />
+              <Route path="orders" element={<MyOrders />} />
+              <Route path="orders/:id" element={<OrderDetail />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
 
-          {/* Factory worker portal — worker role only */}
-          <Route
-            path="/factory"
-            element={
-              <ProtectedRoute requireRoles={["worker"]}>
-                <FactoryLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<FactoryDashboard />} />
-            <Route path="scan" element={<QrScannerPage />} />
-            <Route path="batch/:batchId" element={<BatchEntryPage />} />
-            <Route path="my-work" element={<MyWorkPage />} />
-          </Route>
+            {/* Factory worker portal — worker role only */}
+            <Route
+              path="/factory"
+              element={
+                <ProtectedRoute requireRoles={["worker"]}>
+                  <FactoryLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<FactoryDashboard />} />
+              <Route path="scan" element={<QrScannerPage />} />
+              <Route path="batch/:batchId" element={<BatchEntryPage />} />
+              <Route path="my-work" element={<MyWorkPage />} />
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

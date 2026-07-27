@@ -62,6 +62,9 @@
 
     --font-heading: 'Playfair Display', Georgia, serif;
     --font-body: 'Source Sans 3', system-ui, sans-serif;
+
+    /* Urdu font stack */
+    --font-urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Noto Sans Arabic', system-ui, serif;
   }
 
   .dark {
@@ -106,6 +109,18 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
+  }
+
+  /* When document is in Urdu (RTL mode), apply the default high-quality Urdu font family */
+  html[lang="ur"] body,
+  html[lang="ur"] h1,
+  html[lang="ur"] h2,
+  html[lang="ur"] h3,
+  html[lang="ur"] h4,
+  html[lang="ur"] h5,
+  html[lang="ur"] h6 {
+    font-family: var(--font-urdu);
+    line-height: 1.8;
   }
 }
 

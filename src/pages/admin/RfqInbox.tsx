@@ -210,6 +210,54 @@ export default function RfqInbox() {
                 <Button className="w-full" onClick={saveChanges} disabled={saving}>
                   {saving ? "Saving..." : "Save Changes"}
                 </Button>
+
+                {draftStatus === "won" && (
+                  <Button
+                    variant="secondary"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                    onClick={async () => {
+                      setSaving(true);
+                      try {
+                        const orderNum = `ORD-${Date.now().toString().slice(-6)}`;
+                        // 1. Create Order
+                        const { data: newOrder, error: oErr } = await supabase
+                          .from("orders")
+                          .insert({
+                            client_id: selected.id, // linked or fallback
+                            order_number: orderNum,
+                            product_summary: `${selected.product_type || "Garments"} - ${selected.name}`,
+                            quantity: parseInt(selected.quantity || "100") || 100,
+                            status: "in_production",
+                          })
+                          .select()
+                          .single();
+
+                        if (oErr) throw oErr;
+
+                        // 2. Create Batch
+                        const styleNum = `STYLE-${selected.product_type ? selected.product_type.slice(0, 3).toUpperCase() : "GAR"}-${Date.now().toString().slice(-4)}`;
+                        const { error: bErr } = await supabase.from("production_batches").insert({
+                          order_id: newOrder.id,
+                          style_number: styleNum,
+                          total_quantity: newOrder.quantity,
+                          status: "in_progress",
+                        });
+
+                        if (bErr) throw bErr;
+
+                        toast({ title: "Order & Batch Created!", description: `Created Order #${orderNum} & Batch #${styleNum}` });
+                        setSelected(null);
+                        load();
+                      } catch (err: any) {
+                        toast({ title: "Conversion failed", description: err.message, variant: "destructive" });
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                  >
+                    🚀 Convert to Production Order &amp; Batch
+                  </Button>
+                )}
               </div>
             </>
           )}

@@ -377,6 +377,98 @@ export type Database = {
         }
         Relationships: []
       }
+      batch_worker_sessions: {
+        Row: {
+          id: string
+          batch_id: string
+          phase_id: string
+          worker_id: string
+          start_time: string
+          end_time: string | null
+          status: "active" | "completed" | "cancelled"
+          quantity_completed: number
+          quantity_wasted: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          batch_id: string
+          phase_id: string
+          worker_id: string
+          start_time?: string
+          end_time?: string | null
+          status?: "active" | "completed" | "cancelled"
+          quantity_completed?: number
+          quantity_wasted?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          batch_id?: string
+          phase_id?: string
+          worker_id?: string
+          start_time?: string
+          end_time?: string | null
+          status?: "active" | "completed" | "cancelled"
+          quantity_completed?: number
+          quantity_wasted?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_worker_sessions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_worker_sessions_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manager_batch_assignments: {
+        Row: {
+          id: string
+          manager_id: string
+          batch_id: string
+          assigned_at: string
+          assigned_by: string | null
+        }
+        Insert: {
+          id?: string
+          manager_id: string
+          batch_id: string
+          assigned_at?: string
+          assigned_by?: string | null
+        }
+        Update: {
+          id?: string
+          manager_id?: string
+          batch_id?: string
+          assigned_at?: string
+          assigned_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_batch_assignments_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           company: string | null
@@ -386,6 +478,11 @@ export type Database = {
           id: string
           phone: string | null
           updated_at: string
+          wage_type: "piece_rate" | "monthly_salary" | null
+          base_salary: number | null
+          default_piece_rate: number | null
+          skills: string[] | null
+          employee_id: string | null
         }
         Insert: {
           company?: string | null
@@ -395,6 +492,11 @@ export type Database = {
           id: string
           phone?: string | null
           updated_at?: string
+          wage_type?: "piece_rate" | "monthly_salary" | null
+          base_salary?: number | null
+          default_piece_rate?: number | null
+          skills?: string[] | null
+          employee_id?: string | null
         }
         Update: {
           company?: string | null
@@ -404,6 +506,11 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          wage_type?: "piece_rate" | "monthly_salary" | null
+          base_salary?: number | null
+          default_piece_rate?: number | null
+          skills?: string[] | null
+          employee_id?: string | null
         }
         Relationships: []
       }
@@ -490,7 +597,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff" | "client" | "worker"
+      app_role: "admin" | "staff" | "client" | "worker" | "manager"
       movement_type: "in" | "out" | "adjust"
       order_status:
         | "pending"

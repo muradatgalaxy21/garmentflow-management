@@ -1,8 +1,8 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import en from "@/i18n/translations/en.json";
 import ur from "@/i18n/translations/ur.json";
 
-// Supported language codes for the factory module
+// Supported language codes for the application
 export type Language = "en" | "ur";
 
 // Translation dictionary type mirrors the JSON structure
@@ -26,38 +26,43 @@ interface LanguageContextValue {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-// Persist language preference in localStorage for returning users
-const STORAGE_KEY = "enen_factory_lang";
+const STORAGE_LANG_KEY = "enen_app_lang";
 
 function getInitialLanguage(): Language {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(STORAGE_LANG_KEY);
     if (stored === "en" || stored === "ur") return stored;
   } catch {
-    // localStorage unavailable (e.g. private browsing)
+    // localStorage unavailable
   }
   return "en";
 }
 
 /**
- * Provider component wrapping the /factory route tree.
- * Supplies language state and translation dictionary to all
- * factory components via React Context.
+ * Provider component wrapping the application.
+ * Supplies global language state and translation dictionary.
  */
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(getInitialLanguage);
 
-  // 1. Persist language choice and update state
+  // Synchronize HTML document attributes (lang & dir) when language changes
+  useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute("lang", language);
+    root.setAttribute("dir", language === "ur" ? "rtl" : "ltr");
+  }, [language]);
+
+  // Persist language choice
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     try {
-      localStorage.setItem(STORAGE_KEY, lang);
+      localStorage.setItem(STORAGE_LANG_KEY, lang);
     } catch {
       // Silent fail if storage is unavailable
     }
   }, []);
 
-  // 2. Quick toggle between English and Urdu
+  // Quick toggle between English and Urdu
   const toggleLanguage = useCallback(() => {
     setLanguage(language === "en" ? "ur" : "en");
   }, [language, setLanguage]);
@@ -78,7 +83,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Hook to access language context from any factory component.
+ * Hook to access language context from any component.
  * Throws if used outside of LanguageProvider.
  */
 export function useLanguage(): LanguageContextValue {
@@ -88,3 +93,4 @@ export function useLanguage(): LanguageContextValue {
   }
   return ctx;
 }
+

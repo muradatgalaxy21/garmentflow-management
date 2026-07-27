@@ -1,4 +1,37 @@
 {
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "capabilities": "Capabilities",
+    "catalog": "Catalog",
+    "contact": "Contact",
+    "signIn": "Sign In",
+    "workerPortal": "Worker Portal",
+    "clientPortal": "Client Portal",
+    "adminPortal": "Admin Portal",
+    "requestQuote": "Request Quote",
+    "myPortal": "My Portal",
+    "signOut": "Sign Out"
+  },
+  "auth": {
+    "title": "Employee & Client Portal",
+    "continueAs": "Continue as:",
+    "client": "Client",
+    "clientDesc": "Place orders, track production, manage your account",
+    "worker": "Factory Employee / Worker",
+    "workerDesc": "Factory floor sign-in for production logging & piece counting",
+    "changeRole": "Change role",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email Address",
+    "password": "Password",
+    "fullName": "Full Name",
+    "company": "Company (optional)",
+    "submitSignIn": "Sign In to Portal",
+    "submitSignUp": "Create Account",
+    "backToSite": "Back to main website",
+    "workerNotice": "Factory Workers: Signing in will take you directly to your worker floor dashboard."
+  },
   "factory": {
     "title": "En En Garments",
     "subtitle": "Factory Floor",

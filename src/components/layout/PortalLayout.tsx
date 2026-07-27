@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
 import { Home, Package, User, LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 // Portal navigation tabs
 const portalNav = [
@@ -48,8 +49,13 @@ export default function PortalLayout() {
             </div>
           </div>
 
-          {/* Right: email, profile avatar, sign out */}
+          {/* Right: language switcher, email, profile avatar, sign out */}
           <div className="flex items-center gap-2">
+            <LanguageSwitcher
+              variant="ghost"
+              size="sm"
+              className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            />
             {(isAdmin || isStaff) && (
               <Button
                 asChild

@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
-import { Eye, EyeOff, Briefcase, HardHat } from "lucide-react";
+import { Eye, EyeOff, Briefcase, HardHat, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "@/i18n/useTranslation";
+import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 type PortalRole = "client" | "worker";
 
@@ -32,7 +34,6 @@ const signUpSchema = signInSchema.extend({
 });
 
 // A reusable password input that reveals itself only while the eye icon is held down.
-// Using onMouseDown / onPointerDown so it works on both desktop and mobile.
 function PasswordField({
   id,
   name,
@@ -83,15 +84,19 @@ function PasswordField({
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<PortalRole | null>(null);
+
+  // Pre-select role if specified in query params (?role=worker or ?role=client)
+  const initialRole = searchParams.get("role") === "worker" ? "worker" : searchParams.get("role") === "client" ? "client" : null;
+  const [role, setRole] = useState<PortalRole | null>(initialRole);
 
   // Redirect target after successful auth — fallback to /portal
   const from = (location.state as { from?: string } | null)?.from ?? "/portal";
 
-  // If already logged in, skip the auth form entirely — but still route by
-  // role (unless we were bounced here from a specific protected route).
+  // If already logged in, skip the auth form entirely
   useEffect(() => {
     const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -126,8 +131,6 @@ export default function AuthPage() {
       return;
     }
 
-    // If we weren't bounced here from a specific protected route, land the
-    // user on the area their role actually uses instead of always /portal.
     const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
     let target = from;
     if (!cameFromProtectedRoute && data.user) {
@@ -172,7 +175,7 @@ export default function AuthPage() {
       let description = error.message;
       if ((error as { code?: string }).code === "weak_password" || /pwned|weak/i.test(error.message)) {
         description =
-          "This password has appeared in a known data breach. Please choose a stronger, unique password (mix letters, numbers, symbols).";
+          "This password has appeared in a known data breach. Please choose a stronger, unique password.";
       } else if (/already registered|already exists/i.test(error.message)) {
         description = "An account with this email already exists. Try signing in instead.";
       }
@@ -187,23 +190,28 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/40 px-6 py-16">
-      <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 shadow-sm">
+      <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 shadow-sm relative">
 
-        {/* Brand header — logo placeholder + company name */}
-        <div className="text-center mb-8">
+        {/* Top right language switcher */}
+        <div className="absolute top-4 right-4">
+          <LanguageSwitcher variant="ghost" size="sm" />
+        </div>
+
+        {/* Brand header */}
+        <div className="text-center mb-8 pt-2">
           <div className="flex justify-center mb-4">
             <img src="/logo-mark.svg" alt="En En Garments" className="h-16 w-auto" />
           </div>
           <Link to="/" className="font-heading text-2xl font-bold text-foreground hover:text-accent transition-colors">
             En En Garments
           </Link>
-          <p className="text-sm text-muted-foreground mt-1">Employee &amp; Client Portal</p>
+          <p className="text-sm text-muted-foreground mt-1">{t("auth.title")}</p>
         </div>
 
         {!role ? (
-          // Step 1: pick which portal this is for
+          // Step 1: Pick portal type (Client vs Worker)
           <div className="space-y-3">
-            <p className="text-sm text-center text-muted-foreground mb-4">Continue as:</p>
+            <p className="text-sm text-center text-muted-foreground mb-4">{t("auth.continueAs")}</p>
             <button
               type="button"
               onClick={() => setRole("client")}
@@ -211,43 +219,52 @@ export default function AuthPage() {
             >
               <Briefcase className="w-6 h-6 text-accent shrink-0" />
               <div>
-                <div className="font-medium text-foreground">Client</div>
-                <div className="text-xs text-muted-foreground">Place orders, track production, manage your account</div>
+                <div className="font-medium text-foreground">{t("auth.client")}</div>
+                <div className="text-xs text-muted-foreground">{t("auth.clientDesc")}</div>
               </div>
             </button>
             <button
               type="button"
               onClick={() => setRole("worker")}
-              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-secondary/40 transition-colors text-left"
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-amber-500/10 border-amber-500/30 transition-colors text-left"
             >
-              <HardHat className="w-6 h-6 text-accent shrink-0" />
+              <HardHat className="w-6 h-6 text-amber-500 shrink-0" />
               <div>
-                <div className="font-medium text-foreground">Employee</div>
-                <div className="text-xs text-muted-foreground">Factory floor sign-in for production tracking</div>
+                <div className="font-medium text-foreground">{t("auth.worker")}</div>
+                <div className="text-xs text-muted-foreground">{t("auth.workerDesc")}</div>
               </div>
             </button>
           </div>
         ) : (
           <>
-            <button
-              type="button"
-              onClick={() => setRole(null)}
-              className="text-xs text-muted-foreground hover:text-accent transition-colors mb-4"
-            >
-              ← Change role ({role === "client" ? "Client" : "Employee"})
-            </button>
+            <div className="flex items-center justify-between mb-4">
+              <button
+                type="button"
+                onClick={() => setRole(null)}
+                className="text-xs text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                {t("auth.changeRole")} ({role === "client" ? t("auth.client") : t("auth.worker")})
+              </button>
+            </div>
+
+            {role === "worker" && (
+              <div className="mb-4 p-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs">
+                {t("auth.workerNotice")}
+              </div>
+            )}
 
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+                <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
               </TabsList>
 
               {/* Sign In tab */}
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4 mt-4" noValidate autoComplete="on">
                   <div>
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email">{t("auth.email")}</Label>
                     <Input
                       id="signin-email"
                       name="email"
@@ -259,7 +276,7 @@ export default function AuthPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password">{t("auth.password")}</Label>
                     <div className="mt-1">
                       <PasswordField
                         id="signin-password"
@@ -272,7 +289,7 @@ export default function AuthPage() {
                     </div>
                   </div>
                   <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Signing in..." : "Sign In"}
+                    {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
                   </Button>
                 </form>
               </TabsContent>
@@ -281,7 +298,7 @@ export default function AuthPage() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4 mt-4" noValidate autoComplete="on">
                   <div>
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name">{t("auth.fullName")}</Label>
                     <Input
                       id="signup-name"
                       name="fullName"
@@ -291,10 +308,9 @@ export default function AuthPage() {
                       className="mt-1"
                     />
                   </div>
-                  {/* Company only makes sense for clients — En En Garments IS the company for employees */}
                   {role === "client" && (
                     <div>
-                      <Label htmlFor="signup-company">Company (optional)</Label>
+                      <Label htmlFor="signup-company">{t("auth.company")}</Label>
                       <Input
                         id="signup-company"
                         name="company"
@@ -305,7 +321,7 @@ export default function AuthPage() {
                     </div>
                   )}
                   <div>
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">{t("auth.email")}</Label>
                     <Input
                       id="signup-email"
                       name="email"
@@ -317,7 +333,7 @@ export default function AuthPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password">{t("auth.password")}</Label>
                     <div className="mt-1">
                       <PasswordField
                         id="signup-password"
@@ -330,7 +346,7 @@ export default function AuthPage() {
                     </div>
                   </div>
                   <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Creating..." : "Create Account"}
+                    {loading ? t("factory.common.loading") : t("auth.submitSignUp")}
                   </Button>
                 </form>
               </TabsContent>
@@ -339,7 +355,7 @@ export default function AuthPage() {
         )}
 
         <p className="text-xs text-muted-foreground text-center mt-6">
-          <Link to="/" className="hover:text-accent transition-colors">Back to website</Link>
+          <Link to="/" className="hover:text-accent transition-colors">{t("auth.backToSite")}</Link>
         </p>
       </div>
     </div>
