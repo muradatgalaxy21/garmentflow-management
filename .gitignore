@@ -60,8 +60,11 @@ test-db.ts
 playwright-fixture.ts
 playwright.config.ts
 
-# Exclude all markdown files
-*.md
-*.MD
+# Exclude internal markdown files
+plan.md
+info.md
+progress.md
+instructions.md
+CLAUDE.md
 
 
