@@ -32,31 +32,26 @@ export function useAuth(): AuthState & {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setState((prev) => ({
-        ...prev,
-        user: session?.user ?? null,
-        session,
-        roles: prev.roles, // roles fetched separately below
-        loading: false,
-      }));
       if (session?.user) {
         // Defer the role fetch with a microtask so we never call Supabase
-        // from inside the auth callback (recommended pattern).
+        // from inside the auth callback (recommended pattern). Keep
+        // loading=true until roles resolve too, so route guards checking
+        // requireRoles never see a stale empty roles array.
         setTimeout(() => fetchRoles(session.user.id), 0);
+        setState((prev) => ({ ...prev, user: session.user, session, roles: prev.roles }));
       } else {
-        setState((s) => ({ ...s, roles: [] }));
+        setState({ user: null, session: null, roles: [], loading: false });
       }
     });
 
     // Then resolve the existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setState({
-        user: session?.user ?? null,
-        session,
-        roles: [],
-        loading: false,
-      });
-      if (session?.user) fetchRoles(session.user.id);
+      if (session?.user) {
+        setState((prev) => ({ ...prev, user: session.user, session }));
+        fetchRoles(session.user.id);
+      } else {
+        setState({ user: null, session: null, roles: [], loading: false });
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -70,9 +65,10 @@ export function useAuth(): AuthState & {
       .eq("user_id", userId);
     if (error) {
       console.error("Failed to fetch roles", error);
+      setState((s) => ({ ...s, loading: false }));
       return;
     }
-    setState((s) => ({ ...s, roles: (data ?? []).map((r) => r.role as AppRole) }));
+    setState((s) => ({ ...s, roles: (data ?? []).map((r) => r.role as AppRole), loading: false }));
   };
 
   const signOut = async () => {
