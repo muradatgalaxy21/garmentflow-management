@@ -40,3 +40,11 @@ __pycache__/
 
 # Tool Output
 graphify-out/
+
+# Raw design/logo asset kit — large binaries, not needed at runtime.
+# Images are served from public/ (committed) or hosted externally.
+/assets/
+
+# Local test/dev artifacts
+.playwright-mcp/
+supabase/.temp/
