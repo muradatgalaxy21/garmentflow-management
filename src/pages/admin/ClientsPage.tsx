@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Loader2, Shield, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Loader2, Shield, ShieldCheck, User as UserIcon, HardHat, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
-type AppRole = "admin" | "staff" | "client";
+type AppRole = "admin" | "staff" | "client" | "worker";
 
 interface Profile {
   id: string;
@@ -28,6 +30,7 @@ export default function ClientsPage() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [creatingWorker, setCreatingWorker] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -60,6 +63,30 @@ export default function ClientsPage() {
     load();
   };
 
+  const createWorker = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email") ?? "").trim();
+    const password = String(fd.get("password") ?? "");
+    const fullName = String(fd.get("fullName") ?? "").trim();
+    if (!email || password.length < 6) {
+      toast({ title: "Invalid input", description: "Email and a 6+ character password are required.", variant: "destructive" });
+      return;
+    }
+    setCreatingWorker(true);
+    const { error } = await supabase.functions.invoke("admin-create-worker", {
+      body: { email, password, fullName },
+    });
+    setCreatingWorker(false);
+    if (error) {
+      toast({ title: "Failed to create account", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Employee account created" });
+    (e.target as HTMLFormElement).reset();
+    load();
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -68,6 +95,33 @@ export default function ClientsPage() {
           Manage who has access to the admin and client portals.
         </p>
       </div>
+
+      {isAdmin && (
+        <Card>
+          <CardContent className="py-4">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+              <UserPlus className="w-4 h-4" /> Create Employee Account
+            </h2>
+            <form onSubmit={createWorker} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+              <div>
+                <Label htmlFor="worker-name" className="text-xs">Full Name</Label>
+                <Input id="worker-name" name="fullName" className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="worker-email" className="text-xs">Email</Label>
+                <Input id="worker-email" name="email" type="email" required className="mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="worker-password" className="text-xs">Password</Label>
+                <Input id="worker-password" name="password" type="password" required minLength={6} className="mt-1" />
+              </div>
+              <Button type="submit" size="sm" disabled={creatingWorker}>
+                {creatingWorker ? "Creating..." : "Create"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -85,6 +139,7 @@ export default function ClientsPage() {
             const userRoles = rolesFor(p.id);
             const hasAdmin = userRoles.includes("admin");
             const hasStaff = userRoles.includes("staff");
+            const hasWorker = userRoles.includes("worker");
             return (
               <Card key={p.id}>
                 <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
@@ -94,6 +149,7 @@ export default function ClientsPage() {
                       <h3 className="font-semibold text-foreground">{p.full_name ?? "Unnamed"}</h3>
                       {hasAdmin && <Badge className="bg-accent text-accent-foreground">Admin</Badge>}
                       {hasStaff && <Badge variant="outline">Staff</Badge>}
+                      {hasWorker && <Badge variant="outline">Worker</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {p.company ?? "No company"} • {p.phone ?? "No phone"}
@@ -118,6 +174,15 @@ export default function ClientsPage() {
                       >
                         <ShieldCheck className="w-4 h-4 mr-1" />
                         {hasAdmin ? "Remove Admin" : "Grant Admin"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={hasWorker ? "secondary" : "outline"}
+                        disabled={busy === p.id + "worker"}
+                        onClick={() => toggleRole(p.id, "worker", hasWorker)}
+                      >
+                        <HardHat className="w-4 h-4 mr-1" />
+                        {hasWorker ? "Remove Worker" : "Grant Worker"}
                       </Button>
                     </div>
                   )}

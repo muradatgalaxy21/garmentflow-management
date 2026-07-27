@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, LayoutList, Kanban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import KanbanBoard from "@/components/KanbanBoard";
 
 type OrderStatus = "pending" | "in_production" | "qc" | "shipped" | "delivered" | "cancelled";
 
@@ -82,6 +83,7 @@ export default function OrdersAdminPage() {
   const [updateNote, setUpdateNote] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   const load = async () => {
     setLoading(true);
@@ -185,15 +187,33 @@ export default function OrdersAdminPage() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Orders</h1>
           <p className="text-sm text-muted-foreground">Manage active production and shipping.</p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="w-4 h-4 mr-2" /> New Order
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={viewMode === "list" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+          >
+            <LayoutList className="w-4 h-4 mr-1" /> List
+          </Button>
+          <Button
+            variant={viewMode === "kanban" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("kanban")}
+          >
+            <Kanban className="w-4 h-4 mr-1" /> Kanban
+          </Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4 mr-2" /> New Order
+          </Button>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-accent" />
         </div>
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard />
       ) : orders.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
