@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -48,6 +49,9 @@ export default function ClientsPage() {
   }, []);
 
   const rolesFor = (id: string) => roles.filter((r) => r.user_id === id).map((r) => r.role);
+
+  const clientProfiles = profiles.filter((p) => rolesFor(p.id).includes("client"));
+  const workerProfiles = profiles.filter((p) => !rolesFor(p.id).includes("client"));
 
   const toggleRole = async (userId: string, role: AppRole, hasIt: boolean) => {
     setBusy(userId + role);
@@ -127,70 +131,19 @@ export default function ClientsPage() {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-accent" />
         </div>
-      ) : profiles.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No users yet. Users appear here after they sign up at /auth.
-          </CardContent>
-        </Card>
       ) : (
-        <div className="space-y-2">
-          {profiles.map((p) => {
-            const userRoles = rolesFor(p.id);
-            const hasAdmin = userRoles.includes("admin");
-            const hasStaff = userRoles.includes("staff");
-            const hasWorker = userRoles.includes("worker");
-            return (
-              <Card key={p.id}>
-                <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <UserIcon className="w-4 h-4 text-muted-foreground" />
-                      <h3 className="font-semibold text-foreground">{p.full_name ?? "Unnamed"}</h3>
-                      {hasAdmin && <Badge className="bg-accent text-accent-foreground">Admin</Badge>}
-                      {hasStaff && <Badge variant="outline">Staff</Badge>}
-                      {hasWorker && <Badge variant="outline">Worker</Badge>}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {p.company ?? "No company"} • {p.phone ?? "No phone"}
-                    </p>
-                  </div>
-                  {isAdmin && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant={hasStaff ? "secondary" : "outline"}
-                        disabled={busy === p.id + "staff"}
-                        onClick={() => toggleRole(p.id, "staff", hasStaff)}
-                      >
-                        <Shield className="w-4 h-4 mr-1" />
-                        {hasStaff ? "Remove Staff" : "Grant Staff"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={hasAdmin ? "secondary" : "outline"}
-                        disabled={busy === p.id + "admin"}
-                        onClick={() => toggleRole(p.id, "admin", hasAdmin)}
-                      >
-                        <ShieldCheck className="w-4 h-4 mr-1" />
-                        {hasAdmin ? "Remove Admin" : "Grant Admin"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={hasWorker ? "secondary" : "outline"}
-                        disabled={busy === p.id + "worker"}
-                        onClick={() => toggleRole(p.id, "worker", hasWorker)}
-                      >
-                        <HardHat className="w-4 h-4 mr-1" />
-                        {hasWorker ? "Remove Worker" : "Grant Worker"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <Tabs defaultValue="clients">
+          <TabsList>
+            <TabsTrigger value="clients">Clients ({clientProfiles.length})</TabsTrigger>
+            <TabsTrigger value="workers">Workers &amp; Staff ({workerProfiles.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="clients" className="mt-4">
+            {renderList(clientProfiles, "No clients yet. Clients appear here after they sign up at /auth.")}
+          </TabsContent>
+          <TabsContent value="workers" className="mt-4">
+            {renderList(workerProfiles, "No workers or staff yet.")}
+          </TabsContent>
+        </Tabs>
       )}
 
       {!isAdmin && (
@@ -200,4 +153,73 @@ export default function ClientsPage() {
       )}
     </div>
   );
+
+  function renderList(list: Profile[], emptyMessage: string) {
+    if (list.length === 0) {
+      return (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">{emptyMessage}</CardContent>
+        </Card>
+      );
+    }
+    return (
+      <div className="space-y-2">
+        {list.map((p) => {
+          const userRoles = rolesFor(p.id);
+          const hasAdmin = userRoles.includes("admin");
+          const hasStaff = userRoles.includes("staff");
+          const hasWorker = userRoles.includes("worker");
+          return (
+            <Card key={p.id}>
+              <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <UserIcon className="w-4 h-4 text-muted-foreground" />
+                    <h3 className="font-semibold text-foreground">{p.full_name ?? "Unnamed"}</h3>
+                    {hasAdmin && <Badge className="bg-accent text-accent-foreground">Admin</Badge>}
+                    {hasStaff && <Badge variant="outline">Staff</Badge>}
+                    {hasWorker && <Badge variant="outline">Worker</Badge>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {p.company ?? "No company"} • {p.phone ?? "No phone"}
+                  </p>
+                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={hasStaff ? "secondary" : "outline"}
+                      disabled={busy === p.id + "staff"}
+                      onClick={() => toggleRole(p.id, "staff", hasStaff)}
+                    >
+                      <Shield className="w-4 h-4 mr-1" />
+                      {hasStaff ? "Remove Staff" : "Grant Staff"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={hasAdmin ? "secondary" : "outline"}
+                      disabled={busy === p.id + "admin"}
+                      onClick={() => toggleRole(p.id, "admin", hasAdmin)}
+                    >
+                      <ShieldCheck className="w-4 h-4 mr-1" />
+                      {hasAdmin ? "Remove Admin" : "Grant Admin"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={hasWorker ? "secondary" : "outline"}
+                      disabled={busy === p.id + "worker"}
+                      onClick={() => toggleRole(p.id, "worker", hasWorker)}
+                    >
+                      <HardHat className="w-4 h-4 mr-1" />
+                      {hasWorker ? "Remove Worker" : "Grant Worker"}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 }
