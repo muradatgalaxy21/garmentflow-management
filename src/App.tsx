@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import PortalLayout from "@/components/layout/PortalLayout";
+import FactoryLayout from "@/components/layout/FactoryLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 import HomePage from "@/pages/HomePage";
@@ -15,18 +16,25 @@ import CapabilitiesPage from "@/pages/CapabilitiesPage";
 import CatalogPage from "@/pages/CatalogPage";
 import ContactPage from "@/pages/ContactPage";
 import AuthPage from "@/pages/AuthPage";
+import AdminAuthPage from "@/pages/AdminAuthPage";
 import NotFound from "@/pages/NotFound";
 
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import RfqInbox from "@/pages/admin/RfqInbox";
 import InventoryPage from "@/pages/admin/InventoryPage";
 import OrdersAdminPage from "@/pages/admin/OrdersAdminPage";
+import BatchManagementPage from "@/pages/admin/BatchManagementPage";
 import ClientsPage from "@/pages/admin/ClientsPage";
 
 import PortalHome from "@/pages/portal/PortalHome";
 import MyOrders from "@/pages/portal/MyOrders";
 import OrderDetail from "@/pages/portal/OrderDetail";
 import ProfilePage from "@/pages/portal/ProfilePage";
+
+import FactoryDashboard from "@/pages/factory/FactoryDashboard";
+import QrScannerPage from "@/pages/factory/QrScannerPage";
+import BatchEntryPage from "@/pages/factory/BatchEntryPage";
+import MyWorkPage from "@/pages/factory/MyWorkPage";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +57,9 @@ const App = () => (
           {/* Auth (no chrome) */}
           <Route path="/auth" element={<AuthPage />} />
 
+          {/* Hidden admin sign-in / provisioning — reached via 4x logo click, never linked */}
+          <Route path="/system-access" element={<AdminAuthPage />} />
+
           {/* Admin portal — admin or staff only */}
           <Route
             path="/admin"
@@ -62,6 +73,7 @@ const App = () => (
             <Route path="rfqs" element={<RfqInbox />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="orders" element={<OrdersAdminPage />} />
+            <Route path="batches" element={<BatchManagementPage />} />
             <Route path="clients" element={<ClientsPage />} />
           </Route>
 
@@ -78,6 +90,21 @@ const App = () => (
             <Route path="orders" element={<MyOrders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="profile" element={<ProfilePage />} />
+          </Route>
+
+          {/* Factory worker portal — worker role only */}
+          <Route
+            path="/factory"
+            element={
+              <ProtectedRoute requireRoles={["worker"]}>
+                <FactoryLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<FactoryDashboard />} />
+            <Route path="scan" element={<QrScannerPage />} />
+            <Route path="batch/:batchId" element={<BatchEntryPage />} />
+            <Route path="my-work" element={<MyWorkPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

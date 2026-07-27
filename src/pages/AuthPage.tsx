@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { z } from "zod";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Briefcase, HardHat } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+type PortalRole = "client" | "worker";
+
+// Land the user on the area their role actually uses instead of always /portal.
+async function resolveRoleTarget(userId: string, fallback: string): Promise<string> {
+  const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  const userRoles = (roleRows ?? []).map((r) => r.role);
+  if (userRoles.includes("worker")) return "/factory";
+  if (userRoles.includes("admin") || userRoles.includes("staff")) return "/admin";
+  return fallback;
+}
 
 // Validation schemas for sign-in and sign-up forms.
 const signInSchema = z.object({
@@ -44,7 +55,6 @@ function PasswordField({
       <Input
         id={id}
         name={name}
-        // Switch between "text" and "password" so Chrome/Firefox detect it as a password field.
         type={revealed ? "text" : "password"}
         autoComplete={autoComplete}
         required={required}
@@ -52,11 +62,9 @@ function PasswordField({
         maxLength={maxLength}
         className="pr-10"
       />
-      {/* Hold-to-show button: reveals password while pressed, hides on release */}
       <button
         type="button"
         aria-label={revealed ? "Hide password" : "Show password"}
-        // onMouseDown/onPointerDown covers both mouse and touch
         onMouseDown={() => setReveal(true)}
         onMouseUp={() => setReveal(false)}
         onMouseLeave={() => setReveal(false)}
@@ -77,16 +85,24 @@ export default function AuthPage() {
   const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [role, setRole] = useState<PortalRole | null>(null);
 
   // Redirect target after successful auth — fallback to /portal
   const from = (location.state as { from?: string } | null)?.from ?? "/portal";
 
-  // If already logged in, skip the auth form entirely
+  // If already logged in, skip the auth form entirely — but still route by
+  // role (unless we were bounced here from a specific protected route).
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate(from, { replace: true });
+    const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return;
+      let target = from;
+      if (!cameFromProtectedRoute) {
+        target = await resolveRoleTarget(session.user.id, from);
+      }
+      navigate(target, { replace: true });
     });
-  }, [from, navigate]);
+  }, [from, navigate, location.state]);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,28 +116,39 @@ export default function AuthPage() {
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: parsed.data.email,
       password: parsed.data.password,
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
       return;
     }
+
+    // If we weren't bounced here from a specific protected route, land the
+    // user on the area their role actually uses instead of always /portal.
+    const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
+    let target = from;
+    if (!cameFromProtectedRoute && data.user) {
+      target = await resolveRoleTarget(data.user.id, from);
+    }
+
+    setLoading(false);
     toast({ title: "Welcome back" });
-    navigate(from, { replace: true });
+    navigate(target, { replace: true });
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!role) return;
     const fd = new FormData(e.currentTarget);
     const companyVal = String(fd.get("company") ?? "").trim();
     const parsed = signUpSchema.safeParse({
       email: String(fd.get("email") ?? ""),
       password: String(fd.get("password") ?? ""),
       fullName: String(fd.get("fullName") ?? ""),
-      company: companyVal || undefined,
+      company: role === "client" ? companyVal || undefined : undefined,
     });
     if (!parsed.success) {
       toast({ title: "Invalid input", description: parsed.error.issues[0].message, variant: "destructive" });
@@ -136,6 +163,7 @@ export default function AuthPage() {
         data: {
           full_name: parsed.data.fullName,
           company: parsed.data.company,
+          requested_role: role,
         },
       },
     });
@@ -163,120 +191,152 @@ export default function AuthPage() {
 
         {/* Brand header — logo placeholder + company name */}
         <div className="text-center mb-8">
-          {/* Logo placeholder: replace /logo.png in public/ when ready */}
           <div className="flex justify-center mb-4">
-            <div
-              className="w-20 h-20 rounded-full border-2 border-border bg-secondary/60 flex items-center justify-center text-muted-foreground text-xs font-medium"
-              title="Replace with your logo at public/logo.png"
-            >
-              LOGO
-            </div>
+            <img src="/logo-mark.svg" alt="En En Garments" className="h-16 w-auto" />
           </div>
           <Link to="/" className="font-heading text-2xl font-bold text-foreground hover:text-accent transition-colors">
             En En Garments
           </Link>
-          <p className="text-sm text-muted-foreground mt-1">Client &amp; Admin Portal</p>
+          <p className="text-sm text-muted-foreground mt-1">Employee &amp; Client Portal</p>
         </div>
 
-        <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
+        {!role ? (
+          // Step 1: pick which portal this is for
+          <div className="space-y-3">
+            <p className="text-sm text-center text-muted-foreground mb-4">Continue as:</p>
+            <button
+              type="button"
+              onClick={() => setRole("client")}
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-secondary/40 transition-colors text-left"
+            >
+              <Briefcase className="w-6 h-6 text-accent shrink-0" />
+              <div>
+                <div className="font-medium text-foreground">Client</div>
+                <div className="text-xs text-muted-foreground">Place orders, track production, manage your account</div>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("worker")}
+              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-secondary/40 transition-colors text-left"
+            >
+              <HardHat className="w-6 h-6 text-accent shrink-0" />
+              <div>
+                <div className="font-medium text-foreground">Employee</div>
+                <div className="text-xs text-muted-foreground">Factory floor sign-in for production tracking</div>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setRole(null)}
+              className="text-xs text-muted-foreground hover:text-accent transition-colors mb-4"
+            >
+              ← Change role ({role === "client" ? "Client" : "Employee"})
+            </button>
 
-          {/* Sign In tab */}
-          <TabsContent value="signin">
-            {/*
-              autocomplete="on" tells the browser this is a real login form.
-              Each field uses the standard autocomplete tokens so Chrome offers saved credentials.
-            */}
-            <form onSubmit={handleSignIn} className="space-y-4 mt-4" noValidate autoComplete="on">
-              <div>
-                <Label htmlFor="signin-email">Email</Label>
-                <Input
-                  id="signin-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  maxLength={255}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signin-password">Password</Label>
-                <div className="mt-1">
-                  <PasswordField
-                    id="signin-password"
-                    name="password"
-                    autoComplete="current-password"
-                    required
-                    minLength={6}
-                    maxLength={72}
-                  />
-                </div>
-              </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-            </form>
-          </TabsContent>
+            <Tabs defaultValue="signin" className="w-full">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
 
-          {/* Sign Up tab */}
-          <TabsContent value="signup">
-            <form onSubmit={handleSignUp} className="space-y-4 mt-4" noValidate autoComplete="on">
-              <div>
-                <Label htmlFor="signup-name">Full Name</Label>
-                <Input
-                  id="signup-name"
-                  name="fullName"
-                  autoComplete="name"
-                  required
-                  maxLength={100}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-company">Company (optional)</Label>
-                <Input
-                  id="signup-company"
-                  name="company"
-                  autoComplete="organization"
-                  maxLength={200}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  maxLength={255}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signup-password">Password</Label>
-                <div className="mt-1">
-                  <PasswordField
-                    id="signup-password"
-                    name="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={6}
-                    maxLength={72}
-                  />
-                </div>
-              </div>
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Creating..." : "Create Account"}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+              {/* Sign In tab */}
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-4 mt-4" noValidate autoComplete="on">
+                  <div>
+                    <Label htmlFor="signin-email">Email</Label>
+                    <Input
+                      id="signin-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      maxLength={255}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="mt-1">
+                      <PasswordField
+                        id="signin-password"
+                        name="password"
+                        autoComplete="current-password"
+                        required
+                        minLength={6}
+                        maxLength={72}
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              {/* Sign Up tab */}
+              <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="space-y-4 mt-4" noValidate autoComplete="on">
+                  <div>
+                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Input
+                      id="signup-name"
+                      name="fullName"
+                      autoComplete="name"
+                      required
+                      maxLength={100}
+                      className="mt-1"
+                    />
+                  </div>
+                  {/* Company only makes sense for clients — En En Garments IS the company for employees */}
+                  {role === "client" && (
+                    <div>
+                      <Label htmlFor="signup-company">Company (optional)</Label>
+                      <Input
+                        id="signup-company"
+                        name="company"
+                        autoComplete="organization"
+                        maxLength={200}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      maxLength={255}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signup-password">Password</Label>
+                    <div className="mt-1">
+                      <PasswordField
+                        id="signup-password"
+                        name="password"
+                        autoComplete="new-password"
+                        required
+                        minLength={6}
+                        maxLength={72}
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading ? "Creating..." : "Create Account"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </>
+        )}
 
         <p className="text-xs text-muted-foreground text-center mt-6">
           <Link to="/" className="hover:text-accent transition-colors">Back to website</Link>

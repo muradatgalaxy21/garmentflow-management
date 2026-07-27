@@ -14,6 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          id: string
+          type: string
+          title: string
+          message: string
+          is_read: boolean
+          batch_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          type: string
+          title: string
+          message: string
+          is_read?: boolean
+          batch_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          type?: string
+          title?: string
+          message?: string
+          is_read?: boolean
+          batch_id?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_notifications_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_phase_rates: {
+        Row: {
+          id: string
+          batch_id: string
+          phase_id: string
+          rate_per_piece: number
+          quantity_locked: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          batch_id: string
+          phase_id: string
+          rate_per_piece?: number
+          quantity_locked?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          batch_id?: string
+          phase_id?: string
+          rate_per_piece?: number
+          quantity_locked?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_phase_rates_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_phase_rates_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_tracking: {
+        Row: {
+          id: string
+          batch_id: string
+          phase_id: string
+          worker_id: string
+          quantity_completed: number
+          quantity_wasted: number
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          batch_id: string
+          phase_id: string
+          worker_id: string
+          quantity_completed?: number
+          quantity_wasted?: number
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          batch_id?: string
+          phase_id?: string
+          worker_id?: string
+          quantity_completed?: number
+          quantity_wasted?: number
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_tracking_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_tracking_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           category: string | null
@@ -174,6 +305,78 @@ export type Database = {
         }
         Relationships: []
       }
+      production_batches: {
+        Row: {
+          id: string
+          order_id: string
+          style_number: string
+          total_quantity: number
+          status: string
+          qr_code_hash: string
+          material_item_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          style_number: string
+          total_quantity: number
+          status?: string
+          qr_code_hash?: string
+          material_item_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          style_number?: string
+          total_quantity?: number
+          status?: string
+          qr_code_hash?: string
+          material_item_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_batches_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_material_item_id_fkey"
+            columns: ["material_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_phases: {
+        Row: {
+          id: string
+          name: string
+          sequence_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          sequence_order: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          sequence_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company: string | null
@@ -284,7 +487,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "staff" | "client"
+      app_role: "admin" | "staff" | "client" | "worker"
       movement_type: "in" | "out" | "adjust"
       order_status:
         | "pending"
@@ -421,7 +624,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "client"],
+      app_role: ["admin", "staff", "client", "worker"],
       movement_type: ["in", "out", "adjust"],
       order_status: [
         "pending",
