@@ -49,7 +49,19 @@ graphify-out/
 .playwright-mcp/
 supabase/.temp/
 
+# Unnecessary AI / bot configs & dev scripts
+.agent/
+.lovable/
+.graphifyignore
+bun.lock
+bun.lockb
+grant-admin.ts
+test-db.ts
+playwright-fixture.ts
+playwright.config.ts
+
 # Exclude all markdown files
 *.md
 *.MD
+
 
