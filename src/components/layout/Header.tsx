@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth";
 
 // Main navigation links for the public site
 const navLinks = [
@@ -16,19 +15,28 @@ const navLinks = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const { user, isWorker, isStaff } = useAuth();
+  const portalPath = isWorker ? "/factory" : isStaff ? "/admin" : "/portal";
   const location = useLocation();
+  const navigate = useNavigate();
+  const logoClicks = useRef(0);
+  const logoClickTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  // Listen for auth state changes so the header reflects login/logout immediately
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+  // Secret entry point: click the logo 4 times within 2 seconds to
+  // reach the hidden admin sign-in/signup page. Not linked anywhere else.
+  const handleLogoClick = (e: React.MouseEvent) => {
+    logoClicks.current += 1;
+    clearTimeout(logoClickTimer.current);
+    if (logoClicks.current >= 4) {
+      e.preventDefault();
+      logoClicks.current = 0;
+      navigate("/system-access");
+      return;
+    }
+    logoClickTimer.current = setTimeout(() => {
+      logoClicks.current = 0;
+    }, 2000);
+  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -37,14 +45,8 @@ export default function Header() {
       <div className="container-wide flex items-center justify-between h-16 px-6 lg:px-12">
 
         {/* Brand wordmark with logo placeholder */}
-        <Link to="/" className="flex items-center gap-3">
-          {/* Logo: drop your file at public/logo.png and this will render automatically */}
-          <div
-            className="w-8 h-8 rounded-md border border-border bg-secondary/80 flex items-center justify-center text-muted-foreground text-[9px] font-bold shrink-0"
-            title="Add public/logo.png to replace this placeholder"
-          >
-            EEG
-          </div>
+        <Link to="/" onClick={handleLogoClick} className="flex items-center gap-3">
+          <img src="/logo-mark.svg" alt="En En Garments" className="h-12 w-auto shrink-0" />
           <span className="font-heading text-xl font-bold tracking-tight text-foreground">
             En En Garments
           </span>
@@ -74,10 +76,10 @@ export default function Header() {
             // Logged-in state: show portal access and a profile avatar icon
             <>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/portal">My Portal</Link>
+                <Link to={portalPath}>My Portal</Link>
               </Button>
               <Button asChild variant="outline" size="icon" className="w-8 h-8 rounded-full" title={user.email}>
-                <Link to="/portal/profile">
+                <Link to={isWorker || isStaff ? portalPath : "/portal/profile"}>
                   <User className="w-4 h-4" />
                 </Link>
               </Button>
@@ -126,10 +128,15 @@ export default function Header() {
             {user ? (
               <>
                 <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link to="/portal" onClick={() => setMobileOpen(false)}>My Portal</Link>
+                  <Link to={portalPath} onClick={() => setMobileOpen(false)}>My Portal</Link>
                 </Button>
                 <Button asChild size="sm" className="w-full">
-                  <Link to="/portal/profile" onClick={() => setMobileOpen(false)}>My Profile</Link>
+                  <Link
+                    to={isWorker || isStaff ? portalPath : "/portal/profile"}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    My Profile
+                  </Link>
                 </Button>
               </>
             ) : (

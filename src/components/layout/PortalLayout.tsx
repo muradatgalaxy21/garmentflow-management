@@ -40,13 +40,7 @@ export default function PortalLayout() {
 
             {/* Brand logo + name */}
             <div className="flex items-center gap-2.5">
-              {/* Logo placeholder — drop public/logo.png to activate */}
-              <div
-                className="w-7 h-7 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 flex items-center justify-center text-primary-foreground text-[8px] font-bold shrink-0"
-                title="Add public/logo.png to replace this"
-              >
-                EEG
-              </div>
+              <img src="/logo-mark.svg" alt="En En Garments" className="w-7 h-7 shrink-0" />
               <div>
                 <p className="font-heading font-bold leading-tight text-base">En En Garments</p>
                 <p className="text-[10px] opacity-60 leading-none">Client Portal</p>
