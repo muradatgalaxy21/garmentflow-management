@@ -51,6 +51,7 @@ interface ClientUser {
   id: string;
   full_name: string | null;
   company: string | null;
+  email: string | null;
 }
 
 const orderSchema = z.object({
@@ -87,16 +88,20 @@ export default function OrdersAdminPage() {
 
   const load = async () => {
     setLoading(true);
-    const [ordersRes, profilesRes] = await Promise.all([
+    const [ordersRes, profilesRes, rolesRes] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("id, full_name, company"),
+      supabase.from("profiles").select("id, full_name, company, email"),
+      supabase.from("user_roles").select("user_id, role").eq("role", "client"),
     ]);
     if (ordersRes.error) {
       toast({ title: "Failed to load orders", description: ordersRes.error.message, variant: "destructive" });
     } else {
       setOrders((ordersRes.data ?? []) as Order[]);
     }
-    if (!profilesRes.error) setClients((profilesRes.data ?? []) as ClientUser[]);
+    if (!profilesRes.error && !rolesRes.error) {
+      const clientIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
+      setClients((profilesRes.data ?? []).filter((p) => clientIds.has(p.id)) as ClientUser[]);
+    }
     setLoading(false);
   };
 
@@ -266,7 +271,12 @@ export default function OrdersAdminPage() {
                 <SelectContent>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
-                      {c.company ? `${c.full_name ?? "—"} (${c.company})` : c.full_name ?? c.id.slice(0, 8)}
+                      <span className="flex flex-col">
+                        <span>
+                          {c.company ? `${c.full_name ?? "—"} (${c.company})` : c.full_name ?? c.id.slice(0, 8)}
+                        </span>
+                        {c.email && <span className="text-xs text-muted-foreground/60">{c.email}</span>}
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>

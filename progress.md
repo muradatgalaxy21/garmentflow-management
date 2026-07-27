@@ -53,3 +53,9 @@ Root causes found and fixed:
 4. **Finish end-to-end worker login test** once a test account or disabled email confirmation unblocks it.
 5. Review all `?? console.error` / silent failure paths added under time pressure — not yet audited.
 6. Decide `.env` handling: keep tracked (current state) or move to local-only + commit an `.env.example` with placeholders.
+
+## 2026-07-27 (new order client dropdown fix)
+
+`profiles` table had no `email` column, so the "New Order" client dropdown showed every profile (worker/admin/staff included) with no way to show email. Added migration `20260727010000_profiles_email.sql`: adds `profiles.email`, backfills from `auth.users`, updates `handle_new_user` trigger to populate it going forward. `OrdersAdminPage.tsx` now joins `user_roles` and filters the dropdown to `role = 'client'` only, showing email under the name in muted small text.
+
+**Needs Attention**: migration not yet applied to the hosted Supabase project — run it via the Supabase dashboard/CLI before this fix takes effect live. `types.ts` updated by hand to match.
