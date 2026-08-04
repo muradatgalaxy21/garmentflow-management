@@ -4,6 +4,11 @@
 -- ============================================================
 
 -- 1. Ensure all standard production phases exist with clean sequence numbers
+-- Existing rows are bumped to negative placeholders first so reordering
+-- names doesn't collide with the sequence_order unique constraint mid-upsert.
+UPDATE public.production_phases SET sequence_order = -sequence_order
+WHERE name IN ('Cutting', 'Stitching', 'Singer', 'Embroidery', 'Printing', 'QC', 'Packing');
+
 INSERT INTO public.production_phases (name, sequence_order)
 VALUES
   ('Cutting', 1),

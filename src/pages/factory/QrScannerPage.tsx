@@ -115,6 +115,17 @@ export default function QrScannerPage() {
     }
 
     let scannerInstance: { stop: () => Promise<void> } | null = null;
+    let isRunning = false;
+
+    const safeStop = () => {
+      if (!isRunning || !scannerInstance) return;
+      isRunning = false;
+      try {
+        scannerInstance.stop().catch(() => {});
+      } catch {
+        // already stopped
+      }
+    };
 
     const initScanner = async () => {
       try {
@@ -129,18 +140,24 @@ export default function QrScannerPage() {
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
           (decodedText: string) => {
-            scanner.stop().catch(() => {});
+            isRunning = false;
+            try {
+              scanner.stop().catch(() => {});
+            } catch {
+              // already stopped
+            }
             lookupBatch(decodedText);
           },
           () => {}
         );
+        isRunning = true;
       } catch {
         setCameraError(true);
         setScanning(false);
       }
     };
     initScanner();
-    return () => { scannerInstance?.stop().catch(() => {}); };
+    return () => { safeStop(); };
   }, [lookupBatch]);
 
   if (startedBatchStyle) {

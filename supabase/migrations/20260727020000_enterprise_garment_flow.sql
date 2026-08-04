@@ -3,8 +3,7 @@
 -- Migration: 20260727020000_enterprise_garment_flow.sql
 -- ============================================================
 
--- 1. Extend app_role to include 'manager'
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'manager';
+-- 1. 'manager' role added in 20260727015000_add_manager_role.sql (separate transaction; see that file for why)
 
 -- 2. Extend profiles for Worker Wage Classification & Employee Details
 ALTER TABLE public.profiles

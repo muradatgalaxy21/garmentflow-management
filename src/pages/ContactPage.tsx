@@ -24,7 +24,7 @@ const contactSchema = z.object({
 type ContactFormData = z.infer<typeof contactSchema>;
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 25 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
@@ -67,8 +67,6 @@ export default function ContactPage() {
 
     setSubmitting(true);
     try {
-      // Persist the inquiry as an RFQ row regardless of whether it was a
-      // general message or a quote — the staff inbox prioritizes by status.
       const { error } = await supabase.from("rfqs").insert({
         name: result.data.name,
         email: result.data.email,
@@ -100,25 +98,25 @@ export default function ContactPage() {
   };
 
   return (
-    <>
-      {/* Header with image background */}
-      <section className="relative h-[460px] flex items-center overflow-hidden">
+    <div className="bg-[#F5F2EA] min-h-screen text-[#1E293B]">
+      {/* Header with preserved contactHero image and dark slate overlay */}
+      <section className="relative h-[450px] md:h-[480px] flex items-center overflow-hidden text-white">
         <div className="absolute inset-0">
           <img
             src={contactHero}
-            alt="En En Garments factory exterior"
+            alt="En En Garments facility"
             className="w-full h-full object-cover"
             width={1600}
             height={900}
           />
-          <div className="absolute inset-0 bg-primary/85" />
+          <div className="absolute inset-0 bg-[#3C404B]/80 backdrop-brightness-75" />
         </div>
-        <div className="relative z-10 container-narrow text-center text-primary-foreground px-6">
-          <div className="divider-gold mx-auto mb-4" />
-          <h1 className="font-heading text-4xl md:text-5xl font-bold">
+        <div className="relative z-10 container-narrow text-center px-6 mx-auto">
+          <div className="h-[2px] w-12 bg-[#B88E28] mx-auto mb-4" />
+          <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight">
             {isRFQ ? "Request a Quote" : "Contact Us"}
           </h1>
-          <p className="mt-4 text-primary-foreground/70 max-w-lg mx-auto">
+          <p className="mt-4 text-gray-200 max-w-xl mx-auto text-base md:text-lg font-light leading-relaxed">
             {isRFQ
               ? "Fill out the form below and our team will respond with a detailed quote within 24 hours."
               : "Have questions? Reach out and our team will be happy to help."}
@@ -127,7 +125,7 @@ export default function ContactPage() {
       </section>
 
       {/* Form + Contact Info */}
-      <section className="section-padding bg-background">
+      <section className="section-padding">
         <div className="container-wide grid grid-cols-1 lg:grid-cols-3 gap-12">
           <motion.div
             initial="hidden"
@@ -139,23 +137,23 @@ export default function ContactPage() {
             <form onSubmit={handleSubmit} className="space-y-5" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="text-sm font-medium text-foreground">Name *</label>
+                  <label className="text-xs font-bold text-[#1E293B]">Name *</label>
                   <Input
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
                     placeholder="Your full name"
-                    className="mt-1"
+                    className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                   />
                   {errors.name && <p className="text-xs text-destructive mt-1">{errors.name}</p>}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground">Email *</label>
+                  <label className="text-xs font-bold text-[#1E293B]">Email *</label>
                   <Input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                     placeholder="you@company.com"
-                    className="mt-1"
+                    className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                   />
                   {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
                 </div>
@@ -163,21 +161,21 @@ export default function ContactPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="text-sm font-medium text-foreground">Company</label>
+                  <label className="text-xs font-bold text-[#1E293B]">Company</label>
                   <Input
                     value={formData.company}
                     onChange={(e) => handleChange("company", e.target.value)}
                     placeholder="Company name"
-                    className="mt-1"
+                    className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground">Phone</label>
+                  <label className="text-xs font-bold text-[#1E293B]">Phone</label>
                   <Input
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
                     placeholder="+92 300 8408936"
-                    className="mt-1"
+                    className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                   />
                 </div>
               </div>
@@ -185,28 +183,28 @@ export default function ContactPage() {
               {isRFQ && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="text-sm font-medium text-foreground">Product Type</label>
+                    <label className="text-xs font-bold text-[#1E293B]">Product Type</label>
                     <Input
                       value={formData.productType}
                       onChange={(e) => handleChange("productType", e.target.value)}
                       placeholder="e.g., Polo Shirts, Chinos"
-                      className="mt-1"
+                      className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-foreground">Estimated Quantity</label>
+                    <label className="text-xs font-bold text-[#1E293B]">Estimated Quantity</label>
                     <Input
                       value={formData.quantity}
                       onChange={(e) => handleChange("quantity", e.target.value)}
                       placeholder="e.g., 1,000 pcs"
-                      className="mt-1"
+                      className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium text-foreground">Message *</label>
+                <label className="text-xs font-bold text-[#1E293B]">Message *</label>
                 <Textarea
                   value={formData.message}
                   onChange={(e) => handleChange("message", e.target.value)}
@@ -216,12 +214,16 @@ export default function ContactPage() {
                       : "How can we help?"
                   }
                   rows={5}
-                  className="mt-1"
+                  className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                 />
                 {errors.message && <p className="text-xs text-destructive mt-1">{errors.message}</p>}
               </div>
 
-              <Button type="submit" size="lg" disabled={submitting}>
+              <Button
+                type="submit"
+                disabled={submitting}
+                className="bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-3 px-7 rounded-md transition-colors"
+              >
                 {submitting ? "Sending..." : isRFQ ? "Submit Quote Request" : "Send Message"}
               </Button>
             </form>
@@ -236,43 +238,51 @@ export default function ContactPage() {
             className="space-y-8"
           >
             <div>
-              <h3 className="font-heading text-lg font-semibold text-foreground mb-4">Get In Touch</h3>
-              <div className="space-y-4">
+              <h3 className="font-heading text-xl font-bold text-[#1E293B] mb-5">Get In Touch</h3>
+              <div className="space-y-5">
                 <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-accent mt-0.5" />
+                  <div className="w-10 h-10 rounded-full border border-[#B88E28]/40 bg-[#FAF7F0] text-[#B88E28] flex items-center justify-center shrink-0 mt-0.5">
+                    <Mail className="w-4 h-4" />
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Email</p>
+                    <p className="text-xs font-bold text-[#1E293B]">Email</p>
                     <a
                       href="mailto:zubair.nazim@accounts.ffclothings.com"
-                      className="text-sm text-muted-foreground hover:text-accent break-all"
+                      className="text-sm text-gray-600 hover:text-[#B88E28] break-all mt-0.5 inline-block"
                     >
                       zubair.nazim@accounts.ffclothings.com
                     </a>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-accent mt-0.5" />
+                  <div className="w-10 h-10 rounded-full border border-[#B88E28]/40 bg-[#FAF7F0] text-[#B88E28] flex items-center justify-center shrink-0 mt-0.5">
+                    <Phone className="w-4 h-4" />
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Phone (Owner)</p>
-                    <a href="tel:+923008408936" className="text-sm text-muted-foreground hover:text-accent">
+                    <p className="text-xs font-bold text-[#1E293B]">Phone (Owner)</p>
+                    <a href="tel:+923008408936" className="text-sm text-gray-600 hover:text-[#B88E28] mt-0.5 inline-block">
                       0300 8408936
                     </a>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">Zubair Nazim — Owner & CEO</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Zubair Nazim — Owner & CEO</p>
                   </div>
                 </div>
+
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-accent mt-0.5" />
+                  <div className="w-10 h-10 rounded-full border border-[#B88E28]/40 bg-[#FAF7F0] text-[#B88E28] flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4" />
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">Location</p>
-                    <p className="text-sm text-muted-foreground">Pakistan — Shipping worldwide</p>
+                    <p className="text-xs font-bold text-[#1E293B]">Location</p>
+                    <p className="text-sm text-gray-600 mt-0.5">Pakistan — Shipping worldwide</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-5 rounded-lg bg-secondary/60 border border-border">
-              <h4 className="font-heading font-semibold text-foreground text-sm">Response Time</h4>
-              <p className="mt-1 text-sm text-muted-foreground">
+            <div className="p-5 rounded-lg bg-[#EFE8D9] border border-[#E4DDD0]">
+              <h4 className="font-heading font-bold text-[#1E293B] text-sm">Response Time</h4>
+              <p className="mt-1.5 text-sm text-gray-600 leading-relaxed">
                 We respond to all inquiries within 24 business hours. For urgent orders, reach us
                 on WhatsApp.
               </p>
@@ -280,6 +290,6 @@ export default function ContactPage() {
           </motion.div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
