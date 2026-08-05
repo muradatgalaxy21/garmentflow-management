@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, ClipboardList } from "lucide-react";
+import { Loader2, ClipboardList, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -101,58 +101,72 @@ export default function MyWorkPage() {
   }, {});
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
-      <div className="flex items-center gap-2">
-        <ClipboardList className="w-5 h-5 text-emerald-400" />
-        <h1 className="text-xl font-bold text-white">{t("factory.myWork.title")}</h1>
+    <div className="space-y-4 max-w-md mx-auto">
+      {/* Title Header matching Screenshot 3 */}
+      <div className="flex items-center gap-2 mb-2">
+        <ClipboardList className="w-5 h-5 text-slate-700" />
+        <h1 className="text-xl font-bold text-slate-900">My Work</h1>
       </div>
 
       {entries.length === 0 ? (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="py-12 text-center text-slate-500 text-sm">
-            {t("factory.myWork.noEntries")}
+        <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
+          <CardContent className="py-12 flex flex-col items-center justify-center text-center gap-2">
+            <ClipboardList className="w-8 h-8 text-slate-400 stroke-1" />
+            <p className="text-xs text-slate-500 font-medium">
+              No completed batches logged for this date.
+            </p>
           </CardContent>
         </Card>
       ) : (
         Object.entries(grouped).map(([date, items]) => (
-          <div key={date}>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
+          <div key={date} className="space-y-2">
+            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               {date}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {items.map((entry) => (
-                <Card key={entry.id} className="bg-slate-800 border-slate-700">
-                  <CardContent className="py-3 px-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white truncate">
-                          {entry.style_number}
+                <Card key={entry.id} className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
+                  <CardContent className="p-4 space-y-3">
+                    {/* Top Row: Style name & Time stamp */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900 leading-snug">
+                          Style {entry.style_number}
+                        </h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">
+                          Phase: {entry.phase_name}
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {t("factory.myWork.phase")}: {entry.phase_name}
-                        </p>
-                        {entry.notes && (
-                          <p className="text-xs text-slate-500 mt-1 italic truncate">
-                            {entry.notes}
-                          </p>
-                        )}
                       </div>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <Badge variant="outline" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-xs">
-                          {t("factory.myWork.completed")}: {entry.quantity_completed}
-                        </Badge>
-                        {entry.quantity_wasted > 0 && (
-                          <Badge variant="outline" className="bg-red-500/15 text-red-400 border-red-500/30 text-xs">
-                            {t("factory.myWork.wasted")}: {entry.quantity_wasted}
-                          </Badge>
-                        )}
+                      <div className="flex items-center gap-1 text-slate-400 text-xs font-normal">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        <span>
+                          {new Date(entry.created_at).toLocaleTimeString("en-US", {
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        </span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-600 mt-2">
-                      {new Date(entry.created_at).toLocaleTimeString(isRtl ? "ur-PK" : "en-US", {
-                        hour: "2-digit", minute: "2-digit",
-                      })}
-                    </p>
+
+                    {/* Bottom Row Divider & Stats: Completed & Wasted */}
+                    <div className="pt-3 border-t border-slate-300/70 flex items-center justify-around">
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-slate-900 leading-none">
+                          {entry.quantity_completed}
+                        </p>
+                        <p className="text-[11px] font-medium text-slate-500 mt-1">
+                          Completed
+                        </p>
+                      </div>
+                      <div className="h-8 w-px bg-slate-300/70" />
+                      <div className="text-center">
+                        <p className="text-xl font-bold text-slate-900 leading-none">
+                          {entry.quantity_wasted}
+                        </p>
+                        <p className="text-[11px] font-medium text-slate-500 mt-1">
+                          Wasted
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -163,3 +177,4 @@ export default function MyWorkPage() {
     </div>
   );
 }
+

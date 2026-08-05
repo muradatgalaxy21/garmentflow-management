@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { QrCode, PlayCircle, CheckCircle2, ClipboardList, Package, Loader2, Sparkles } from "lucide-react";
+import { LayoutGrid, CheckCircle2, Calendar, Package, Loader2, ChevronRight, PlayCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +29,7 @@ interface RecentBatch {
 }
 
 export default function FactoryDashboard() {
-  const { t, isRtl } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -47,7 +47,7 @@ export default function FactoryDashboard() {
           .select("full_name")
           .eq("id", user.id)
           .single();
-        setUserName(profile?.full_name ?? user.email ?? "");
+        setUserName(profile?.full_name ?? user.email?.split("@")[0] ?? "Worker");
 
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
@@ -146,131 +146,148 @@ export default function FactoryDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto pb-10">
-      {/* High-Contrast Greeting Header */}
-      <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-5 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              <Sparkles className="w-3.5 h-3.5" /> Factory Floor Portal
-            </span>
-            <h1 className="text-2xl font-black text-white mt-2">
-              Khush Amdeed / Welcome, {userName || "Worker"}!
-            </h1>
-          </div>
-        </div>
+    <div className="space-y-4 max-w-md mx-auto">
+      {/* Header Greeting Banner matching Screenshot 1 */}
+      <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
+          Factory Floor Portal
+        </span>
+        <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">
+          Welcome, {userName || "Firas Ahmad"}
+        </h1>
       </div>
 
-      {/* Active Work Banner if worker has a session running */}
+      {/* Active Work Session Banner if worker has a session active */}
       {stats?.activeSession && (
-        <Card className="bg-emerald-950/80 border-2 border-emerald-500 shadow-2xl animate-pulse">
-          <CardContent className="p-5 text-center">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500 text-slate-950 mb-3">
-              <PlayCircle className="w-8 h-8 animate-spin" />
+        <Card className="bg-blue-50 border-2 border-blue-400 shadow-xs">
+          <CardContent className="p-4 flex items-center justify-between text-slate-800">
+            <div className="flex items-center gap-3">
+              <PlayCircle className="w-6 h-6 text-blue-600 animate-spin shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Active Batch Work</p>
+                <p className="text-sm font-bold text-slate-900">
+                  {stats.activeSession.style_number} • {stats.activeSession.phase_name}
+                </p>
+              </div>
             </div>
-            <h2 className="text-xl font-black text-emerald-300">
-              Kaam Chal Raha Hai / Batch Work Active!
-            </h2>
-            <p className="text-sm font-semibold text-emerald-100 mt-1">
-              Style: <span className="underline font-bold">{stats.activeSession.style_number}</span> • Phase: <span className="font-bold">{stats.activeSession.phase_name}</span>
-            </p>
             <Button
-              size="lg"
-              className="mt-4 w-full h-14 text-lg font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs"
               onClick={() => navigate(`/factory/batch/${stats.activeSession?.batch_id}`)}
             >
-              <CheckCircle2 className="w-6 h-6 mr-2" /> Complete &amp; Log End Count
+              Complete Work
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Giant Touch Buttons Designed for Non-Tech Workers */}
-      <div className="grid grid-cols-1 gap-4">
-        {/* START BATCH WORK CARD */}
+      {/* STEP 1 & STEP 2 Action Cards */}
+      <div className="space-y-3">
+        {/* STEP 1: Batch Start Scan */}
         <Card
-          className="bg-emerald-600 hover:bg-emerald-500 border-0 cursor-pointer shadow-2xl transition-all transform active:scale-95"
+          className="bg-[#e9ecef]/70 hover:bg-[#e2e6ea] border-2 border-blue-400/80 cursor-pointer shadow-xs transition-all rounded-xl"
           onClick={() => navigate("/factory/scan?mode=start")}
         >
-          <CardContent className="p-6 flex items-center justify-between text-white">
-            <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-200">
-                PEEHLA STEP / STEP 1
-              </span>
-              <h2 className="text-2xl font-black mt-1">🟢 Batch Shuru Scan</h2>
-              <p className="text-xs text-emerald-100 font-semibold mt-1">
-                Kaam shuru karne se pehle QR code scan karen
-              </p>
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-lg bg-[#4675a8] flex items-center justify-center text-white shrink-0">
+                <LayoutGrid className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  STEP 1
+                </span>
+                <h2 className="text-base font-bold text-slate-900 leading-snug">
+                  Batch Start Scan
+                </h2>
+                <p className="text-xs text-slate-500 font-normal">
+                  Scan the QR code before starting work
+                </p>
+              </div>
             </div>
-            <div className="p-4 bg-emerald-500 rounded-2xl shadow-inner">
-              <QrCode className="w-10 h-10 text-white" />
-            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
           </CardContent>
         </Card>
 
-        {/* END BATCH WORK CARD */}
+        {/* STEP 2: Batch End Scan */}
         <Card
-          className="bg-amber-600 hover:bg-amber-500 border-0 cursor-pointer shadow-2xl transition-all transform active:scale-95"
+          className="bg-[#e9ecef]/70 hover:bg-[#e2e6ea] border border-slate-300/80 cursor-pointer shadow-xs transition-all rounded-xl"
           onClick={() => navigate("/factory/scan?mode=end")}
         >
-          <CardContent className="p-6 flex items-center justify-between text-white">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-lg bg-white border border-slate-300 flex items-center justify-center text-slate-700 shrink-0">
+                <CheckCircle2 className="w-6 h-6 text-slate-700" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  STEP 2
+                </span>
+                <h2 className="text-base font-bold text-slate-900 leading-snug">
+                  Batch End Scan
+                </h2>
+                <p className="text-xs text-slate-500 font-normal">
+                  Scan the end QR code after finishing work and log pieces
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* KPI Stats Grid matching Screenshot 1 */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Today's Pcs */}
+        <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+              <Calendar className="w-5 h-5" />
+            </div>
             <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-amber-200">
-                DUSRA STEP / STEP 2
-              </span>
-              <h2 className="text-2xl font-black mt-1">🔴 Batch Khatam Scan</h2>
-              <p className="text-xs text-amber-100 font-semibold mt-1">
-                Kaam mukammal hone par End QR scan karke pcs likhen
+              <p className="text-2xl font-bold text-slate-900 leading-none">
+                {stats?.piecesToday ?? 0}
+              </p>
+              <p className="text-xs font-normal text-slate-500 mt-1">
+                Today's Pcs
               </p>
             </div>
-            <div className="p-4 bg-amber-500 rounded-2xl shadow-inner">
-              <CheckCircle2 className="w-10 h-10 text-white" />
+          </CardContent>
+        </Card>
+
+        {/* Active Batches */}
+        <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-slate-900 leading-none">
+                {stats?.activeBatches ?? 0}
+              </p>
+              <p className="text-xs font-normal text-slate-500 mt-1">
+                Active Batches
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-4 text-center">
-            <ClipboardList className="w-7 h-7 text-emerald-400 mx-auto mb-1" />
-            <p className="text-3xl font-black text-white">
-              {stats?.piecesToday ?? 0}
-            </p>
-            <p className="text-xs font-bold text-slate-400 mt-1">
-              Aaj Ke Pieces / Today's Pcs
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="p-4 text-center">
-            <Package className="w-7 h-7 text-blue-400 mx-auto mb-1" />
-            <p className="text-3xl font-black text-white">
-              {stats?.activeBatches ?? 0}
-            </p>
-            <p className="text-xs font-bold text-slate-400 mt-1">
-              Chalte Batches / Active Batches
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Batches List */}
-      <div>
-        <h2 className="text-sm font-bold text-slate-300 mb-2 uppercase tracking-wide">
-          Haal Hi Ke Batches / Recent Work
+      {/* RECENT WORK Section matching Screenshot 1 */}
+      <div className="pt-2">
+        <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+          RECENT WORK
         </h2>
         {recentBatches.length === 0 ? (
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardContent className="py-8 text-center text-slate-500 text-sm">
-              Koi haaliya batch nahi mila
+          <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
+            <CardContent className="p-4 text-center text-slate-500 text-xs font-medium">
+              No recent batches found.
             </CardContent>
           </Card>
         ) : (
@@ -278,16 +295,16 @@ export default function FactoryDashboard() {
             {recentBatches.map((batch) => (
               <Card
                 key={batch.id}
-                className="bg-slate-800 border-slate-700 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                className="bg-[#e9ecef]/60 border border-slate-300/70 hover:border-slate-400 cursor-pointer rounded-xl transition-all"
                 onClick={() => navigate(`/factory/batch/${batch.id}`)}
               >
-                <CardContent className="py-3 px-4">
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-base font-bold text-white">
-                        Style: {batch.style_number}
+                      <p className="text-sm font-bold text-slate-900">
+                        Style {batch.style_number}
                       </p>
-                      <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                      <p className="text-xs text-slate-500 mt-0.5 font-normal">
                         Order #{batch.order_number} • Total {batch.total_quantity} pcs
                       </p>
                     </div>
@@ -295,11 +312,11 @@ export default function FactoryDashboard() {
                       variant="outline"
                       className={
                         batch.status === "completed"
-                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs px-3 py-1 font-bold"
-                          : "bg-blue-500/20 text-blue-300 border-blue-500/40 text-xs px-3 py-1 font-bold"
+                          ? "bg-white text-slate-700 border-slate-300 text-xs px-3 py-1 font-medium rounded-full"
+                          : "bg-blue-50 text-blue-700 border-blue-200 text-xs px-3 py-1 font-medium rounded-full"
                       }
                     >
-                      {batch.status === "completed" ? "Khatam" : "Jari Hai"}
+                      {batch.status === "completed" ? "Completed" : "In Progress"}
                     </Badge>
                   </div>
                 </CardContent>
@@ -311,4 +328,5 @@ export default function FactoryDashboard() {
     </div>
   );
 }
+
 

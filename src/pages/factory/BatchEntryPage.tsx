@@ -284,7 +284,7 @@ export default function BatchEntryPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
       </div>
     );
   }
@@ -292,9 +292,9 @@ export default function BatchEntryPage() {
   if (!batch) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-400">Batch nahi mila / Batch not found</p>
-        <Button variant="ghost" className="mt-4 text-emerald-400" onClick={() => navigate("/factory/scan")}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Wapas Scan Karein
+        <p className="text-slate-500 text-sm">Batch not found / Batch nahi mila</p>
+        <Button variant="ghost" className="mt-4 text-blue-600 font-semibold" onClick={() => navigate("/factory/scan")}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Scanner
         </Button>
       </div>
     );
@@ -302,20 +302,20 @@ export default function BatchEntryPage() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4 max-w-md mx-auto text-center px-4">
-        <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border-2 border-emerald-500">
-          <CheckCircle className="w-12 h-12" />
+      <div className="flex flex-col items-center justify-center py-16 gap-4 max-w-md mx-auto text-center px-4">
+        <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center border border-blue-300">
+          <CheckCircle className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-black text-white">Shabash! Entry Saved</h2>
-        <p className="text-sm text-slate-300 font-semibold">
-          Aap ka kaam successfully log ho gaya hai.
+        <h2 className="text-2xl font-bold text-slate-900">Work Logged Successfully!</h2>
+        <p className="text-xs text-slate-600 font-normal">
+          Your production batch entry has been recorded.
         </p>
-        <div className="flex flex-col w-full gap-3 mt-4">
-          <Button size="lg" className="w-full h-14 text-lg font-bold bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => navigate("/factory/scan")}>
-            Doosra QR Scan Karein
+        <div className="flex flex-col w-full gap-3 mt-3">
+          <Button size="lg" className="w-full h-12 text-sm font-semibold bg-[#4675a8] hover:bg-[#38608b] text-white rounded-xl" onClick={() => navigate("/factory/scan")}>
+            Scan Another QR Code
           </Button>
-          <Button size="lg" variant="outline" className="w-full h-14 text-lg border-slate-600 text-slate-200" onClick={() => navigate("/factory")}>
-            Home Par Wapas Jayein
+          <Button size="lg" variant="outline" className="w-full h-12 text-sm border-slate-300 text-slate-700 rounded-xl" onClick={() => navigate("/factory")}>
+            Return to Home
           </Button>
         </div>
       </div>
@@ -323,29 +323,30 @@ export default function BatchEntryPage() {
   }
 
   return (
-    <div className="space-y-5 max-w-lg mx-auto pb-10">
-      <Button variant="ghost" size="sm" className="text-slate-400 -ml-2" onClick={() => navigate(-1)}>
-        <ArrowLeft className="w-4 h-4 mr-1" /> Wapas / Back
+    <div className="space-y-4 max-w-md mx-auto">
+      <Button variant="ghost" size="sm" className="text-slate-600 -ml-2 hover:bg-slate-200/60" onClick={() => navigate(-1)}>
+        <ArrowLeft className="w-4 h-4 mr-1" /> Back
       </Button>
 
-      <div className="bg-slate-800/90 border border-slate-700 rounded-2xl p-4">
+      {/* Style Header Card */}
+      <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">Style Number</span>
-            <h1 className="text-2xl font-black text-white">{batch.style_number}</h1>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Style Number</span>
+            <h1 className="text-xl font-bold text-slate-900">{batch.style_number}</h1>
           </div>
-          <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-sm font-bold px-3 py-1">
+          <Badge className="bg-white text-slate-700 border-slate-300 text-xs font-semibold px-3 py-1 rounded-full">
             Total {batch.total_quantity} Pcs
           </Badge>
         </div>
       </div>
 
-      <Card className="bg-slate-800 border-slate-700 shadow-xl">
-        <CardContent className="p-5 space-y-6">
+      <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
+        <CardContent className="p-4 space-y-5">
           {/* Phase Selector & Closure Control */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <Label className="text-sm font-bold text-slate-200">1. Production Phase Select Karein</Label>
+              <Label className="text-xs font-bold text-slate-700">1. Production Phase Select Karein</Label>
               {selectedPhase && (
                 <Button
                   type="button"
@@ -353,29 +354,29 @@ export default function BatchEntryPage() {
                   variant={currentPhaseStatus === "closed" ? "secondary" : "outline"}
                   onClick={togglePhaseClosure}
                   disabled={togglingPhaseStatus}
-                  className={`h-8 text-xs font-extrabold ${
+                  className={`h-7 text-[11px] font-semibold ${
                     currentPhaseStatus === "closed"
-                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500"
-                      : "border-slate-600 text-slate-300 hover:text-white"
+                      ? "bg-slate-200 text-slate-700 border-slate-400"
+                      : "border-slate-300 text-slate-600 hover:bg-white"
                   }`}
                 >
                   {togglingPhaseStatus ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
                   ) : currentPhaseStatus === "closed" ? (
-                    "🟢 Phase Closed (Click to Re-open)"
+                    "Phase Closed (Click to Re-open)"
                   ) : (
-                    "🔒 Close This Phase"
+                    "Close This Phase"
                   )}
                 </Button>
               )}
             </div>
             <Select value={selectedPhase} onValueChange={setSelectedPhase}>
-              <SelectTrigger className="bg-slate-900 border-slate-600 text-white text-base h-14 font-bold">
+              <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg">
                 <SelectValue placeholder="Phase Select Karein" />
               </SelectTrigger>
               <SelectContent>
                 {phases.map((p) => (
-                  <SelectItem key={p.id} value={p.id} className="text-base py-3 font-semibold">{p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id} className="text-sm py-2 font-medium">{p.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -383,48 +384,48 @@ export default function BatchEntryPage() {
 
           {/* Role Error Alert */}
           {roleError && (
-            <div className="p-4 bg-red-950/80 border-2 border-red-500/60 rounded-2xl text-red-300 text-sm font-bold animate-shake">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs font-medium">
               {roleError}
             </div>
           )}
 
           {/* Previous Phase Warning */}
           {prevPhaseWarning && !roleError && (
-            <div className="p-4 bg-amber-950/80 border-2 border-amber-500/60 rounded-2xl text-amber-300 text-sm font-bold">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-medium">
               {prevPhaseWarning}
             </div>
           )}
 
           {/* Rate Badge */}
           {selectedPhase && (
-            <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400">Rate Per Piece:</span>
-              <span className="text-base font-black text-emerald-400">
-                {ratePerPiece !== null && ratePerPiece > 0 ? `PKR ${ratePerPiece} / piece` : "Rate Admin Se Set Hoga"}
+            <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">Rate Per Piece:</span>
+              <span className="text-sm font-bold text-slate-800">
+                {ratePerPiece !== null && ratePerPiece > 0 ? `PKR ${ratePerPiece} / piece` : "Set by Admin"}
               </span>
             </div>
           )}
 
           {/* Quantity Completed Touch Stepper */}
-          <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 space-y-3">
-            <Label className="text-sm font-bold text-emerald-400 uppercase tracking-wide">
-              2. Sahi Pieces Done / Completed Quantity
+          <div className="bg-white/90 p-4 rounded-xl border border-slate-200 space-y-3">
+            <Label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              2. Completed Quantity / Done Pieces
             </Label>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 type="button"
-                size="lg"
-                variant="destructive"
-                className="w-14 h-14 text-2xl font-black rounded-xl"
+                size="sm"
+                variant="outline"
+                className="w-10 h-10 text-sm font-bold rounded-lg border-slate-300 text-slate-700"
                 onClick={() => adjustQty(-10)}
               >
                 -10
               </Button>
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-12 h-12 text-xl font-bold rounded-xl border-slate-600 text-white"
+                className="w-9 h-10 text-sm font-bold rounded-lg border-slate-300 text-slate-700"
                 onClick={() => adjustQty(-1)}
               >
                 -1
@@ -434,35 +435,35 @@ export default function BatchEntryPage() {
                 min="0"
                 value={qtyCompleted}
                 onChange={(e) => setQtyCompleted(Math.max(0, parseInt(e.target.value) || 0))}
-                className="bg-slate-950 border-emerald-500/50 text-white text-center text-3xl font-black h-16 rounded-xl"
+                className="bg-slate-50 border-slate-300 text-slate-900 text-center text-2xl font-bold h-12 rounded-lg"
               />
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-12 h-12 text-xl font-bold rounded-xl border-slate-600 text-white"
+                className="w-9 h-10 text-sm font-bold rounded-lg border-slate-300 text-slate-700"
                 onClick={() => adjustQty(1)}
               >
                 +1
               </Button>
               <Button
                 type="button"
-                size="lg"
-                className="w-14 h-14 text-2xl font-black rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white"
+                size="sm"
+                className="w-10 h-10 text-sm font-bold rounded-lg bg-[#4675a8] hover:bg-[#38608b] text-white"
                 onClick={() => adjustQty(10)}
               >
                 +10
               </Button>
             </div>
             {/* Quick Touch Chips */}
-            <div className="flex gap-2 justify-center pt-2">
+            <div className="flex gap-1.5 justify-center pt-1">
               {[+50, +100, +250, +500].map((chip) => (
                 <Button
                   key={chip}
                   type="button"
                   size="sm"
-                  variant="secondary"
-                  className="bg-slate-800 text-emerald-300 font-bold border border-emerald-500/30 hover:bg-emerald-500/20"
+                  variant="outline"
+                  className="bg-slate-50 text-slate-700 text-xs font-semibold border-slate-200 hover:bg-slate-100 h-7 px-2.5"
                   onClick={() => adjustQty(chip)}
                 >
                   +{chip}
@@ -472,16 +473,16 @@ export default function BatchEntryPage() {
           </div>
 
           {/* Quantity Wasted Stepper */}
-          <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700 space-y-3">
-            <Label className="text-sm font-bold text-amber-400 uppercase tracking-wide">
-              3. Kharab Pieces / Wasted Quantity
+          <div className="bg-white/70 p-4 rounded-xl border border-slate-200 space-y-3">
+            <Label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              3. Wasted Quantity / Kharab Pieces
             </Label>
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center justify-between gap-2">
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-12 h-12 text-xl font-bold rounded-xl border-slate-600 text-white"
+                className="w-10 h-10 text-sm font-bold rounded-lg border-slate-300 text-slate-700"
                 onClick={() => adjustWasted(-1)}
               >
                 -1
@@ -491,13 +492,13 @@ export default function BatchEntryPage() {
                 min="0"
                 value={qtyWasted}
                 onChange={(e) => setQtyWasted(Math.max(0, parseInt(e.target.value) || 0))}
-                className="bg-slate-950 border-amber-500/50 text-white text-center text-2xl font-black h-14 rounded-xl"
+                className="bg-slate-50 border-slate-300 text-slate-900 text-center text-xl font-bold h-11 rounded-lg"
               />
               <Button
                 type="button"
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-12 h-12 text-xl font-bold rounded-xl border-slate-600 text-white"
+                className="w-10 h-10 text-sm font-bold rounded-lg border-slate-300 text-slate-700"
                 onClick={() => adjustWasted(1)}
               >
                 +1
@@ -507,26 +508,26 @@ export default function BatchEntryPage() {
 
           {/* Notes */}
           <div>
-            <Label className="text-xs font-bold text-slate-300">Notes / Wajah (Optional)</Label>
+            <Label className="text-xs font-medium text-slate-600">Notes (Optional)</Label>
             <Textarea
               value={notes} onChange={(e) => setNotes(e.target.value)}
-              rows={2} placeholder="Kharabi ki wajah ya koi zaroori baat..."
-              className="mt-1 bg-slate-900 border-slate-600 text-white placeholder:text-slate-500"
+              rows={2} placeholder="Optional notes or reasons..."
+              className="mt-1 bg-white border-slate-300 text-slate-900 text-xs placeholder:text-slate-400 rounded-lg"
             />
           </div>
 
           <Button
             size="lg"
-            className="w-full h-16 text-xl font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-2xl rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleSubmit}
             disabled={submitting || !selectedPhase || !!roleError || currentPhaseStatus === "closed"}
           >
             {submitting ? (
-              <><Loader2 className="w-6 h-6 animate-spin mr-2" /> Saving...</>
+              <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
             ) : currentPhaseStatus === "closed" ? (
-              "PHASE IS CLOSED / PEHLE RE-OPEN KAREIN"
+              "PHASE IS CLOSED"
             ) : (
-              "KAAM LOG KAREIN / SAVE WORK"
+              "Save Work Entry"
             )}
           </Button>
         </CardContent>
@@ -534,4 +535,5 @@ export default function BatchEntryPage() {
     </div>
   );
 }
+
 
