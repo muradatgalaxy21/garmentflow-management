@@ -1,7 +1,7 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Factory, Shield, Globe, TrendingUp, Scissors, Package } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import heroImage from "@/assets/hero-factory-enen.jpg";
 import fabricImage from "@/assets/proc-fabric.jpg";
 import qualityImage from "@/assets/proc-qc.jpg";
@@ -20,133 +20,174 @@ const stats = [
   { value: "10+", label: "QC Staff" },
 ];
 
-// Core capabilities shown in the grid section
+// Core capabilities displayed in swiped container
 const capabilities = [
   {
-    icon: Scissors,
+    num: "01",
     title: "Cut & Sew",
     description: "Full pattern making, cutting, and assembly across all garment categories.",
   },
   {
-    icon: Factory,
+    num: "02",
     title: "In-House Weaving",
     description: "Cotton-to-cloth conversion on our own loom plus 60+ sewing machines.",
   },
   {
-    icon: Shield,
-    title: "Quality Assurance",
+    num: "03",
+    title: "Quality Check",
     description: "Dedicated 10+ member QC team inspects every batch before dispatch.",
   },
   {
-    icon: Globe,
+    num: "04",
     title: "Global Exports",
-    description: "Trusted shipping partners delivering to clients across the globe.",
+    description: "Export-ready bulk apparel shipping with trusted logistics partners worldwide.",
   },
   {
-    icon: Package,
+    num: "05",
     title: "Local Vendor Supply",
-    description: "Reliable bulk supply for established local retail and wholesale vendors.",
+    description: "Reliable bulk supply for established domestic retail and wholesale vendors.",
   },
   {
-    icon: TrendingUp,
+    num: "06",
     title: "Three Generations",
-    description: "Family-run since the 1990s with a top-down managerial structure.",
+    description: "Family-owned legacy with top-down managerial oversight and craftsmanship.",
   },
 ];
 
 export default function HomePage() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = direction === "left" ? -360 : 360;
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
+
   return (
     <>
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center overflow-hidden">
+      <section className="relative h-[640px] overflow-hidden">
         <div className="absolute inset-0">
           <img
             src={heroImage}
-            alt="En En Garments manufacturing floor with rows of sewing machines"
+            alt="Factory floor — workers at sewing machines"
             className="w-full h-full object-cover"
             width={1920}
             height={1080}
           />
-          <div className="absolute inset-0 bg-primary/75" />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(100deg, rgba(20, 28, 50, 0.92) 0%, rgba(20, 28, 50, 0.72) 42%, rgba(20, 28, 50, 0.35) 75%)",
+            }}
+          />
         </div>
 
-        <div className="relative z-10 container-wide px-6 lg:px-12">
+        <div className="relative z-10 max-w-[1360px] mx-auto px-6 lg:px-[40px] h-full flex flex-col justify-center gap-[26px]">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={{
               visible: { transition: { staggerChildren: 0.15 } },
             }}
-            className="max-w-2xl"
+            className="max-w-[640px]"
           >
-            <motion.div variants={fadeUp} className="divider-gold mb-6" />
+            <motion.div variants={fadeUp} className="w-[56px] h-[3px] bg-[#C69749] mb-[26px]" />
             <motion.h1
               variants={fadeUp}
-              className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight"
+              className="font-heading text-4xl md:text-5xl lg:text-[52px] font-bold text-[#FAF7EF] leading-[1.12] m-0"
             >
               Precision Garment Manufacturing — 30+ Years of Heritage
             </motion.h1>
             <motion.p
               variants={fadeUp}
-              className="mt-6 text-lg text-primary-foreground/80 font-body leading-relaxed max-w-xl"
+              className="mt-[26px] text-[17px] text-[#D8D2C2] font-body leading-[1.7] max-w-[560px] m-0"
             >
-              From a single tailor in the 1990s to a full-fledged unit, En En Garments has been
-              crafting premium apparel for global exports and trusted local vendors for three
+              From a single tailor in the 1990s to a full-fledged manufacturing unit, En En Garments has
+              crafted premium apparel for global exports and trusted local vendors across three
               generations.
             </motion.p>
-            <motion.div variants={fadeUp} className="mt-8 flex flex-wrap gap-4">
-              <Button asChild size="lg" variant="secondary">
-                <Link to="/contact?rfq=true">Request a Quote</Link>
-              </Button>
-              {/* Capabilities CTA — solid white border + white text reads cleanly on the navy overlay */}
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+            <motion.div variants={fadeUp} className="mt-[34px] flex flex-wrap gap-4">
+              <Link
+                to="/contact?rfq=true"
+                className="btn-fill-gold inline-flex items-center justify-center px-[28px] py-[15px] rounded-[3px] text-[14.5px] font-bold tracking-[0.01em]"
               >
-                <Link to="/capabilities">Our Capabilities</Link>
-              </Button>
+                Request a Quote
+              </Link>
+              <Link
+                to="/capabilities"
+                className="btn-fill-outline inline-flex items-center justify-center px-[28px] py-[15px] rounded-[3px] text-[14.5px] font-semibold tracking-[0.01em]"
+              >
+                Our Capabilities
+              </Link>
             </motion.div>
           </motion.div>
         </div>
       </section>
 
       {/* Stats Strip */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="container-wide px-6 lg:px-12 py-10 grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="bg-[#16213E]">
+        <div className="max-w-[1360px] mx-auto px-6 lg:px-[40px] py-[44px] grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map((stat) => (
-            <div key={stat.label} className="text-center">
-              <p className="font-heading text-3xl md:text-4xl font-bold text-gold">
+            <div key={stat.label}>
+              <p className="font-heading text-3xl md:text-[34px] font-bold text-[#C69749] m-0">
                 {stat.value}
               </p>
-              <p className="mt-1 text-sm opacity-70 tracking-wide">{stat.label}</p>
+              <p className="mt-[6px] text-[13px] text-[#AFB6CC] tracking-[0.03em] m-0">
+                {stat.label}
+              </p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Capabilities Grid */}
-      <section className="section-padding bg-background">
-        <div className="container-wide">
+      {/* Manufacturing Capabilities Section (Horizontally Swiped Container) */}
+      <section className="bg-[#F7F3EA] py-[100px] lg:py-[110px]">
+        <div className="max-w-[1360px] mx-auto px-6 lg:px-[40px]">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             variants={fadeUp}
-            className="text-center mb-16"
+            className="text-center max-w-[680px] mx-auto mb-[50px]"
           >
-            <div className="divider-gold mx-auto mb-4" />
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+            <div className="w-[44px] h-[2px] bg-[#C69749] mx-auto mb-[18px]" />
+            <h2 className="font-heading text-3xl md:text-[34px] font-bold text-[#1B2A4A] m-0 mb-[14px]">
               Manufacturing Capabilities
             </h2>
-            <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-              End-to-end garment production powered by experienced workers and a top-down
-              managerial structure.
+            <p className="text-[15.5px] text-[#6B6250] leading-[1.7] m-0">
+              End-to-end garment production powered by experienced workers and a top-down managerial structure.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Swipe controls */}
+          <div className="flex items-center justify-end mb-4 px-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => scroll("left")}
+                aria-label="Previous capability"
+                className="w-9 h-9 rounded-full border border-[#E4DDC9] bg-[#FAF7EF] text-[#1B2A4A] flex items-center justify-center hover:bg-[#1B2A4A] hover:text-[#FAF7EF] hover:border-[#1B2A4A] transition-colors"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => scroll("right")}
+                aria-label="Next capability"
+                className="w-9 h-9 rounded-full border border-[#E4DDC9] bg-[#FAF7EF] text-[#1B2A4A] flex items-center justify-center hover:bg-[#1B2A4A] hover:text-[#FAF7EF] hover:border-[#1B2A4A] transition-colors"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontally Swiped Container */}
+          <div
+            ref={scrollRef}
+            className="flex gap-[28px] overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 pt-1 px-1 cursor-grab active:cursor-grabbing"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
             {capabilities.map((cap, i) => (
               <motion.div
                 key={cap.title}
@@ -158,16 +199,18 @@ export default function HomePage() {
                   visible: {
                     opacity: 1,
                     y: 0,
-                    transition: { duration: 0.5, delay: i * 0.1 },
+                    transition: { duration: 0.5, delay: i * 0.08 },
                   },
                 }}
-                className="p-6 rounded-lg border border-border bg-card hover:shadow-md transition-shadow"
+                className="snap-start shrink-0 w-[300px] md:w-[380px] bg-[#FAF7EF] border border-[#E4DDC9] rounded-[4px] p-[36px_32px] hover:shadow-lg transition-all"
               >
-                <cap.icon className="w-8 h-8 text-accent mb-4" />
-                <h3 className="font-heading text-lg font-semibold text-card-foreground">
+                <div className="font-heading text-[20px] font-bold text-[#C69749] mb-[18px]">
+                  {cap.num}
+                </div>
+                <h3 className="text-[18px] font-bold text-[#1B2A4A] m-0 mb-[10px]">
                   {cap.title}
                 </h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                <p className="text-[14.5px] text-[#6B6250] leading-[1.65] m-0">
                   {cap.description}
                 </p>
               </motion.div>
@@ -176,32 +219,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* About Preview with Images */}
-      <section className="section-padding bg-secondary/50">
-        <div className="container-wide grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* About Preview / Three Generations of Craftsmanship */}
+      <section className="bg-[#EFE8D9] py-[100px]">
+        <div className="max-w-[1360px] mx-auto px-6 lg:px-[40px] grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-[70px] items-center">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
           >
-            <div className="divider-gold mb-4" />
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+            <div className="w-[44px] h-[2px] bg-[#C69749] mb-[18px]" />
+            <h2 className="font-heading text-3xl md:text-[32px] font-bold text-[#1B2A4A] m-0 mb-[22px]">
               Three Generations of Craftsmanship
             </h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
+            <p className="text-[15px] text-[#5B5142] leading-[1.8] m-0 mb-[18px]">
               Founded by Nazim Ud Din — who began as a worker stitching socks and trousers — En En
               Garments grew from a single tailor into a manufacturing unit with 80+ skilled
               employees. Today, his son Zubair Nazim leads the company as Owner and CEO, partnered
-              with grandson Firas Ahmad as a top-level manager and partial owner.
+              with elder son Firas Ahmad as a top-level manager and partial owner.
             </p>
-            <p className="mt-3 text-muted-foreground leading-relaxed">
+            <p className="text-[15px] text-[#5B5142] leading-[1.8] m-0 mb-[30px]">
               We serve both international export clients and trusted local vendors, with cutting,
               stitching, quality check, and press departments under one roof.
             </p>
-            <Button asChild className="mt-6" variant="default">
-              <Link to="/about">Read Our Story</Link>
-            </Button>
+            <Link
+              to="/about"
+              className="btn-fill-navy inline-flex items-center justify-center px-[26px] py-[13px] rounded-[3px] text-[14px] font-semibold"
+            >
+              Read Our Story
+            </Link>
           </motion.div>
 
           <motion.div
@@ -209,20 +255,20 @@ export default function HomePage() {
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
-            className="grid grid-cols-2 gap-4"
+            className="grid grid-cols-2 gap-[16px]"
           >
             <img
               src={fabricImage}
-              alt="Premium fabric stacks at En En Garments"
-              className="rounded-lg object-cover w-full h-48 md:h-64"
+              alt="Folded fabric stacks"
+              className="rounded-[4px] object-cover w-full h-[340px] shadow-sm"
               loading="lazy"
               width={800}
               height={600}
             />
             <img
               src={qualityImage}
-              alt="Quality inspection at En En Garments"
-              className="rounded-lg object-cover w-full h-48 md:h-64 mt-8"
+              alt="Tailor fitting a garment"
+              className="rounded-[4px] object-cover w-full h-[340px] mt-[36px] shadow-sm"
               loading="lazy"
               width={800}
               height={600}
@@ -232,26 +278,30 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="section-padding bg-primary text-primary-foreground text-center">
+      <section className="bg-[#16213E]">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={fadeUp}
-          className="container-narrow"
+          className="max-w-[800px] mx-auto py-[100px] px-6 lg:px-[40px] text-center"
         >
-          <h2 className="font-heading text-3xl md:text-4xl font-bold">
+          <h2 className="font-heading text-3xl md:text-[32px] font-bold text-[#FAF7EF] m-0 mb-[14px]">
             Ready to Start Your Next Order?
           </h2>
-          <p className="mt-4 text-primary-foreground/70 max-w-lg mx-auto">
+          <p className="text-[15.5px] text-[#AFB6CC] leading-[1.7] m-0 mb-[34px]">
             Whether you are exporting overseas or supplying local retail, get a competitive quote
             within 24 hours from our team.
           </p>
-          <Button asChild size="lg" variant="secondary" className="mt-8">
-            <Link to="/contact?rfq=true">Request a Quote</Link>
-          </Button>
+          <Link
+            to="/contact?rfq=true"
+            className="btn-fill-gold inline-flex items-center justify-center px-[34px] py-[16px] rounded-[3px] text-[15px] font-bold"
+          >
+            Request a Quote
+          </Link>
         </motion.div>
       </section>
     </>
   );
 }
+

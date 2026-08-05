@@ -9,8 +9,7 @@ export default function PublicLayout() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      {/* pt-16 offsets the fixed header height */}
-      <main className="flex-1 pt-16">
+      <main className="flex-1">
         <Outlet />
       </main>
       <Footer />

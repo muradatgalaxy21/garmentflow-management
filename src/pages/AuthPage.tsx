@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
-import { Eye, EyeOff, Briefcase, HardHat, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/i18n/useTranslation";
-import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
 type PortalRole = "client" | "worker";
 
@@ -33,7 +34,7 @@ const signUpSchema = signInSchema.extend({
   company: z.string().trim().max(200).optional(),
 });
 
-// A reusable password input that reveals itself only while the eye icon is held down.
+// Password input with eye toggle
 function PasswordField({
   id,
   name,
@@ -61,7 +62,7 @@ function PasswordField({
         required={required}
         minLength={minLength}
         maxLength={maxLength}
-        className="pr-10"
+        className="pr-10 bg-[#FAF8F3] border-[#E5DFD3]"
       />
       <button
         type="button"
@@ -69,10 +70,7 @@ function PasswordField({
         onMouseDown={() => setReveal(true)}
         onMouseUp={() => setReveal(false)}
         onMouseLeave={() => setReveal(false)}
-        onPointerDown={() => setReveal(true)}
-        onPointerUp={() => setReveal(false)}
-        onPointerLeave={() => setReveal(false)}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
         tabIndex={-1}
       >
         {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -89,14 +87,11 @@ export default function AuthPage() {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
-  // Pre-select role if specified in query params (?role=worker or ?role=client)
   const initialRole = searchParams.get("role") === "worker" ? "worker" : searchParams.get("role") === "client" ? "client" : null;
   const [role, setRole] = useState<PortalRole | null>(initialRole);
 
-  // Redirect target after successful auth — fallback to /portal
   const from = (location.state as { from?: string } | null)?.from ?? "/portal";
 
-  // If already logged in, skip the auth form entirely
   useEffect(() => {
     const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -189,175 +184,193 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-secondary/40 px-6 py-16">
-      <div className="w-full max-w-md bg-card border border-border rounded-lg p-8 shadow-sm relative">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F5F2EA]">
+      <Header />
 
-        {/* Top right language switcher */}
-        <div className="absolute top-4 right-4">
-          <LanguageSwitcher variant="ghost" size="sm" />
-        </div>
-
-        {/* Brand header */}
-        <div className="text-center mb-8 pt-2">
-          <div className="flex justify-center mb-4">
-            <img src="/logo-mark.svg" alt="En En Garments" className="h-16 w-auto" />
+      <div className="flex-1 flex items-center justify-center px-6 py-16">
+        <div className="w-full max-w-md bg-white border border-[#E4DDD0] rounded-lg p-8 shadow-sm text-center relative">
+          {/* Logo mark */}
+          <div className="flex justify-center mb-3">
+            <img src="/logo-mark.svg" alt="En En Garments" className="h-10 w-auto" />
           </div>
-          <Link to="/" className="font-heading text-2xl font-bold text-foreground hover:text-accent transition-colors">
-            En En Garments
-          </Link>
-          <p className="text-sm text-muted-foreground mt-1">{t("auth.title")}</p>
-        </div>
 
-        {!role ? (
-          // Step 1: Pick portal type (Client vs Worker)
-          <div className="space-y-3">
-            <p className="text-sm text-center text-muted-foreground mb-4">{t("auth.continueAs")}</p>
-            <button
-              type="button"
-              onClick={() => setRole("client")}
-              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-secondary/40 transition-colors text-left"
-            >
-              <Briefcase className="w-6 h-6 text-accent shrink-0" />
-              <div>
-                <div className="font-medium text-foreground">{t("auth.client")}</div>
-                <div className="text-xs text-muted-foreground">{t("auth.clientDesc")}</div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("worker")}
-              className="w-full flex items-center gap-4 p-4 rounded-lg border border-border hover:border-accent hover:bg-amber-500/10 border-amber-500/30 transition-colors text-left"
-            >
-              <HardHat className="w-6 h-6 text-amber-500 shrink-0" />
-              <div>
-                <div className="font-medium text-foreground">{t("auth.worker")}</div>
-                <div className="text-xs text-muted-foreground">{t("auth.workerDesc")}</div>
-              </div>
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center justify-between mb-4">
+          <h2 className="font-heading text-2xl font-bold text-[#1E293B]">En En Garments</h2>
+          <p className="text-sm text-gray-500 mt-1 mb-6">Employees & Client Portal</p>
+
+          {!role ? (
+            // Step 1: Pick portal type (Client vs Worker)
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-gray-500 tracking-wider uppercase mb-3">Continue as:</p>
               <button
                 type="button"
-                onClick={() => setRole(null)}
-                className="text-xs text-muted-foreground hover:text-accent transition-colors flex items-center gap-1"
+                onClick={() => setRole("client")}
+                className="w-full p-4 rounded-lg border border-[#E4DDD0] hover:border-[#B88E28] bg-[#FAF8F3] hover:bg-white text-left transition-colors cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                {t("auth.changeRole")} ({role === "client" ? t("auth.client") : t("auth.worker")})
+                <div className="font-bold text-[#1E293B] text-base">Client</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Place orders, track production, manage your account
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole("worker")}
+                className="w-full p-4 rounded-lg border border-[#E4DDD0] hover:border-[#B88E28] bg-[#FAF8F3] hover:bg-white text-left transition-colors cursor-pointer"
+              >
+                <div className="font-bold text-[#1E293B] text-base">Factory Employee / Worker</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  Factory floor sign-in for production logging & piece counting
+                </div>
               </button>
             </div>
-
-            {role === "worker" && (
-              <div className="mb-4 p-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs">
-                {t("auth.workerNotice")}
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  type="button"
+                  onClick={() => setRole(null)}
+                  className="text-xs text-[#B88E28] hover:underline flex items-center gap-1 font-medium"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Change role ({role === "client" ? "Client" : "Worker"})
+                </button>
               </div>
-            )}
 
-            <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
-                <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
-              </TabsList>
+              {role === "worker" && (
+                <div className="mb-4 p-3 rounded bg-amber-500/10 border border-amber-500/30 text-amber-800 text-xs text-left">
+                  {t("auth.workerNotice")}
+                </div>
+              )}
 
-              {/* Sign In tab */}
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4 mt-4" noValidate autoComplete="on">
-                  <div>
-                    <Label htmlFor="signin-email">{t("auth.email")}</Label>
-                    <Input
-                      id="signin-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      maxLength={255}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signin-password">{t("auth.password")}</Label>
-                    <div className="mt-1">
-                      <PasswordField
-                        id="signin-password"
-                        name="password"
-                        autoComplete="current-password"
-                        required
-                        minLength={6}
-                        maxLength={72}
-                      />
-                    </div>
-                  </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
-                  </Button>
-                </form>
-              </TabsContent>
+              <Tabs defaultValue="signin" className="w-full">
+                <TabsList className="grid grid-cols-2 w-full mb-4">
+                  <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+                  <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
+                </TabsList>
 
-              {/* Sign Up tab */}
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4 mt-4" noValidate autoComplete="on">
-                  <div>
-                    <Label htmlFor="signup-name">{t("auth.fullName")}</Label>
-                    <Input
-                      id="signup-name"
-                      name="fullName"
-                      autoComplete="name"
-                      required
-                      maxLength={100}
-                      className="mt-1"
-                    />
-                  </div>
-                  {role === "client" && (
+                {/* Sign In tab */}
+                <TabsContent value="signin">
+                  <form onSubmit={handleSignIn} className="space-y-4 text-left" noValidate autoComplete="on">
                     <div>
-                      <Label htmlFor="signup-company">{t("auth.company")}</Label>
+                      <Label htmlFor="signin-email" className="text-xs font-semibold text-[#1E293B]">
+                        {t("auth.email")}
+                      </Label>
                       <Input
-                        id="signup-company"
-                        name="company"
-                        autoComplete="organization"
-                        maxLength={200}
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <Label htmlFor="signup-email">{t("auth.email")}</Label>
-                    <Input
-                      id="signup-email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      required
-                      maxLength={255}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signup-password">{t("auth.password")}</Label>
-                    <div className="mt-1">
-                      <PasswordField
-                        id="signup-password"
-                        name="password"
-                        autoComplete="new-password"
+                        id="signin-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
                         required
-                        minLength={6}
-                        maxLength={72}
+                        maxLength={255}
+                        className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
                       />
                     </div>
-                  </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? t("factory.common.loading") : t("auth.submitSignUp")}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+                    <div>
+                      <Label htmlFor="signin-password" className="text-xs font-semibold text-[#1E293B]">
+                        {t("auth.password")}
+                      </Label>
+                      <div className="mt-1">
+                        <PasswordField
+                          id="signin-password"
+                          name="password"
+                          autoComplete="current-password"
+                          required
+                          minLength={6}
+                          maxLength={72}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-2.5"
+                    >
+                      {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
+                    </Button>
+                  </form>
+                </TabsContent>
 
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          <Link to="/" className="hover:text-accent transition-colors">{t("auth.backToSite")}</Link>
-        </p>
+                {/* Sign Up tab */}
+                <TabsContent value="signup">
+                  <form onSubmit={handleSignUp} className="space-y-4 text-left" noValidate autoComplete="on">
+                    <div>
+                      <Label htmlFor="signup-name" className="text-xs font-semibold text-[#1E293B]">
+                        {t("auth.fullName")}
+                      </Label>
+                      <Input
+                        id="signup-name"
+                        name="fullName"
+                        autoComplete="name"
+                        required
+                        maxLength={100}
+                        className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
+                      />
+                    </div>
+                    {role === "client" && (
+                      <div>
+                        <Label htmlFor="signup-company" className="text-xs font-semibold text-[#1E293B]">
+                          {t("auth.company")}
+                        </Label>
+                        <Input
+                          id="signup-company"
+                          name="company"
+                          autoComplete="organization"
+                          maxLength={200}
+                          className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <Label htmlFor="signup-email" className="text-xs font-semibold text-[#1E293B]">
+                        {t("auth.email")}
+                      </Label>
+                      <Input
+                        id="signup-email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        maxLength={255}
+                        className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="signup-password" className="text-xs font-semibold text-[#1E293B]">
+                        {t("auth.password")}
+                      </Label>
+                      <div className="mt-1">
+                        <PasswordField
+                          id="signup-password"
+                          name="password"
+                          autoComplete="new-password"
+                          required
+                          minLength={6}
+                          maxLength={72}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-2.5"
+                    >
+                      {loading ? t("factory.common.loading") : t("auth.submitSignUp")}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+
+          <p className="text-xs text-gray-500 text-center mt-6">
+            <Link to="/" className="text-[#B88E28] hover:underline font-medium">
+              Back to main website
+            </Link>
+          </p>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 }
+

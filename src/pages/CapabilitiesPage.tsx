@@ -9,12 +9,11 @@ import procFinishing from "@/assets/proc-finishing.jpg";
 import procShipping from "@/assets/proc-shipping.jpg";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 25 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-// Each process step pairs an icon, copy, and a related background image
-// so the card visually echoes the activity it describes.
+// Process steps pairing icons, copy, and preserved background images
 const processSteps = [
   { icon: Ruler, title: "Design & Pattern", text: "CAD-based pattern development, grading, and marker planning.", bg: procDesign },
   { icon: Layers, title: "Fabric & Weaving", text: "In-house cotton-to-cloth weaving plus sourcing of premium fabrics.", bg: procFabric },
@@ -24,7 +23,7 @@ const processSteps = [
   { icon: Truck, title: "Logistics & Shipping", text: "Trusted partners delivering across the globe with full export documentation.", bg: procShipping },
 ];
 
-// Highlight stats reflecting the actual En En Garments capacity
+// Highlight stats reflecting actual capacity
 const highlights = [
   { label: "Sewing Machines", value: "60+" },
   { label: "Total Employees", value: "80+" },
@@ -32,7 +31,7 @@ const highlights = [
   { label: "Global Shipping", value: "Yes" },
 ];
 
-// In-house departments operating under one roof
+// In-house departments
 const departments = [
   "Cutting Department",
   "Stitching Department",
@@ -44,9 +43,9 @@ const departments = [
 
 export default function CapabilitiesPage() {
   return (
-    <>
-      {/* Header */}
-      <section className="relative h-[460px] flex items-center overflow-hidden">
+    <div className="bg-[#F5F2EA] min-h-screen text-[#1E293B]">
+      {/* Header with preserved capabilitiesHero image and dark slate overlay */}
+      <section className="relative h-[450px] md:h-[480px] flex items-center overflow-hidden text-white">
         <div className="absolute inset-0">
           <img
             src={capabilitiesHero}
@@ -55,58 +54,60 @@ export default function CapabilitiesPage() {
             width={1600}
             height={900}
           />
-          <div className="absolute inset-0 bg-primary/80" />
+          <div className="absolute inset-0 bg-[#3C404B]/80 backdrop-brightness-75" />
         </div>
-        <div className="relative z-10 container-narrow text-center text-primary-foreground px-6">
-          <div className="divider-gold mx-auto mb-4" />
-          <h1 className="font-heading text-4xl md:text-5xl font-bold">Manufacturing Capabilities</h1>
-          <p className="mt-4 text-primary-foreground/70 max-w-lg mx-auto">
+        <div className="relative z-10 container-narrow text-center px-6 mx-auto">
+          <div className="h-[2px] w-12 bg-[#B88E28] mx-auto mb-4" />
+          <h1 className="font-heading text-4xl md:text-5xl font-bold tracking-tight">
+            Manufacturing Capabilities
+          </h1>
+          <p className="mt-4 text-gray-200 max-w-xl mx-auto text-base md:text-lg font-light leading-relaxed">
             End-to-end production infrastructure for woven and knitted garments — built across 30+
             years.
           </p>
         </div>
       </section>
 
-      {/* Capacity Stats */}
-      <section className="bg-primary text-primary-foreground py-10">
-        <div className="container-wide px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      {/* Capacity Stats Bar */}
+      <section className="bg-[#16213E] text-white py-12">
+        <div className="container-wide px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center mx-auto">
           {highlights.map((h) => (
             <div key={h.label}>
-              <p className="font-heading text-3xl font-bold text-gold">{h.value}</p>
-              <p className="mt-1 text-sm opacity-70">{h.label}</p>
+              <p className="font-heading text-3xl md:text-4xl font-bold text-[#C69749]">{h.value}</p>
+              <p className="mt-1.5 text-sm text-gray-300 font-medium">{h.label}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Departments list */}
-      <section className="section-padding bg-secondary/40">
-        <div className="container-wide">
+      <section className="section-padding">
+        <div className="container-wide mx-auto">
           <div className="text-center mb-10">
-            <div className="divider-gold mx-auto mb-4" />
-            <h2 className="font-heading text-3xl font-bold text-foreground">In-House Departments</h2>
+            <div className="h-[2px] w-12 bg-[#B88E28] mx-auto mb-4" />
+            <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#1E293B]">In-House Departments</h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {departments.map((dept) => (
               <div
                 key={dept}
-                className="flex items-center gap-3 p-4 rounded-lg bg-card border border-border"
+                className="flex items-center gap-3.5 p-4 rounded-lg bg-white border border-[#E4DDD0] shadow-sm"
               >
-                <CheckCircle className="w-5 h-5 text-accent flex-shrink-0" />
-                <span className="text-sm font-medium text-card-foreground">{dept}</span>
+                <CheckCircle className="w-5 h-5 text-[#B88E28] shrink-0" />
+                <span className="text-sm font-semibold text-[#1E293B]">{dept}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Process Steps with image-backed cards */}
-      <section className="section-padding bg-background">
-        <div className="container-wide">
-          <div className="text-center mb-14">
-            <div className="divider-gold mx-auto mb-4" />
-            <h2 className="font-heading text-3xl font-bold text-foreground">Our Production Process</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
+      {/* Process Steps with preserved background images */}
+      <section className="section-padding pt-0">
+        <div className="container-wide mx-auto">
+          <div className="text-center mb-12">
+            <div className="h-[2px] w-12 bg-[#B88E28] mx-auto mb-4" />
+            <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#1E293B]">Our Production Process</h2>
+            <p className="mt-3 text-gray-600 max-w-xl mx-auto">
               From design through shipping — every stage handled in-house by skilled departments.
             </p>
           </div>
@@ -122,30 +123,29 @@ export default function CapabilitiesPage() {
                   hidden: { opacity: 0, y: 20 },
                   visible: { opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.5 } },
                 }}
-                className="group relative overflow-hidden rounded-lg border border-border bg-card min-h-[180px]"
+                className="group relative overflow-hidden rounded-lg border border-[#E4DDD0] bg-white shadow-sm min-h-[180px]"
               >
-                {/* Background image bound to this process step, kept subtle for legibility */}
+                {/* Preserved background image for process step */}
                 <img
                   src={step.bg}
                   alt=""
                   aria-hidden="true"
-                  className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+                  className="absolute inset-0 w-full h-full object-cover opacity-15 group-hover:opacity-25 transition-opacity duration-500"
                   loading="lazy"
                   width={800}
                   height={600}
                 />
-                {/* Soft gradient ensures the text always stays readable over any image */}
-                <div className="absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/60" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-white/70" />
 
                 <div className="relative z-10 flex gap-4 p-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-accent/15 flex items-center justify-center backdrop-blur-sm">
-                      <step.icon className="w-5 h-5 text-accent" />
+                  <div className="shrink-0">
+                    <div className="w-11 h-11 rounded-full border border-[#B88E28]/40 bg-[#FAF7F0] text-[#B88E28] flex items-center justify-center">
+                      <step.icon className="w-5 h-5" />
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-heading font-semibold text-card-foreground">{step.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{step.text}</p>
+                    <h3 className="font-heading font-bold text-[#1E293B] text-base">{step.title}</h3>
+                    <p className="mt-1.5 text-sm text-gray-600 leading-relaxed">{step.text}</p>
                   </div>
                 </div>
               </motion.div>
@@ -153,6 +153,7 @@ export default function CapabilitiesPage() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
+

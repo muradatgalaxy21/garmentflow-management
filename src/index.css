@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -60,8 +60,15 @@
     --gold-light: 38 50% 70%;
     --warm-gray: 30 10% 60%;
 
+    /* Additional section tones from the Enterprise Portal redesign —
+       additive, layered on top of the existing navy/gold/sand system */
+    --section-dark: #16213E;
+    --footer-dark: #121B33;
+    --section-alt: #EFE8D9;
+    --border-warm: #E4DDC9;
+
     --font-heading: 'Playfair Display', Georgia, serif;
-    --font-body: 'Source Sans 3', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, sans-serif;
 
     /* Urdu font stack */
     --font-urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', 'Noto Sans Arabic', system-ui, serif;
@@ -154,4 +161,93 @@
       hsl(var(--gold-light))
     );
   }
+
+  /* Smooth left-to-right fill transition for CTA buttons */
+  .btn-fill-gold {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    background-color: #C69749;
+    color: #1B2A4A;
+    border: 1.5px solid #FAF7EF;
+    transition: color 0.4s ease, border-color 0.4s ease;
+  }
+  .btn-fill-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1B2A4A;
+    z-index: -1;
+    transform: translateX(-101%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-fill-gold:hover {
+    color: #FAF7EF;
+    border-color: #FAF7EF;
+  }
+  .btn-fill-gold:hover::before {
+    transform: translateX(0);
+  }
+
+  .btn-fill-navy {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    background-color: #1B2A4A;
+    color: #FAF7EF;
+    border: 1.5px solid #FAF7EF;
+    transition: color 0.4s ease, border-color 0.4s ease;
+  }
+  .btn-fill-navy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #C69749;
+    z-index: -1;
+    transform: translateX(-101%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-fill-navy:hover {
+    color: #1B2A4A;
+    border-color: #FAF7EF;
+  }
+  .btn-fill-navy:hover::before {
+    transform: translateX(0);
+  }
+
+  .btn-fill-outline {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    background-color: transparent;
+    color: #FAF7EF;
+    border: 1.5px solid #FAF7EF;
+    transition: color 0.4s ease, border-color 0.4s ease;
+  }
+  .btn-fill-outline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #FAF7EF;
+    z-index: -1;
+    transform: translateX(-101%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-fill-outline:hover {
+    color: #1B2A4A;
+    border-color: #FAF7EF;
+  }
+  .btn-fill-outline:hover::before {
+    transform: translateX(0);
+  }
 }
+

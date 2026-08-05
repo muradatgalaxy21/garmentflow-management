@@ -29,10 +29,10 @@ export default function LanguageSwitcher({
         <Button
           variant={variant}
           size={size}
-          className={`gap-1.5 font-medium transition-colors ${className}`}
+          className={`group gap-1.5 font-medium text-[#5B5142] hover:text-[#1B2A4A] transition-colors ${className}`}
           title="Switch Language / زبان تبدیل کریں"
         >
-          <Globe className="w-4 h-4 shrink-0 text-accent" />
+          <Globe className="w-4 h-4 shrink-0 text-[#9A8F72] group-hover:text-[#1B2A4A] transition-colors" />
           {showLabel && (
             <span className="text-xs tracking-wide">
               {language === "en" ? "English" : "اردو"}

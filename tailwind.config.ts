@@ -79,6 +79,10 @@ export default {
           light: "hsl(var(--gold-light))",
         },
         "warm-gray": "hsl(var(--warm-gray))",
+        "section-dark": "var(--section-dark)",
+        "footer-dark": "var(--footer-dark)",
+        "section-alt": "var(--section-alt)",
+        "border-warm": "var(--border-warm)",
       },
       borderRadius: {
         lg: "var(--radius)",
