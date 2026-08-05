@@ -147,6 +147,7 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          attributes: Json
           category: string | null
           created_at: string
           id: string
@@ -160,6 +161,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          attributes?: Json
           category?: string | null
           created_at?: string
           id?: string
@@ -173,6 +175,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          attributes?: Json
           category?: string | null
           created_at?: string
           id?: string
@@ -184,6 +187,74 @@ export type Database = {
           unit?: string
           unit_cost?: number | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      department_entries: {
+        Row: {
+          batch_id: string
+          created_at: string
+          department: string
+          id: string
+          inventory_item_id: string | null
+          payload: Json
+          total_cost: number | null
+          worker_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          department: string
+          id?: string
+          inventory_item_id?: string | null
+          payload: Json
+          total_cost?: number | null
+          worker_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          department?: string
+          id?: string
+          inventory_item_id?: string | null
+          payload?: Json
+          total_cost?: number | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_entries_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_cost_rates: {
+        Row: {
+          department: string
+          id: string
+          label: string
+          rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          department: string
+          id?: string
+          label: string
+          rate: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          department?: string
+          id?: string
+          label?: string
+          rate?: number
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -483,6 +554,13 @@ export type Database = {
           default_piece_rate: number | null
           skills: string[] | null
           employee_id: string | null
+          department:
+            | "accessories"
+            | "cutting"
+            | "sticker"
+            | "printing"
+            | "embroidery"
+            | null
         }
         Insert: {
           company?: string | null
@@ -497,6 +575,13 @@ export type Database = {
           default_piece_rate?: number | null
           skills?: string[] | null
           employee_id?: string | null
+          department?:
+            | "accessories"
+            | "cutting"
+            | "sticker"
+            | "printing"
+            | "embroidery"
+            | null
         }
         Update: {
           company?: string | null
@@ -511,6 +596,13 @@ export type Database = {
           default_piece_rate?: number | null
           skills?: string[] | null
           employee_id?: string | null
+          department?:
+            | "accessories"
+            | "cutting"
+            | "sticker"
+            | "printing"
+            | "embroidery"
+            | null
         }
         Relationships: []
       }
@@ -734,7 +826,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "client", "worker"],
+      app_role: ["admin", "staff", "client", "worker", "manager"],
       movement_type: ["in", "out", "adjust"],
       order_status: [
         "pending",

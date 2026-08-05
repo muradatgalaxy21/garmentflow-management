@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { QrCode, ClipboardList, Home, LogOut, Loader2, WifiOff } from "lucide-react";
+import { LayoutGrid, ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPendingCount, registerSyncListeners } from "@/lib/offlineSync";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import { GarmentLogo } from "@/components/ui/GarmentLogo";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function FactoryLayout() {
   const { user, loading, signOut } = useAuth();
@@ -16,14 +18,33 @@ export default function FactoryLayout() {
   const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
+  const [userName, setUserName] = useState<string>("");
 
-  // 1. Register offline sync listeners on mount
+  // 1. Load user profile name
+  useEffect(() => {
+    if (!user) return;
+    const fetchProfile = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        setUserName(profile?.full_name || user.email?.split("@")[0] || "Worker");
+      } catch {
+        setUserName(user.email?.split("@")[0] || "Worker");
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  // 2. Register offline sync listeners on mount
   useEffect(() => {
     const cleanup = registerSyncListeners();
     return cleanup;
   }, []);
 
-  // 2. Track online/offline state for the UI indicator
+  // 3. Track online/offline state for the UI indicator
   useEffect(() => {
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
@@ -35,7 +56,7 @@ export default function FactoryLayout() {
     };
   }, []);
 
-  // 3. Poll pending sync count every 5 seconds
+  // 4. Poll pending sync count every 5 seconds
   useEffect(() => {
     const check = async () => {
       const count = await getPendingCount();
@@ -48,17 +69,17 @@ export default function FactoryLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6]">
+        <Loader2 className="w-8 h-8 animate-spin text-slate-600" />
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-slate-900 text-white">
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-[#f3f4f6] text-slate-800">
         <h1 className="font-heading text-2xl">{t("factory.common.error")}</h1>
-        <Button onClick={() => navigate("/auth")}>Sign In</Button>
+        <Button onClick={() => navigate("/auth")} className="bg-slate-800 text-white">Sign In</Button>
       </div>
     );
   }
@@ -66,31 +87,43 @@ export default function FactoryLayout() {
   // Bottom navigation items for the mobile tab bar
   const navItems = [
     { to: "/factory", icon: Home, label: t("factory.nav.home"), end: true },
-    { to: "/factory/scan", icon: QrCode, label: t("factory.nav.scan"), end: false },
+    { to: "/factory/scan", icon: LayoutGrid, label: t("factory.nav.scan"), end: false },
+    { to: "/factory/log", icon: ClipboardCheck, label: "Log Entry", end: false },
     { to: "/factory/my-work", icon: ClipboardList, label: t("factory.nav.myWork"), end: false },
   ];
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-slate-900 text-slate-100"
+      className="min-h-screen flex flex-col bg-[#f3f4f6] text-slate-900 font-sans"
       dir={isRtl ? "rtl" : "ltr"}
     >
       {/* ---- TOP BAR ---- */}
-      <header className="sticky top-0 z-50 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm px-4 py-2.5">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          {/* Logo & Brand title */}
+          <div className="flex items-center gap-2.5">
+            <img src="/logo-mark.svg" alt="En En Garments Logo" className="h-8 w-auto shrink-0" />
             <div>
-              <h1 className="text-sm font-bold text-emerald-400 leading-tight">
-                {t("factory.title")}
+              <h1 className="text-sm font-bold text-slate-900 leading-tight">
+                En En Garments
               </h1>
-              <p className="text-[10px] text-slate-400">{t("factory.subtitle")}</p>
+              <p className="text-[11px] font-medium text-slate-500">Factory Floor</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right Controls: User Name, Indicators, Language & Logout */}
+          <div className="flex items-center gap-2.5">
+            {/* User Name Pill at Top Right Corner */}
+            {userName && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
+                <User className="w-3.5 h-3.5 text-slate-500" />
+                <span className="truncate max-w-[120px]">{userName}</span>
+              </div>
+            )}
+
             {/* Offline indicator */}
             {!isOnline && (
-              <Badge variant="outline" className="bg-amber-500/15 text-amber-400 border-amber-500/30 text-[10px]">
+              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-[10px]">
                 <WifiOff className="w-3 h-3 mr-1" />
                 {t("factory.common.offline")}
               </Badge>
@@ -98,19 +131,19 @@ export default function FactoryLayout() {
 
             {/* Pending sync indicator */}
             {pendingCount > 0 && (
-              <Badge variant="outline" className="bg-blue-500/15 text-blue-400 border-blue-500/30 text-[10px]">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-[10px]">
                 {pendingCount} {t("factory.common.pendingSync")}
               </Badge>
             )}
 
-            {/* Language & Urdu Font Switcher */}
+            {/* Language Switcher */}
             <LanguageSwitcher
               variant="ghost"
               size="sm"
-              className="text-slate-300 hover:text-white hover:bg-slate-700 text-xs px-2"
+              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 text-xs px-2 h-8"
             />
 
-            {/* Sign out */}
+            {/* Sign out button */}
             <Button
               variant="ghost"
               size="sm"
@@ -118,37 +151,44 @@ export default function FactoryLayout() {
                 await signOut();
                 navigate("/auth");
               }}
-              className="text-slate-400 hover:text-red-400 hover:bg-slate-700 px-2"
+              className="text-slate-500 hover:text-red-600 hover:bg-slate-100 px-2 h-8"
+              title="Sign Out"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* ---- MAIN CONTENT ---- */}
-      <main className="flex-1 overflow-auto pb-20 px-4 py-4">
+      {/* ---- MAIN CONTENT AREA ---- */}
+      <main className="flex-1 overflow-auto pb-24 px-4 py-6">
         <Outlet />
       </main>
 
-      {/* ---- BOTTOM TAB BAR ---- */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-800/95 backdrop-blur border-t border-slate-700">
-        <div className="flex items-center justify-around py-2 px-2">
+      {/* ---- BOTTOM TAB NAVIGATION BAR ---- */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200/80 shadow-md">
+        <div className="max-w-md mx-auto flex items-center justify-around py-1.5 px-4">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-lg transition-colors ${
+                `flex flex-col items-center justify-center w-full py-1.5 rounded-lg transition-all ${
                   isActive
-                    ? "text-emerald-400 bg-emerald-400/10"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "text-blue-600 bg-blue-50/90 font-semibold"
+                    : "text-slate-500 hover:text-slate-800"
                 }`
               }
             >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              {({ isActive }) => (
+                <>
+                  <item.icon className={`w-5 h-5 ${isActive ? "text-blue-600" : "text-slate-500"}`} />
+                  <span className={`text-[11px] mt-0.5 ${isActive ? "font-bold text-blue-600" : "font-medium"}`}>
+                    {item.label}
+                  </span>
+                </>
+              )}
             </NavLink>
           ))}
         </div>
@@ -156,3 +196,4 @@ export default function FactoryLayout() {
     </div>
   );
 }
+

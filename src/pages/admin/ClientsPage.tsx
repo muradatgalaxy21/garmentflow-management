@@ -25,7 +25,10 @@ interface Profile {
   default_piece_rate: number | null;
   skills: string[] | null;
   employee_id: string | null;
+  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | null;
 }
+
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery"] as const;
 
 interface RoleRow {
   user_id: string;
@@ -154,6 +157,7 @@ export default function ClientsPage() {
         base_salary: editingProfile.base_salary,
         default_piece_rate: editingProfile.default_piece_rate,
         skills: editingProfile.skills,
+        department: editingProfile.department,
       })
       .eq("id", editingProfile.id);
 
@@ -322,6 +326,24 @@ export default function ClientsPage() {
                   />
                 </div>
               )}
+
+              <div>
+                <Label className="text-xs font-semibold">Department (data-entry access)</Label>
+                <Select
+                  value={editingProfile.department || "none"}
+                  onValueChange={(v) => setEditingProfile({ ...editingProfile, department: v === "none" ? null : (v as Profile["department"]) })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned</SelectItem>
+                    {DEPARTMENTS.map((d) => (
+                      <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div>
                 <Label className="text-xs font-semibold mb-1.5 block">Assigned Line Roles &amp; Skills</Label>

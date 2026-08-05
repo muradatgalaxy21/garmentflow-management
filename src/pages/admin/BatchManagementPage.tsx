@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users } from "lucide-react";
+import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +46,7 @@ interface ManagerProfile {
 interface Order { id: string; order_number: string; product_summary: string; }
 interface InventoryItem { id: string; name: string; sku: string; }
 interface Phase { id: string; name: string; sequence_order: number; }
+interface DeptRate { id: string; department: "printing" | "embroidery"; label: string; rate: number; }
 interface TrackingEntry {
   id: string; phase_name: string; worker_name: string;
   quantity_completed: number; quantity_wasted: number;
@@ -69,6 +70,11 @@ export default function BatchManagementPage() {
   const [qrBatch, setQrBatch] = useState<Batch | null>(null);
   const [timeline, setTimeline] = useState<TrackingEntry[]>([]);
   const [rates, setRates] = useState<Record<string, string>>({});
+  const [deptRatesOpen, setDeptRatesOpen] = useState(false);
+  const [deptRates, setDeptRates] = useState<DeptRate[]>([]);
+  const [newRateDept, setNewRateDept] = useState<"printing" | "embroidery">("printing");
+  const [newRateLabel, setNewRateLabel] = useState("");
+  const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -262,6 +268,37 @@ export default function BatchManagementPage() {
     setRateDialogBatch(null);
   };
 
+  const openDeptRates = async () => {
+    setDeptRatesOpen(true);
+    const { data } = await supabase.from("department_cost_rates").select("id, department, label, rate").order("department");
+    setDeptRates((data as DeptRate[]) ?? []);
+  };
+
+  const addDeptRate = async () => {
+    const rateValue = parseFloat(newRateValue);
+    if (!newRateLabel.trim() || isNaN(rateValue) || rateValue < 0) {
+      toast({ title: "Enter a label and a valid rate", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("department_cost_rates").upsert({
+      department: newRateDept,
+      label: newRateLabel.trim(),
+      rate: rateValue,
+    }, { onConflict: "department,label" });
+    if (error) {
+      toast({ title: "Failed to save rate", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewRateLabel("");
+    setNewRateValue("");
+    openDeptRates();
+  };
+
+  const deleteDeptRate = async (id: string) => {
+    await supabase.from("department_cost_rates").delete().eq("id", id);
+    openDeptRates();
+  };
+
   const orderLabel = (id: string) => {
     const o = orders.find((x) => x.id === id);
     return o ? `#${o.order_number}` : id.slice(0, 8);
@@ -274,9 +311,14 @@ export default function BatchManagementPage() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Production Batches</h1>
           <p className="text-sm text-muted-foreground">Manage production runs, manager batch rights, and print QR labels.</p>
         </div>
-        <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
-          <Plus className="w-4 h-4 mr-2" /> New Batch
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={openDeptRates}>
+            <Coins className="w-4 h-4 mr-2" /> Department Rates
+          </Button>
+          <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
+            <Plus className="w-4 h-4 mr-2" /> New Batch
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -418,6 +460,66 @@ export default function BatchManagementPage() {
             ))}
           </div>
           <DialogFooter><Button onClick={saveRates}>Save Rates</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Department Cost Rates Dialog (global, not per-batch) */}
+      <Dialog open={deptRatesOpen} onOpenChange={setDeptRatesOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="w-5 h-5 text-accent" /> Department Cost Rates
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Printing cost per color and the embroidery cost per piece, shown read-only to workers on the factory-floor entry forms.
+          </p>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {deptRates.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No rates set yet.</p>
+            ) : (
+              deptRates.map((r) => (
+                <div key={r.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                  <div>
+                    <span className="text-xs font-semibold capitalize">{r.department}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{r.label}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold">Rs {r.rate}</span>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => deleteDeptRate(r.id)}>
+                      <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end pt-2 border-t border-border">
+            <div>
+              <Label className="text-xs">Department</Label>
+              <Select value={newRateDept} onValueChange={(v: "printing" | "embroidery") => setNewRateDept(v)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="printing">Printing</SelectItem>
+                  <SelectItem value="embroidery">Embroidery</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">{newRateDept === "printing" ? "Color" : "Label"}</Label>
+              <Input
+                value={newRateLabel}
+                onChange={(e) => setNewRateLabel(e.target.value)}
+                placeholder={newRateDept === "printing" ? "e.g. Red" : "default"}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Rate (Rs)</Label>
+              <Input type="number" step="0.01" min="0" value={newRateValue} onChange={(e) => setNewRateValue(e.target.value)} className="mt-1" />
+            </div>
+          </div>
+          <Button onClick={addDeptRate} className="w-full">Save Rate</Button>
         </DialogContent>
       </Dialog>
 

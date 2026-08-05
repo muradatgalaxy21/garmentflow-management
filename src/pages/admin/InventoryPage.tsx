@@ -33,6 +33,7 @@ interface InventoryItem {
   reorder_level: number;
   unit_cost: number | null;
   notes: string | null;
+  attributes: Record<string, unknown> | null;
 }
 
 // Validation schema for adding or editing an inventory item
@@ -58,7 +59,23 @@ export default function InventoryPage() {
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [adding, setAdding] = useState(false);
   const [movement, setMovement] = useState<{ item: InventoryItem; type: "in" | "out" } | null>(null);
+  const [categoryDraft, setCategoryDraft] = useState("");
+  const [stickerAttrs, setStickerAttrs] = useState({ size: "", type: "", color: "", design: "" });
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (adding) {
+      setCategoryDraft("");
+      setStickerAttrs({ size: "", type: "", color: "", design: "" });
+    } else if (editing) {
+      setCategoryDraft(editing.category ?? "");
+      const a = (editing.attributes ?? {}) as Record<string, unknown>;
+      setStickerAttrs({
+        size: String(a.size ?? ""), type: String(a.type ?? ""),
+        color: String(a.color ?? ""), design: String(a.design ?? ""),
+      });
+    }
+  }, [adding, editing]);
 
   const load = async () => {
     setLoading(true);
@@ -97,6 +114,13 @@ export default function InventoryPage() {
       return;
     }
 
+    const attributes =
+      parsed.data.category === "sticker"
+        ? { size: stickerAttrs.size, type: stickerAttrs.type, color: stickerAttrs.color, design: stickerAttrs.design }
+        : parsed.data.category === "accessory"
+        ? { type: stickerAttrs.type }
+        : {};
+
     const payload = {
       sku: parsed.data.sku,
       name: parsed.data.name,
@@ -105,6 +129,7 @@ export default function InventoryPage() {
       reorder_level: parsed.data.reorder_level,
       unit_cost: parsed.data.unit_cost ?? null,
       notes: parsed.data.notes ?? null,
+      attributes,
     };
 
     const { error } = existing
@@ -234,7 +259,50 @@ export default function InventoryPage() {
           >
             <Field label="SKU *" name="sku" defaultValue={editing?.sku} required />
             <Field label="Name *" name="name" defaultValue={editing?.name} required />
-            <Field label="Category" name="category" defaultValue={editing?.category ?? ""} />
+            <div>
+              <Label className="text-xs">Category</Label>
+              <Input
+                name="category"
+                value={categoryDraft}
+                onChange={(e) => setCategoryDraft(e.target.value)}
+                placeholder="e.g. accessory, sticker, fabric"
+                className="mt-1"
+              />
+            </div>
+
+            {categoryDraft === "accessory" && (
+              <div>
+                <Label className="text-xs">Accessory Type</Label>
+                <Input
+                  value={stickerAttrs.type}
+                  onChange={(e) => setStickerAttrs({ ...stickerAttrs, type: e.target.value })}
+                  placeholder="e.g. button, zip, label..."
+                  className="mt-1"
+                />
+              </div>
+            )}
+
+            {categoryDraft === "sticker" && (
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg border border-border">
+                <div>
+                  <Label className="text-xs">Size</Label>
+                  <Input value={stickerAttrs.size} onChange={(e) => setStickerAttrs({ ...stickerAttrs, size: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Type</Label>
+                  <Input value={stickerAttrs.type} onChange={(e) => setStickerAttrs({ ...stickerAttrs, type: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Color</Label>
+                  <Input value={stickerAttrs.color} onChange={(e) => setStickerAttrs({ ...stickerAttrs, color: e.target.value })} className="mt-1" />
+                </div>
+                <div>
+                  <Label className="text-xs">Design</Label>
+                  <Input value={stickerAttrs.design} onChange={(e) => setStickerAttrs({ ...stickerAttrs, design: e.target.value })} className="mt-1" />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <Field label="Unit *" name="unit" defaultValue={editing?.unit ?? "pcs"} required />
               <Field

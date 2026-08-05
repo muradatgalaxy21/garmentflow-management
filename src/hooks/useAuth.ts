@@ -3,7 +3,7 @@ import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 // Application-level role values mirror the `app_role` enum in the database
-export type AppRole = "admin" | "staff" | "client" | "worker";
+export type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
 interface AuthState {
   user: User | null;
@@ -17,6 +17,7 @@ export function useAuth(): AuthState & {
   isAdmin: boolean;
   isStaff: boolean;
   isWorker: boolean;
+  isManager: boolean;
   signOut: () => Promise<void>;
 } {
   const [state, setState] = useState<AuthState>({
@@ -80,6 +81,7 @@ export function useAuth(): AuthState & {
     isAdmin: state.roles.includes("admin"),
     isStaff: state.roles.includes("staff") || state.roles.includes("admin"),
     isWorker: state.roles.includes("worker"),
+    isManager: state.roles.includes("manager"),
     signOut,
   };
 }

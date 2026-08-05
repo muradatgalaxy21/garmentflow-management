@@ -37,6 +37,7 @@ import FactoryDashboard from "@/pages/factory/FactoryDashboard";
 import QrScannerPage from "@/pages/factory/QrScannerPage";
 import BatchEntryPage from "@/pages/factory/BatchEntryPage";
 import MyWorkPage from "@/pages/factory/MyWorkPage";
+import DepartmentEntryPage from "@/pages/factory/DepartmentEntryPage";
 
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
@@ -69,7 +70,7 @@ const App = () => (
             <Route
               path="/admin"
               element={
-                <ProtectedRoute requireRoles={["admin", "staff"]}>
+                <ProtectedRoute requireRoles={["admin", "staff", "manager"]}>
                   <AdminLayout />
                 </ProtectedRoute>
               }
@@ -110,6 +111,7 @@ const App = () => (
               <Route index element={<FactoryDashboard />} />
               <Route path="scan" element={<QrScannerPage />} />
               <Route path="batch/:batchId" element={<BatchEntryPage />} />
+              <Route path="log" element={<DepartmentEntryPage />} />
               <Route path="my-work" element={<MyWorkPage />} />
             </Route>
 

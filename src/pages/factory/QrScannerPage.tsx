@@ -1,29 +1,21 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Keyboard, Loader2, AlertTriangle, PlayCircle, CheckCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import QrScanBox from "@/components/factory/QrScanBox";
 
 export default function QrScannerPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode") || "end";
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [scanning, setScanning] = useState(false);
-  const [manualCode, setManualCode] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
-  const [cameraError, setCameraError] = useState(false);
-  const [insecureContext, setInsecureContext] = useState(false);
   const [startedBatchStyle, setStartedBatchStyle] = useState<string | null>(null);
-  const scannerRef = useRef<HTMLDivElement>(null);
 
   const lookupBatch = useCallback(
     async (qrHash: string) => {
@@ -108,143 +100,45 @@ export default function QrScannerPage() {
     [navigate, toast, user, mode]
   );
 
-  useEffect(() => {
-    if (!window.isSecureContext) {
-      setInsecureContext(true);
-      return;
-    }
-
-    let scannerInstance: { stop: () => Promise<void> } | null = null;
-    let isRunning = false;
-
-    const safeStop = () => {
-      if (!isRunning || !scannerInstance) return;
-      isRunning = false;
-      try {
-        scannerInstance.stop().catch(() => {});
-      } catch {
-        // already stopped
-      }
-    };
-
-    const initScanner = async () => {
-      try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        if (!scannerRef.current) return;
-        const scannerId = "qr-scanner-container";
-        scannerRef.current.id = scannerId;
-        const scanner = new Html5Qrcode(scannerId);
-        scannerInstance = scanner;
-        setScanning(true);
-        await scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText: string) => {
-            isRunning = false;
-            try {
-              scanner.stop().catch(() => {});
-            } catch {
-              // already stopped
-            }
-            lookupBatch(decodedText);
-          },
-          () => {}
-        );
-        isRunning = true;
-      } catch {
-        setCameraError(true);
-        setScanning(false);
-      }
-    };
-    initScanner();
-    return () => { safeStop(); };
-  }, [lookupBatch]);
-
   if (startedBatchStyle) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-5 max-w-lg mx-auto">
-        <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center border-2 border-emerald-500 animate-pulse">
-          <PlayCircle className="w-12 h-12" />
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center space-y-5 max-w-md mx-auto">
+        <div className="w-16 h-16 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center border border-blue-300">
+          <PlayCircle className="w-10 h-10" />
         </div>
-        <h1 className="text-3xl font-black text-white">🟢 BATCH SHURU HO GAYA!</h1>
-        <p className="text-lg font-bold text-emerald-300">
+        <h1 className="text-2xl font-bold text-slate-900">Batch Started!</h1>
+        <p className="text-base font-semibold text-blue-700">
           Style: {startedBatchStyle}
         </p>
-        <p className="text-sm text-slate-300">
-          Aap ka work session start ho chuka hai. Kaam mukammal karne ke baad "Batch Khatam Scan" dabayein.
+        <p className="text-xs text-slate-600">
+          Your work session has started. Scan the Finish QR code when your batch is completed.
         </p>
         <Button
           size="lg"
-          className="w-full h-16 text-xl font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-2xl rounded-2xl mt-4"
+          className="w-full h-12 text-base font-semibold bg-[#4675a8] hover:bg-[#38608b] text-white rounded-xl shadow-xs mt-2"
           onClick={() => navigate("/factory")}
         >
-          Home Par Wapas Jayein
+          Return to Home
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto pb-10">
-      <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 text-center">
-        <span className="text-xs font-black uppercase tracking-widest text-emerald-400">
-          {mode === "start" ? "🟢 STEP 1: START BATCH WORK SCAN" : "🔴 STEP 2: END BATCH WORK SCAN"}
+    <div className="space-y-4 max-w-md mx-auto">
+      {/* Header Banner matching Screenshot 2 */}
+      <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
+        <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
+          {mode === "start" ? "Step 1: Start Batch Work Scan" : "Step 2: End Batch Work Scan"}
         </span>
-        <h1 className="text-2xl font-black text-white mt-1">
-          {mode === "start" ? "Batch QR Code Scan Karein" : "Kaam Finish QR Code Scan Karein"}
+        <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">
+          {mode === "start" ? "Scan Start QR Code" : "Scan Finish QR Code"}
         </h1>
       </div>
 
-      <Card className="bg-slate-800 border-slate-700 overflow-hidden shadow-2xl">
-        <CardContent className="p-0">
-          {insecureContext ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
-              <AlertTriangle className="w-10 h-10 text-amber-400" />
-              <p className="text-sm text-slate-300">{t("factory.scanner.insecureContext")}</p>
-            </div>
-          ) : cameraError ? (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center gap-3">
-              <AlertTriangle className="w-10 h-10 text-amber-400" />
-              <p className="text-sm text-slate-300">{t("factory.scanner.cameraError")}</p>
-            </div>
-          ) : (
-            <div className="relative">
-              <div ref={scannerRef} className="w-full min-h-[300px] bg-black" />
-              {!scanning && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                  <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="bg-slate-800 border-slate-700">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center gap-2 text-slate-400 font-bold">
-            <Keyboard className="w-5 h-5 text-emerald-400" />
-            <p className="text-sm">QR Code Text Ya Manual Code Enter Karein:</p>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              placeholder="e.g. BATCH-QR-HASH..."
-              className="bg-slate-900 border-slate-600 text-white placeholder:text-slate-500 h-12 text-base font-bold"
-              onKeyDown={(e) => { if (e.key === "Enter") lookupBatch(manualCode); }}
-            />
-            <Button
-              onClick={() => lookupBatch(manualCode)}
-              disabled={lookingUp || !manualCode.trim()}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-12 px-6"
-            >
-              {lookingUp ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <QrScanBox onDecoded={lookupBatch} busy={lookingUp} />
     </div>
   );
 }
+
 
