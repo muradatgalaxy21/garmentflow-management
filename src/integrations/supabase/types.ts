@@ -14,33 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      admin_notifications: {
+      admin_access_codes: {
         Row: {
-          id: string
-          type: string
-          title: string
-          message: string
-          is_read: boolean
-          batch_id: string | null
+          attempts: number
+          code: string
           created_at: string
+          expires_at: string
+          id: string
+          requester_email: string
+          requester_name: string | null
+          used: boolean
         }
         Insert: {
-          id?: string
-          type: string
-          title: string
-          message: string
-          is_read?: boolean
-          batch_id?: string | null
+          attempts?: number
+          code: string
           created_at?: string
+          expires_at: string
+          id?: string
+          requester_email: string
+          requester_name?: string | null
+          used?: boolean
         }
         Update: {
+          attempts?: number
+          code?: string
+          created_at?: string
+          expires_at?: string
           id?: string
-          type?: string
-          title?: string
-          message?: string
-          is_read?: boolean
+          requester_email?: string
+          requester_name?: string | null
+          used?: boolean
+        }
+        Relationships: []
+      }
+      admin_notifications: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          type: string
+        }
+        Insert: {
           batch_id?: string | null
           created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          title: string
+          type: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          type?: string
         }
         Relationships: [
           {
@@ -52,32 +85,70 @@ export type Database = {
           },
         ]
       }
+      batch_department_status: {
+        Row: {
+          batch_id: string
+          closed_at: string | null
+          closed_by: string | null
+          department: string
+          opened_at: string
+          opened_by: string | null
+          status: string
+        }
+        Insert: {
+          batch_id: string
+          closed_at?: string | null
+          closed_by?: string | null
+          department: string
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+        }
+        Update: {
+          batch_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          department?: string
+          opened_at?: string
+          opened_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_department_status_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       batch_phase_rates: {
         Row: {
-          id: string
           batch_id: string
-          phase_id: string
-          rate_per_piece: number
-          quantity_locked: boolean
           created_at: string
+          id: string
+          phase_id: string
+          quantity_locked: boolean
+          rate_per_piece: number
           updated_at: string
         }
         Insert: {
-          id?: string
           batch_id: string
-          phase_id: string
-          rate_per_piece?: number
-          quantity_locked?: boolean
           created_at?: string
+          id?: string
+          phase_id: string
+          quantity_locked?: boolean
+          rate_per_piece?: number
           updated_at?: string
         }
         Update: {
-          id?: string
           batch_id?: string
-          phase_id?: string
-          rate_per_piece?: number
-          quantity_locked?: boolean
           created_at?: string
+          id?: string
+          phase_id?: string
+          quantity_locked?: boolean
+          rate_per_piece?: number
           updated_at?: string
         }
         Relationships: [
@@ -97,36 +168,84 @@ export type Database = {
           },
         ]
       }
-      batch_tracking: {
+      batch_phase_status: {
         Row: {
-          id: string
           batch_id: string
-          phase_id: string
-          worker_id: string
-          quantity_completed: number
-          quantity_wasted: number
-          notes: string | null
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
+          id: string
+          phase_id: string
+          status: string
+          updated_at: string
         }
         Insert: {
-          id?: string
           batch_id: string
-          phase_id: string
-          worker_id: string
-          quantity_completed?: number
-          quantity_wasted?: number
-          notes?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
+          id?: string
+          phase_id: string
+          status?: string
+          updated_at?: string
         }
         Update: {
-          id?: string
           batch_id?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          id?: string
           phase_id?: string
-          worker_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_phase_status_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_phase_status_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_tracking: {
+        Row: {
+          batch_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          phase_id: string
+          quantity_completed: number
+          quantity_wasted: number
+          worker_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          phase_id: string
           quantity_completed?: number
           quantity_wasted?: number
-          notes?: string | null
+          worker_id: string
+        }
+        Update: {
+          batch_id?: string
           created_at?: string
+          id?: string
+          notes?: string | null
+          phase_id?: string
+          quantity_completed?: number
+          quantity_wasted?: number
+          worker_id?: string
         }
         Relationships: [
           {
@@ -144,6 +263,162 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      batch_worker_sessions: {
+        Row: {
+          batch_id: string
+          created_at: string
+          end_time: string | null
+          id: string
+          notes: string | null
+          phase_id: string
+          quantity_completed: number | null
+          quantity_wasted: number | null
+          start_time: string
+          status: string
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          phase_id: string
+          quantity_completed?: number | null
+          quantity_wasted?: number | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          notes?: string | null
+          phase_id?: string
+          quantity_completed?: number | null
+          quantity_wasted?: number | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_worker_sessions_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_worker_sessions_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_cost_rates: {
+        Row: {
+          department: string
+          id: string
+          label: string
+          rate: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          department: string
+          id?: string
+          label: string
+          rate: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          department?: string
+          id?: string
+          label?: string
+          rate?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      department_entries: {
+        Row: {
+          batch_id: string
+          created_at: string
+          department: string
+          id: string
+          inventory_item_id: string | null
+          payload: Json
+          stage: string
+          total_cost: number | null
+          worker_id: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          department: string
+          id?: string
+          inventory_item_id?: string | null
+          payload: Json
+          stage?: string
+          total_cost?: number | null
+          worker_id: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          department?: string
+          id?: string
+          inventory_item_id?: string | null
+          payload?: Json
+          stage?: string
+          total_cost?: number | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_entries_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_entries_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_sequence: {
+        Row: {
+          department: string
+          order_index: number
+          parallel_group: number
+        }
+        Insert: {
+          department: string
+          order_index: number
+          parallel_group: number
+        }
+        Update: {
+          department?: string
+          order_index?: number
+          parallel_group?: number
+        }
+        Relationships: []
       }
       inventory_items: {
         Row: {
@@ -190,74 +465,6 @@ export type Database = {
         }
         Relationships: []
       }
-      department_entries: {
-        Row: {
-          batch_id: string
-          created_at: string
-          department: string
-          id: string
-          inventory_item_id: string | null
-          payload: Json
-          total_cost: number | null
-          worker_id: string
-        }
-        Insert: {
-          batch_id: string
-          created_at?: string
-          department: string
-          id?: string
-          inventory_item_id?: string | null
-          payload: Json
-          total_cost?: number | null
-          worker_id: string
-        }
-        Update: {
-          batch_id?: string
-          created_at?: string
-          department?: string
-          id?: string
-          inventory_item_id?: string | null
-          payload?: Json
-          total_cost?: number | null
-          worker_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "department_entries_inventory_item_id_fkey"
-            columns: ["inventory_item_id"]
-            isOneToOne: false
-            referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      department_cost_rates: {
-        Row: {
-          department: string
-          id: string
-          label: string
-          rate: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          department: string
-          id?: string
-          label: string
-          rate: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          department?: string
-          id?: string
-          label?: string
-          rate?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       inventory_movements: {
         Row: {
           created_at: string
@@ -292,6 +499,38 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manager_batch_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          batch_id: string
+          id: string
+          manager_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          batch_id: string
+          id?: string
+          manager_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          batch_id?: string
+          id?: string
+          manager_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_batch_assignments_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -378,46 +617,39 @@ export type Database = {
       }
       production_batches: {
         Row: {
+          created_at: string
           id: string
+          material_item_id: string | null
           order_id: string
+          qr_code_hash: string
+          status: string
           style_number: string
           total_quantity: number
-          status: string
-          qr_code_hash: string
-          material_item_id: string | null
-          created_at: string
           updated_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
+          material_item_id?: string | null
           order_id: string
+          qr_code_hash?: string
+          status?: string
           style_number: string
           total_quantity: number
-          status?: string
-          qr_code_hash?: string
-          material_item_id?: string | null
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
+          material_item_id?: string | null
           order_id?: string
+          qr_code_hash?: string
+          status?: string
           style_number?: string
           total_quantity?: number
-          status?: string
-          qr_code_hash?: string
-          material_item_id?: string | null
-          created_at?: string
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "production_batches_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "production_batches_material_item_id_fkey"
             columns: ["material_item_id"]
@@ -425,184 +657,81 @@ export type Database = {
             referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "production_batches_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
         ]
       }
       production_phases: {
         Row: {
+          created_at: string
           id: string
           name: string
           sequence_order: number
-          created_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
           name: string
           sequence_order: number
-          created_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
           name?: string
           sequence_order?: number
-          created_at?: string
         }
         Relationships: []
       }
-      batch_worker_sessions: {
-        Row: {
-          id: string
-          batch_id: string
-          phase_id: string
-          worker_id: string
-          start_time: string
-          end_time: string | null
-          status: "active" | "completed" | "cancelled"
-          quantity_completed: number
-          quantity_wasted: number
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          batch_id: string
-          phase_id: string
-          worker_id: string
-          start_time?: string
-          end_time?: string | null
-          status?: "active" | "completed" | "cancelled"
-          quantity_completed?: number
-          quantity_wasted?: number
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          batch_id?: string
-          phase_id?: string
-          worker_id?: string
-          start_time?: string
-          end_time?: string | null
-          status?: "active" | "completed" | "cancelled"
-          quantity_completed?: number
-          quantity_wasted?: number
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "batch_worker_sessions_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "production_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "batch_worker_sessions_phase_id_fkey"
-            columns: ["phase_id"]
-            isOneToOne: false
-            referencedRelation: "production_phases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      manager_batch_assignments: {
-        Row: {
-          id: string
-          manager_id: string
-          batch_id: string
-          assigned_at: string
-          assigned_by: string | null
-        }
-        Insert: {
-          id?: string
-          manager_id: string
-          batch_id: string
-          assigned_at?: string
-          assigned_by?: string | null
-        }
-        Update: {
-          id?: string
-          manager_id?: string
-          batch_id?: string
-          assigned_at?: string
-          assigned_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manager_batch_assignments_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "production_batches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
+          base_salary: number | null
           company: string | null
           created_at: string
+          default_piece_rate: number | null
+          department: string | null
           email: string | null
+          employee_id: string | null
           full_name: string | null
           id: string
           phone: string | null
-          updated_at: string
-          wage_type: "piece_rate" | "monthly_salary" | null
-          base_salary: number | null
-          default_piece_rate: number | null
           skills: string[] | null
-          employee_id: string | null
-          department:
-            | "accessories"
-            | "cutting"
-            | "sticker"
-            | "printing"
-            | "embroidery"
-            | null
+          updated_at: string
+          wage_type: string | null
         }
         Insert: {
+          base_salary?: number | null
           company?: string | null
           created_at?: string
+          default_piece_rate?: number | null
+          department?: string | null
           email?: string | null
+          employee_id?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
-          updated_at?: string
-          wage_type?: "piece_rate" | "monthly_salary" | null
-          base_salary?: number | null
-          default_piece_rate?: number | null
           skills?: string[] | null
-          employee_id?: string | null
-          department?:
-            | "accessories"
-            | "cutting"
-            | "sticker"
-            | "printing"
-            | "embroidery"
-            | null
+          updated_at?: string
+          wage_type?: string | null
         }
         Update: {
+          base_salary?: number | null
           company?: string | null
           created_at?: string
+          default_piece_rate?: number | null
+          department?: string | null
           email?: string | null
+          employee_id?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
-          updated_at?: string
-          wage_type?: "piece_rate" | "monthly_salary" | null
-          base_salary?: number | null
-          default_piece_rate?: number | null
           skills?: string[] | null
-          employee_id?: string | null
-          department?:
-            | "accessories"
-            | "cutting"
-            | "sticker"
-            | "printing"
-            | "embroidery"
-            | null
+          updated_at?: string
+          wage_type?: string | null
         }
         Relationships: []
       }
@@ -680,11 +809,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_worker_enter_phase: {
+        Args: { _phase_id: string; _worker_id: string }
+        Returns: boolean
+      }
+      has_batch_access: {
+        Args: { _batch_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_previous_phase_closed: {
+        Args: { _batch_id: string; _phase_id: string }
         Returns: boolean
       }
     }

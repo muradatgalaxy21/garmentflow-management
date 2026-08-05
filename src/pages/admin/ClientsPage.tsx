@@ -441,9 +441,11 @@ export default function ClientsPage() {
 
                 {isAdmin && (
                   <div className="flex flex-wrap gap-2 items-center">
-                    <Button size="sm" variant="outline" onClick={() => setEditingProfile(p)}>
-                      <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
-                    </Button>
+                    {!hasAdmin && (
+                      <Button size="sm" variant="outline" onClick={() => setEditingProfile(p)}>
+                        <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant={hasManager ? "default" : "outline"}

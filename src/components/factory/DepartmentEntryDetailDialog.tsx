@@ -1,0 +1,70 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
+
+export interface DepartmentEntryDetail {
+  id: string;
+  department: Department;
+  stage: EntryStage;
+  style_number: string;
+  payload: Record<string, unknown>;
+  total_cost: number | null;
+  created_at: string;
+}
+
+function labelize(key: string) {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function DepartmentEntryDetailDialog({
+  entry,
+  onClose,
+}: {
+  entry: DepartmentEntryDetail | null;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={!!entry} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md">
+        {entry && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                Style {entry.style_number}
+                <Badge variant="outline" className="capitalize text-xs">
+                  {DEPARTMENT_LABELS[entry.department]} · {entry.stage === "end" ? "End" : "Start"}
+                </Badge>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2 text-sm">
+              <p className="text-xs text-muted-foreground">
+                {new Date(entry.created_at).toLocaleString()}
+              </p>
+              <div className="rounded-lg border border-slate-200 divide-y">
+                {Object.entries(entry.payload ?? {}).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between px-3 py-2 text-xs">
+                    <span className="text-slate-500">{labelize(key)}</span>
+                    <span className="font-semibold text-slate-800">
+                      {value === null || value === undefined || value === ""
+                        ? "—"
+                        : typeof value === "object"
+                        ? JSON.stringify(value)
+                        : String(value)}
+                    </span>
+                  </div>
+                ))}
+                {entry.total_cost !== null && (
+                  <div className="flex items-center justify-between px-3 py-2 text-xs">
+                    <span className="text-slate-500">Total Cost</span>
+                    <span className="font-semibold text-slate-800">PKR {entry.total_cost}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-400 pt-1">Read-only — logged entries cannot be edited here.</p>
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -5,39 +5,40 @@ import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
+import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 
 // ---------------------------------------------------------------
 // MyWorkPage - Worker history at /factory/my-work
-// Shows all batch_tracking entries for the current worker,
-// grouped by date, with phase and batch info.
+// Shows all department_entries for the current worker, grouped by
+// date. Read-only: tapping an entry opens a detail dialog, no edits.
 // ---------------------------------------------------------------
 
-interface TrackingEntry {
+interface HistoryEntry {
   id: string;
   batch_id: string;
-  phase_id: string;
-  quantity_completed: number;
-  quantity_wasted: number;
-  notes: string | null;
-  created_at: string;
-  phase_name: string;
   style_number: string;
+  department: Department;
+  stage: EntryStage;
+  payload: Record<string, unknown>;
+  total_cost: number | null;
+  created_at: string;
 }
 
 export default function MyWorkPage() {
-  const { t, isRtl } = useTranslation();
+  const { isRtl } = useTranslation();
   const { user } = useAuth();
-  const [entries, setEntries] = useState<TrackingEntry[]>([]);
+  const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailEntry, setDetailEntry] = useState<DepartmentEntryDetail | null>(null);
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
       try {
-        // 1. Fetch this worker's tracking entries ordered by date
         const { data: tracking } = await supabase
-          .from("batch_tracking")
-          .select("id, batch_id, phase_id, quantity_completed, quantity_wasted, notes, created_at")
+          .from("department_entries")
+          .select("id, batch_id, department, stage, payload, total_cost, created_at")
           .eq("worker_id", user.id)
           .order("created_at", { ascending: false })
           .limit(50);
@@ -48,15 +49,6 @@ export default function MyWorkPage() {
           return;
         }
 
-        // 2. Fetch phase names for display
-        const phaseIds = [...new Set(tracking.map((t) => t.phase_id))];
-        const { data: phases } = await supabase
-          .from("production_phases")
-          .select("id, name")
-          .in("id", phaseIds);
-        const phaseMap = new Map((phases ?? []).map((p) => [p.id, p.name]));
-
-        // 3. Fetch batch style numbers for display
         const batchIds = [...new Set(tracking.map((t) => t.batch_id))];
         const { data: batches } = await supabase
           .from("production_batches")
@@ -64,12 +56,16 @@ export default function MyWorkPage() {
           .in("id", batchIds);
         const batchMap = new Map((batches ?? []).map((b) => [b.id, b.style_number]));
 
-        // 4. Combine data for display
         setEntries(
           tracking.map((t) => ({
-            ...t,
-            phase_name: phaseMap.get(t.phase_id) ?? "—",
+            id: t.id,
+            batch_id: t.batch_id,
             style_number: batchMap.get(t.batch_id) ?? "—",
+            department: t.department as Department,
+            stage: t.stage as EntryStage,
+            payload: (t.payload as Record<string, unknown>) ?? {},
+            total_cost: t.total_cost,
+            created_at: t.created_at,
           }))
         );
       } catch (err) {
@@ -89,8 +85,7 @@ export default function MyWorkPage() {
     );
   }
 
-  // Group entries by date for display
-  const grouped = entries.reduce<Record<string, TrackingEntry[]>>((acc, entry) => {
+  const grouped = entries.reduce<Record<string, HistoryEntry[]>>((acc, entry) => {
     const dateKey = new Date(entry.created_at).toLocaleDateString(
       isRtl ? "ur-PK" : "en-US",
       { year: "numeric", month: "short", day: "numeric" }
@@ -102,7 +97,6 @@ export default function MyWorkPage() {
 
   return (
     <div className="space-y-4 max-w-md mx-auto">
-      {/* Title Header matching Screenshot 3 */}
       <div className="flex items-center gap-2 mb-2">
         <ClipboardList className="w-5 h-5 text-slate-700" />
         <h1 className="text-xl font-bold text-slate-900">My Work</h1>
@@ -113,7 +107,7 @@ export default function MyWorkPage() {
           <CardContent className="py-12 flex flex-col items-center justify-center text-center gap-2">
             <ClipboardList className="w-8 h-8 text-slate-400 stroke-1" />
             <p className="text-xs text-slate-500 font-medium">
-              No completed batches logged for this date.
+              No entries logged yet.
             </p>
           </CardContent>
         </Card>
@@ -125,16 +119,19 @@ export default function MyWorkPage() {
             </p>
             <div className="space-y-3">
               {items.map((entry) => (
-                <Card key={entry.id} className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
+                <Card
+                  key={entry.id}
+                  className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs cursor-pointer hover:border-slate-400 transition-all"
+                  onClick={() => setDetailEntry(entry)}
+                >
                   <CardContent className="p-4 space-y-3">
-                    {/* Top Row: Style name & Time stamp */}
                     <div className="flex items-start justify-between">
                       <div>
                         <h2 className="text-base font-bold text-slate-900 leading-snug">
                           Style {entry.style_number}
                         </h2>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">
-                          Phase: {entry.phase_name}
+                        <p className="text-xs text-slate-500 font-medium mt-0.5 capitalize">
+                          {DEPARTMENT_LABELS[entry.department]} · {entry.stage}
                         </p>
                       </div>
                       <div className="flex items-center gap-1 text-slate-400 text-xs font-normal">
@@ -147,11 +144,10 @@ export default function MyWorkPage() {
                       </div>
                     </div>
 
-                    {/* Bottom Row Divider & Stats: Completed & Wasted */}
                     <div className="pt-3 border-t border-slate-300/70 flex items-center justify-around">
                       <div className="text-center">
                         <p className="text-xl font-bold text-slate-900 leading-none">
-                          {entry.quantity_completed}
+                          {typeof entry.payload.quantity_completed === "number" ? entry.payload.quantity_completed : "—"}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
                           Completed
@@ -160,7 +156,7 @@ export default function MyWorkPage() {
                       <div className="h-8 w-px bg-slate-300/70" />
                       <div className="text-center">
                         <p className="text-xl font-bold text-slate-900 leading-none">
-                          {entry.quantity_wasted}
+                          {typeof entry.payload.quantity_wasted === "number" ? entry.payload.quantity_wasted : "—"}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
                           Wasted
@@ -174,7 +170,8 @@ export default function MyWorkPage() {
           </div>
         ))
       )}
+
+      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} />
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutGrid, ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +87,6 @@ export default function FactoryLayout() {
   // Bottom navigation items for the mobile tab bar
   const navItems = [
     { to: "/factory", icon: Home, label: t("factory.nav.home"), end: true },
-    { to: "/factory/scan", icon: LayoutGrid, label: t("factory.nav.scan"), end: false },
     { to: "/factory/log", icon: ClipboardCheck, label: "Log Entry", end: false },
     { to: "/factory/my-work", icon: ClipboardList, label: t("factory.nav.myWork"), end: false },
   ];

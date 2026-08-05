@@ -34,8 +34,6 @@ import ProfilePage from "@/pages/portal/ProfilePage";
 import DirectOrderPage from "@/pages/portal/DirectOrderPage";
 
 import FactoryDashboard from "@/pages/factory/FactoryDashboard";
-import QrScannerPage from "@/pages/factory/QrScannerPage";
-import BatchEntryPage from "@/pages/factory/BatchEntryPage";
 import MyWorkPage from "@/pages/factory/MyWorkPage";
 import DepartmentEntryPage from "@/pages/factory/DepartmentEntryPage";
 
@@ -109,8 +107,6 @@ const App = () => (
               }
             >
               <Route index element={<FactoryDashboard />} />
-              <Route path="scan" element={<QrScannerPage />} />
-              <Route path="batch/:batchId" element={<BatchEntryPage />} />
               <Route path="log" element={<DepartmentEntryPage />} />
               <Route path="my-work" element={<MyWorkPage />} />
             </Route>
