@@ -164,6 +164,34 @@ export default function OrdersAdminPage() {
     load();
   };
 
+  // Deleting an order cascades to its batches, tracking, and department entries -
+  // block it once any worker history/inventory-affecting entries exist, since that
+  // audit trail (and the fabric/stock already deducted against it) would be lost silently.
+  const requestDeleteOrder = async () => {
+    if (!selected) return;
+    const { data: batches } = await supabase
+      .from("production_batches")
+      .select("id")
+      .eq("order_id", selected.id);
+    const batchIds = (batches ?? []).map((b) => b.id);
+    if (batchIds.length > 0) {
+      const [trackingRes, deptRes] = await Promise.all([
+        supabase.from("batch_tracking").select("id", { count: "exact", head: true }).in("batch_id", batchIds),
+        supabase.from("department_entries").select("id", { count: "exact", head: true }).in("batch_id", batchIds),
+      ]);
+      const workCount = (trackingRes.count ?? 0) + (deptRes.count ?? 0);
+      if (workCount > 0) {
+        toast({
+          title: "Can't delete — work already logged",
+          description: `This order's batches have ${workCount} worker log ${workCount === 1 ? "entry" : "entries"}. Set the order status to "Cancelled" instead to keep the history intact.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    setConfirmingDelete(true);
+  };
+
   const openDetail = (o: Order) => {
     setSelected(o);
     setDraftStatus(o.status);
@@ -366,7 +394,7 @@ export default function OrdersAdminPage() {
                   {saving ? "Saving..." : "Save Update"}
                 </Button>
                 {isAdmin && (
-                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={() => setConfirmingDelete(true)}>
+                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={requestDeleteOrder}>
                     <Trash2 className="w-4 h-4 mr-2" /> Delete Order
                   </Button>
                 )}

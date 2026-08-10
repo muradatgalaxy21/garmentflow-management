@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2 } from "lucide-react";
+import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2, Ban } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,6 +146,37 @@ export default function BatchManagementPage() {
     }
     toast({ title: "Batch deleted" });
     if (selectedBatch?.id === batch.id) setSelectedBatch(null);
+    load();
+  };
+
+  // Deleting a batch cascades to its tracking/department entries - block once workers
+  // have logged anything (fabric/inventory already deducted against it too), since that
+  // history would be lost silently. Use Cancelled status instead to keep the record.
+  const requestDeleteBatch = async (batch: Batch) => {
+    const [trackingRes, deptRes] = await Promise.all([
+      supabase.from("batch_tracking").select("id", { count: "exact", head: true }).eq("batch_id", batch.id),
+      supabase.from("department_entries").select("id", { count: "exact", head: true }).eq("batch_id", batch.id),
+    ]);
+    const workCount = (trackingRes.count ?? 0) + (deptRes.count ?? 0);
+    if (workCount > 0) {
+      toast({
+        title: "Can't delete — work already logged",
+        description: `This batch has ${workCount} worker log ${workCount === 1 ? "entry" : "entries"}. Set its status to "Cancelled" instead to keep the history intact.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setDeletingBatch(batch);
+  };
+
+  const cancelBatch = async (batch: Batch) => {
+    if (!window.confirm(`Mark batch "${batch.style_number}" as cancelled? Its history stays intact but it stops counting as active production.`)) return;
+    const { error } = await supabase.from("production_batches").update({ status: "cancelled" }).eq("id", batch.id);
+    if (error) {
+      toast({ title: "Cancel failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Batch cancelled" });
     load();
   };
 
@@ -393,8 +424,13 @@ export default function BatchManagementPage() {
                   <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
                     <Eye className="w-4 h-4" />
                   </Button>
+                  {isAdmin && b.status !== "cancelled" && b.status !== "completed" && (
+                    <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-600" onClick={() => cancelBatch(b)}>
+                      <Ban className="w-4 h-4" />
+                    </Button>
+                  )}
                   {isAdmin && (
-                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => setDeletingBatch(b)}>
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => requestDeleteBatch(b)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
