@@ -40,6 +40,7 @@ import FactoryDashboard from "@/pages/factory/FactoryDashboard";
 import MyWorkPage from "@/pages/factory/MyWorkPage";
 import DepartmentEntryPage from "@/pages/factory/DepartmentEntryPage";
 import InboxPage from "@/pages/factory/InboxPage";
+import AccessoryRestockPage from "@/pages/factory/AccessoryRestockPage";
 
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
@@ -117,6 +118,7 @@ const App = () => (
               <Route path="log" element={<DepartmentEntryPage />} />
               <Route path="my-work" element={<MyWorkPage />} />
               <Route path="inbox" element={<InboxPage />} />
+              <Route path="restock-accessory" element={<AccessoryRestockPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

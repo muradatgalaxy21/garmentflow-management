@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { insertDepartmentEntry } from "@/lib/departmentEntries";
+import { insertDepartmentEntry, recordInventoryMovement } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 interface FabricItem {
@@ -72,6 +72,7 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
         department: "cutting",
         batchId,
         workerId,
+        inventoryItemId: fabric.id,
         payload: {
           weight_per_layer: weightPerLayer,
           layers_qty: layersQty,
@@ -80,8 +81,10 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
           style_number: styleNumberInput,
           total_weight: totalWeight,
           total_pcs: totalPcs,
+          quantity: totalWeight,
         },
       });
+      await recordInventoryMovement(fabric.id, totalWeight, "out", workerId, `Cutting entry for batch ${batchId}`);
       toast({ title: "Entry Saved!" });
       onSubmitted();
     } catch (err: any) {

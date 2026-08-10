@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, type Department, type EntryStage } from "@/lib/departmentEntries";
+import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
@@ -32,18 +34,20 @@ const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroider
 
 interface WorkEntry {
   id: string;
+  batch_id: string;
+  style_number: string;
+  department: Department;
+  stage: EntryStage;
+  payload: Record<string, unknown>;
+  total_cost: number | null;
+  inventory_item_id: string | null;
   created_at: string;
-  quantity_completed: number;
-  quantity_wasted: number;
-  notes: string | null;
-  production_phases: { name: string } | null;
-  production_batches: { style_number: string; status: string; orders: { order_number: string } | null } | null;
 }
 
 export default function WorkerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -52,6 +56,7 @@ export default function WorkerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<Profile | null>(null);
+  const [detailEntry, setDetailEntry] = useState<DepartmentEntryDetail | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -60,16 +65,35 @@ export default function WorkerDetailPage() {
       supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", id),
       supabase
-        .from("batch_tracking")
-        .select(
-          "id, created_at, quantity_completed, quantity_wasted, notes, production_phases(name), production_batches(style_number, status, orders(order_number))"
-        )
+        .from("department_entries")
+        .select("id, batch_id, department, stage, payload, total_cost, inventory_item_id, created_at")
         .eq("worker_id", id)
         .order("created_at", { ascending: false }),
     ]);
     if (!pRes.error) setProfile(pRes.data as Profile | null);
     if (!rRes.error) setRoles((rRes.data ?? []).map((r) => r.role as AppRole));
-    if (!eRes.error) setEntries((eRes.data ?? []) as unknown as WorkEntry[]);
+
+    const tracking = eRes.data ?? [];
+    if (tracking.length > 0) {
+      const batchIds = [...new Set(tracking.map((t) => t.batch_id))];
+      const { data: batches } = await supabase.from("production_batches").select("id, style_number").in("id", batchIds);
+      const batchMap = new Map((batches ?? []).map((b) => [b.id, b.style_number]));
+      setEntries(
+        tracking.map((t) => ({
+          id: t.id,
+          batch_id: t.batch_id,
+          style_number: batchMap.get(t.batch_id) ?? "—",
+          department: t.department as Department,
+          stage: t.stage as EntryStage,
+          payload: (t.payload as Record<string, unknown>) ?? {},
+          total_cost: t.total_cost,
+          inventory_item_id: t.inventory_item_id,
+          created_at: t.created_at,
+        }))
+      );
+    } else {
+      setEntries([]);
+    }
     setLoading(false);
   };
 
@@ -83,8 +107,29 @@ export default function WorkerDetailPage() {
   const hasWorker = roles.includes("worker");
   const isDihaari = profile?.wage_type !== "monthly_salary";
 
-  const currentEntries = entries.filter((e) => e.production_batches && !["completed", "cancelled"].includes(e.production_batches.status));
-  const pastEntries = entries.filter((e) => !e.production_batches || ["completed", "cancelled"].includes(e.production_batches.status));
+  // A department is "currently working on" once a start entry has no later end entry for the same batch+department.
+  const currentEntries = entries.filter((e) => {
+    if (e.stage !== "start") return false;
+    return !entries.some((o) => o.stage === "end" && o.batch_id === e.batch_id && o.department === e.department && o.created_at > e.created_at);
+  });
+  const pastEntries = entries.filter((e) => !currentEntries.includes(e));
+
+  const deleteEntry = async (entry: DepartmentEntryDetail) => {
+    if (!window.confirm("Delete this work entry? This cannot be undone. If it consumed a tracked fabric/accessory item, that quantity will be restocked.")) return;
+    const full = entries.find((e) => e.id === entry.id);
+    try {
+      await deleteDepartmentEntryAndRestock(
+        { id: entry.id, inventory_item_id: full?.inventory_item_id, payload: full?.payload },
+        user!.id
+      );
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    setDetailEntry(null);
+    toast({ title: "Entry deleted" });
+  };
 
   const toggleRole = async (role: AppRole, hasIt: boolean) => {
     if (!id) return;
@@ -228,7 +273,7 @@ export default function WorkerDetailPage() {
           {currentEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No active batch work right now.</p>
           ) : (
-            <WorkTable entries={currentEntries} />
+            <WorkTable entries={currentEntries} onSelect={setDetailEntry} />
           )}
         </CardContent>
       </Card>
@@ -241,10 +286,12 @@ export default function WorkerDetailPage() {
           {pastEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No completed work logged yet.</p>
           ) : (
-            <WorkTable entries={pastEntries} />
+            <WorkTable entries={pastEntries} onSelect={setDetailEntry} />
           )}
         </CardContent>
       </Card>
+
+      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} onDelete={deleteEntry} />
 
       {editing && (
         <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
@@ -377,32 +424,32 @@ export default function WorkerDetailPage() {
   );
 }
 
-function WorkTable({ entries }: { entries: WorkEntry[] }) {
+function WorkTable({ entries, onSelect }: { entries: WorkEntry[]; onSelect: (entry: DepartmentEntryDetail) => void }) {
   return (
     <table className="w-full text-sm text-left">
       <thead className="bg-muted/50 text-xs uppercase text-muted-foreground font-semibold">
         <tr>
           <th className="p-3">Date</th>
-          <th className="p-3">Order</th>
           <th className="p-3">Batch</th>
-          <th className="p-3">Phase</th>
-          <th className="p-3">Status</th>
-          <th className="p-3">Pieces</th>
-          <th className="p-3">Wasted</th>
+          <th className="p-3">Department</th>
+          <th className="p-3">Stage</th>
+          <th className="p-3 text-right">Pieces</th>
         </tr>
       </thead>
       <tbody className="divide-y">
         {entries.map((e) => (
-          <tr key={e.id} className="hover:bg-muted/20">
+          <tr key={e.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => onSelect(e)}>
             <td className="p-3 text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</td>
-            <td className="p-3">{e.production_batches?.orders?.order_number ? `#${e.production_batches.orders.order_number}` : "—"}</td>
-            <td className="p-3 font-medium text-foreground">{e.production_batches?.style_number ?? "—"}</td>
-            <td className="p-3">{e.production_phases?.name ?? "—"}</td>
-            <td className="p-3 capitalize">
-              <Badge variant="outline">{e.production_batches?.status ?? "unknown"}</Badge>
+            <td className="p-3 font-medium text-foreground">{e.style_number}</td>
+            <td className="p-3">{DEPARTMENT_LABELS[e.department]}</td>
+            <td className="p-3">
+              <Badge variant="outline" className={e.stage === "end" ? "" : "bg-blue-50 text-blue-700 border-blue-200"}>
+                {e.stage === "end" ? "Closed" : "In Progress"}
+              </Badge>
             </td>
-            <td className="p-3 font-mono">{e.quantity_completed}</td>
-            <td className="p-3 font-mono text-destructive">{e.quantity_wasted}</td>
+            <td className="p-3 text-right font-mono">
+              {typeof e.payload.quantity_completed === "number" ? e.payload.quantity_completed : "—"}
+            </td>
           </tr>
         ))}
       </tbody>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User, Inbox } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User, Inbox, PackagePlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ export default function FactoryLayout() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
   const [userName, setUserName] = useState<string>("");
+  const [department, setDepartment] = useState<string | null>(null);
 
   // 1. Load user profile name
   useEffect(() => {
@@ -27,10 +28,11 @@ export default function FactoryLayout() {
       try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name")
+          .select("full_name, department")
           .eq("id", user.id)
           .maybeSingle();
         setUserName(profile?.full_name || user.email?.split("@")[0] || "Worker");
+        setDepartment(profile?.department ?? null);
       } catch {
         setUserName(user.email?.split("@")[0] || "Worker");
       }
@@ -90,6 +92,9 @@ export default function FactoryLayout() {
     { to: "/factory/log", icon: ClipboardCheck, label: "Log Entry", end: false },
     { to: "/factory/my-work", icon: ClipboardList, label: t("factory.nav.myWork"), end: false },
     { to: "/factory/inbox", icon: Inbox, label: "Inbox", end: false },
+    ...(department === "accessories"
+      ? [{ to: "/factory/restock-accessory", icon: PackagePlus, label: "Restock", end: false }]
+      : []),
   ];
 
   return (

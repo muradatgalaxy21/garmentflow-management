@@ -32,6 +32,40 @@ export async function insertDepartmentEntry(params: {
   if (error) throw error;
 }
 
+/** Logs a stock movement — the `apply_inventory_movement` DB trigger updates quantity_on_hand atomically. */
+export async function recordInventoryMovement(
+  itemId: string,
+  quantity: number,
+  type: "in" | "out" | "adjust",
+  performedBy: string,
+  reason: string
+) {
+  if (!itemId || quantity <= 0) return;
+  const { error } = await supabase.from("inventory_movements").insert({
+    item_id: itemId,
+    quantity,
+    type,
+    performed_by: performedBy,
+    reason,
+  });
+  if (error) throw error;
+}
+
+/** Deletes a logged work entry and, if it consumed a tracked inventory item, restocks the quantity. */
+export async function deleteDepartmentEntryAndRestock(
+  entry: { id: string; inventory_item_id?: string | null; payload?: Record<string, unknown> | null },
+  performedBy: string
+) {
+  const { error } = await supabase.from("department_entries").delete().eq("id", entry.id);
+  if (error) throw error;
+
+  const payload = entry.payload ?? {};
+  const qty = typeof payload.quantity === "number" ? payload.quantity : 0;
+  if (entry.inventory_item_id && qty > 0) {
+    await recordInventoryMovement(entry.inventory_item_id, qty, "in", performedBy, "Restock — deleted work entry");
+  }
+}
+
 interface SequenceRow {
   department: Department;
   order_index: number;

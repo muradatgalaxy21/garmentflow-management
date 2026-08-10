@@ -6,7 +6,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
+import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 
 // ---------------------------------------------------------------
@@ -23,6 +23,7 @@ interface HistoryEntry {
   stage: EntryStage;
   payload: Record<string, unknown>;
   total_cost: number | null;
+  inventory_item_id: string | null;
   created_at: string;
 }
 
@@ -40,7 +41,7 @@ export default function MyWorkPage() {
       try {
         const { data: tracking } = await supabase
           .from("department_entries")
-          .select("id, batch_id, department, stage, payload, total_cost, created_at")
+          .select("id, batch_id, department, stage, payload, total_cost, inventory_item_id, created_at")
           .eq("worker_id", user.id)
           .order("created_at", { ascending: false })
           .limit(50);
@@ -67,6 +68,7 @@ export default function MyWorkPage() {
             stage: t.stage as EntryStage,
             payload: (t.payload as Record<string, unknown>) ?? {},
             total_cost: t.total_cost,
+            inventory_item_id: t.inventory_item_id,
             created_at: t.created_at,
           }))
         );
@@ -81,9 +83,14 @@ export default function MyWorkPage() {
 
   const deleteEntry = async (entry: DepartmentEntryDetail) => {
     if (!window.confirm("Delete this work entry? This cannot be undone.")) return;
-    const { error } = await supabase.from("department_entries").delete().eq("id", entry.id);
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    const full = entries.find((e) => e.id === entry.id);
+    try {
+      await deleteDepartmentEntryAndRestock(
+        { id: entry.id, inventory_item_id: full?.inventory_item_id, payload: full?.payload },
+        user!.id
+      );
+    } catch (err: any) {
+      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
