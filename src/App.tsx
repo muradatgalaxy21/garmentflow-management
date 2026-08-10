@@ -26,6 +26,7 @@ import OrdersAdminPage from "@/pages/admin/OrdersAdminPage";
 import BatchManagementPage from "@/pages/admin/BatchManagementPage";
 import ClientsPage from "@/pages/admin/ClientsPage";
 import EmployeesPage from "@/pages/admin/EmployeesPage";
+import WorkerDetailPage from "@/pages/admin/WorkerDetailPage";
 import WorkerInboxPage from "@/pages/admin/WorkerInboxPage";
 
 import PortalHome from "@/pages/portal/PortalHome";
@@ -84,6 +85,7 @@ const App = () => (
               <Route path="batches" element={<BatchManagementPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="employees" element={<EmployeesPage />} />
+              <Route path="employees/:id" element={<WorkerDetailPage />} />
             </Route>
 
             {/* Client portal — client role only */}

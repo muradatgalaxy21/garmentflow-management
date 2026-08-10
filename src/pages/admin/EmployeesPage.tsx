@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,9 +45,23 @@ interface WorkerPayoutSummary {
   calculated_payout: number;
 }
 
+function downloadCsv(filename: string, rows: (string | number)[][]) {
+  const csv = rows
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function EmployeesPage() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +141,18 @@ export default function EmployeesPage() {
   const rolesFor = (id: string) => roles.filter((r) => r.user_id === id).map((r) => r.role);
 
   const workerProfiles = profiles.filter((p) => !rolesFor(p.id).includes("client"));
+
+  const nextEmployeeId = () => {
+    const maxNum = profiles.reduce((max, p) => {
+      const match = p.employee_id?.match(/^EN-(\d+)$/i);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
+    return `EN-${String(maxNum + 1).padStart(3, "0")}`;
+  };
+
+  const openEditProfile = (p: Profile) => {
+    setEditingProfile({ ...p, employee_id: p.employee_id || nextEmployeeId() });
+  };
 
   const toggleRole = async (userId: string, role: AppRole, hasIt: boolean) => {
     if (hasIt && !window.confirm(`Remove ${role} role from this person?`)) return;
@@ -274,12 +301,8 @@ export default function EmployeesPage() {
 
               <div>
                 <Label className="text-xs font-semibold">Employee ID / Worker Tag</Label>
-                <Input
-                  value={editingProfile.employee_id || ""}
-                  placeholder="e.g. WKR-104"
-                  onChange={(e) => setEditingProfile({ ...editingProfile, employee_id: e.target.value })}
-                  className="mt-1"
-                />
+                <Input value={editingProfile.employee_id || ""} disabled className="mt-1 font-mono" />
+                <p className="text-[11px] text-muted-foreground mt-1">Auto-assigned sequentially, not editable.</p>
               </div>
 
               <div>
@@ -407,7 +430,11 @@ export default function EmployeesPage() {
           const isDihaari = p.wage_type !== "monthly_salary";
 
           return (
-            <Card key={p.id} className="hover:border-accent/30 transition-colors">
+            <Card
+              key={p.id}
+              className="hover:border-accent/30 transition-colors cursor-pointer"
+              onClick={() => navigate(`/admin/employees/${p.id}`)}
+            >
               <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -434,9 +461,9 @@ export default function EmployeesPage() {
                 </div>
 
                 {isAdmin && (
-                  <div className="flex flex-wrap gap-2 items-center">
+                  <div className="flex flex-wrap gap-2 items-center" onClick={(e) => e.stopPropagation()}>
                     {!hasAdmin && (
-                      <Button size="sm" variant="outline" onClick={() => setEditingProfile(p)}>
+                      <Button size="sm" variant="outline" onClick={() => openEditProfile(p)}>
                         <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
                       </Button>
                     )}
@@ -467,6 +494,14 @@ export default function EmployeesPage() {
         })}
       </div>
     );
+  }
+
+  function exportPayoutsCsv() {
+    const rows: (string | number)[][] = [
+      ["Worker Name", "Wage Category", "Pieces Done", "Wasted Pcs", "Calculated Payout (PKR)"],
+      ...payouts.map((p) => [p.worker_name, p.wage_type, p.total_pieces, p.total_wasted, p.calculated_payout]),
+    ];
+    downloadCsv(`dihaari-salary-ledger-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   }
 
   function renderPayoutLedger() {
@@ -509,8 +544,8 @@ export default function EmployeesPage() {
           <CardHeader className="py-4 border-b">
             <CardTitle className="text-base flex items-center justify-between">
               <span>Weekly Dihaari &amp; Salary Ledger</span>
-              <Button size="sm" variant="outline" onClick={() => window.print()}>
-                <Download className="w-4 h-4 mr-1" /> Print Report
+              <Button size="sm" variant="outline" onClick={() => exportPayoutsCsv()}>
+                <Download className="w-4 h-4 mr-1" /> Download CSV
               </Button>
             </CardTitle>
           </CardHeader>
