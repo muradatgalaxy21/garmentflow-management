@@ -128,6 +128,7 @@ export default function EmployeesPage() {
   const workerProfiles = profiles.filter((p) => !rolesFor(p.id).includes("client"));
 
   const toggleRole = async (userId: string, role: AppRole, hasIt: boolean) => {
+    if (hasIt && !window.confirm(`Remove ${role} role from this person?`)) return;
     setBusy(userId + role);
     const { error } = hasIt
       ? await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role)
