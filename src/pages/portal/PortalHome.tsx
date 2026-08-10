@@ -62,7 +62,7 @@ export default function PortalHome() {
         <Button
           size="lg"
           className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-md whitespace-nowrap shrink-0"
-          onClick={() => navigate("/portal/direct-order")}
+          onClick={() => navigate("/client-portal/direct-order")}
         >
           <PlusCircle className="w-5 h-5 mr-2" /> Place Direct Production Order
         </Button>
@@ -80,7 +80,7 @@ export default function PortalHome() {
           <CardContent>
             <p className="text-4xl font-bold font-heading text-foreground">{active}</p>
             <Link
-              to="/portal/orders"
+              to="/client-portal/orders"
               className="inline-flex items-center gap-1 mt-2 text-sm text-accent hover:underline font-medium"
             >
               View all orders <ArrowRight className="w-3.5 h-3.5" />
@@ -106,7 +106,7 @@ export default function PortalHome() {
       <Card className="border-border/80 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold">Recent Orders</CardTitle>
-          <Link to="/portal/orders" className="text-sm text-accent hover:underline font-medium">
+          <Link to="/client-portal/orders" className="text-sm text-accent hover:underline font-medium">
             See all
           </Link>
         </CardHeader>
@@ -127,7 +127,7 @@ export default function PortalHome() {
               {orders.map((o) => (
                 <li key={o.id}>
                   <Link
-                    to={`/portal/orders/${o.id}`}
+                    to={`/client-portal/orders/${o.id}`}
                     className="flex items-center justify-between py-4 hover:text-accent transition-colors gap-4"
                   >
                     <div className="min-w-0">

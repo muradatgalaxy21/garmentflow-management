@@ -6,9 +6,9 @@ import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 // Portal navigation tabs
 const portalNav = [
-  { to: "/portal", label: "Overview", icon: Home, end: true },
-  { to: "/portal/orders", label: "My Orders", icon: Package, end: false },
-  { to: "/portal/profile", label: "Profile", icon: User, end: false },
+  { to: "/client-portal", label: "Overview", icon: Home, end: true },
+  { to: "/client-portal/orders", label: "My Orders", icon: Package, end: false },
+  { to: "/client-portal/profile", label: "Profile", icon: User, end: false },
 ];
 
 // Lightweight client-portal layout with full-width layout and navigation improvements
@@ -76,7 +76,7 @@ export default function PortalLayout() {
               className="w-8 h-8 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 text-primary-foreground font-semibold text-xs"
               title="My Profile"
             >
-              <Link to="/portal/profile">{initials}</Link>
+              <Link to="/client-portal/profile">{initials}</Link>
             </Button>
 
             {/* Sign out */}

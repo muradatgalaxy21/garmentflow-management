@@ -85,7 +85,7 @@ const App = () => (
 
             {/* Client portal — client role only */}
             <Route
-              path="/portal"
+              path="/client-portal"
               element={
                 <ProtectedRoute requireRoles={["client"]}>
                   <PortalLayout />

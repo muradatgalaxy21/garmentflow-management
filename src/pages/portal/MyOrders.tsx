@@ -86,7 +86,7 @@ export default function MyOrders() {
       ) : (
         <div className="space-y-3">
           {orders.map((o) => (
-            <Link key={o.id} to={`/portal/orders/${o.id}`}>
+            <Link key={o.id} to={`/client-portal/orders/${o.id}`}>
               <Card className="hover:border-accent hover:shadow-md transition-all duration-200 cursor-pointer">
                 <CardContent className="py-5 px-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

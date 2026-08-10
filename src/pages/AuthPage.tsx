@@ -14,7 +14,7 @@ import Footer from "@/components/layout/Footer";
 
 type PortalRole = "client" | "worker";
 
-// Land the user on the area their role actually uses instead of always /portal.
+// Land the user on the area their role actually uses instead of always /client-portal.
 async function resolveRoleTarget(userId: string, fallback: string): Promise<string> {
   const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
   const userRoles = (roleRows ?? []).map((r) => r.role);
@@ -90,7 +90,7 @@ export default function AuthPage() {
   const initialRole = searchParams.get("role") === "worker" ? "worker" : searchParams.get("role") === "client" ? "client" : null;
   const [role, setRole] = useState<PortalRole | null>(initialRole);
 
-  const from = (location.state as { from?: string } | null)?.from ?? "/portal";
+  const from = (location.state as { from?: string } | null)?.from ?? "/client-portal";
 
   useEffect(() => {
     const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
@@ -157,7 +157,7 @@ export default function AuthPage() {
       email: parsed.data.email,
       password: parsed.data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/portal`,
+        emailRedirectTo: `${window.location.origin}/client-portal`,
         data: {
           full_name: parsed.data.fullName,
           company: parsed.data.company,

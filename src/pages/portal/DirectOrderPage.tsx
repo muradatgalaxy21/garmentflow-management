@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, Send, X, Palette, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+
+interface ColorEntry {
+  name: string;
+  quantity: string;
+}
 
 export default function DirectOrderPage() {
   const { user } = useAuth();
@@ -20,14 +26,42 @@ export default function DirectOrderPage() {
   const [productSummary, setProductSummary] = useState("");
   const [quantity, setQuantity] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [colorInput, setColorInput] = useState("");
+  const [colors, setColors] = useState<ColorEntry[]>([]);
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [notes, setNotes] = useState("");
+
+  const colorTotal = colors.reduce((sum, c) => sum + (Number(c.quantity) || 0), 0);
+
+  const addColor = () => {
+    const name = colorInput.trim();
+    if (!name) return;
+    if (colors.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+      setColorInput("");
+      return;
+    }
+    setColors([...colors, { name, quantity: "" }]);
+    setColorInput("");
+  };
+
+  const removeColor = (name: string) => setColors(colors.filter((c) => c.name !== name));
+
+  const setColorQty = (name: string, qty: string) =>
+    setColors(colors.map((c) => (c.name === name ? { ...c, quantity: qty } : c)));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     if (!productSummary.trim() || !quantity || Number(quantity) <= 0) {
       toast({ title: "Please fill in product summary and a valid quantity.", variant: "destructive" });
+      return;
+    }
+    if (colors.length > 0 && colorTotal !== Number(quantity)) {
+      toast({
+        title: "Color quantities don't add up",
+        description: `Color breakdown totals ${colorTotal} pcs but Total Quantity is ${quantity} pcs.`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -43,6 +77,7 @@ export default function DirectOrderPage() {
           product_summary: productSummary.trim(),
           quantity: Number(quantity),
           currency,
+          color_breakdown: colors.map((c) => ({ color: c.name, quantity: Number(c.quantity) || 0 })),
           expected_delivery: expectedDelivery || null,
           status: "pending",
         })
@@ -60,7 +95,7 @@ export default function DirectOrderPage() {
       });
 
       toast({ title: "Order Submitted Successfully!", description: `Order #${orderNumber} is pending review.` });
-      navigate(`/portal/orders/${newOrder.id}`);
+      navigate(`/client-portal/orders/${newOrder.id}`);
     } catch (err: any) {
       toast({ title: "Failed to create order", description: err.message, variant: "destructive" });
     } finally {
@@ -133,6 +168,70 @@ export default function DirectOrderPage() {
             </div>
 
             <div>
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-accent" /> Colors (Optional)
+              </Label>
+              <div className="flex gap-2 mt-1">
+                <Input
+                  placeholder="e.g. Red, Navy, Gray"
+                  value={colorInput}
+                  onChange={(e) => setColorInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addColor();
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={addColor}>Add</Button>
+              </div>
+
+              {colors.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {colors.map((c) => (
+                    <Badge key={c.name} variant="secondary" className="pl-2.5 pr-1 py-1 text-xs capitalize flex items-center gap-1">
+                      {c.name}
+                      <button
+                        type="button"
+                        onClick={() => removeColor(c.name)}
+                        className="hover:text-destructive"
+                        aria-label={`Remove ${c.name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {colors.length > 0 && (
+                <div className="mt-3 space-y-2 bg-muted/30 border border-border rounded-lg p-3">
+                  <p className="text-xs font-semibold text-muted-foreground">Quantity per Color</p>
+                  {colors.map((c) => (
+                    <div key={c.name} className="flex items-center gap-3">
+                      <span className="text-sm capitalize w-24 shrink-0">{c.name}</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={c.quantity}
+                        onChange={(e) => setColorQty(c.name, e.target.value)}
+                        className="h-8"
+                      />
+                      <span className="text-xs text-muted-foreground shrink-0">pcs</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 border-t text-xs font-semibold">
+                    <span className="text-muted-foreground">Total Entered</span>
+                    <span className={colorTotal === Number(quantity || 0) ? "text-emerald-600" : "text-amber-600"}>
+                      {colorTotal} / {quantity || 0} pcs
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
               <Label htmlFor="delivery-date" className="text-xs font-semibold">Target Delivery Date (Optional)</Label>
               <Input
                 id="delivery-date"
@@ -141,10 +240,13 @@ export default function DirectOrderPage() {
                 onChange={(e) => setExpectedDelivery(e.target.value)}
                 className="mt-1"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                This is your preferred date. Final delivery date will be reviewed and confirmed by our Manager/Owner/Admin.
+              </p>
             </div>
 
             <div>
-              <Label htmlFor="notes" className="text-xs font-semibold">Fabric &amp; Stitching Instructions (Optional)</Label>
+              <Label htmlFor="notes" className="text-xs font-semibold">Other Instructions / Fabric Details (Optional)</Label>
               <Textarea
                 id="notes"
                 placeholder="Include fabric GSM, sizing breakdown, custom embroidery or printing notes..."

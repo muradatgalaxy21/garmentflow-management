@@ -10,7 +10,7 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, isWorker, isStaff } = useAuth();
   const { t } = useTranslation();
-  const portalPath = isWorker ? "/factory" : isStaff ? "/admin" : "/portal";
+  const portalPath = isWorker ? "/factory" : isStaff ? "/admin" : "/client-portal";
   const location = useLocation();
   const navigate = useNavigate();
   const logoClicks = useRef(0);
@@ -105,7 +105,7 @@ export default function Header() {
                 {t("nav.myPortal")}
               </Link>
               <Button asChild variant="outline" size="icon" className="w-8 h-8 rounded-full border-[#E4DDC9]" title={user.email}>
-                <Link to={isWorker || isStaff ? portalPath : "/portal/profile"}>
+                <Link to={isWorker || isStaff ? portalPath : "/client-portal/profile"}>
                   <User className="w-4 h-4 text-[#1B2A4A]" />
                 </Link>
               </Button>

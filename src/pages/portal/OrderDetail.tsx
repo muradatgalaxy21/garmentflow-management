@@ -16,6 +16,7 @@ interface Order {
   status: string;
   expected_delivery: string | null;
   tracking_number: string | null;
+  color_breakdown: { color: string; quantity: number }[] | null;
   created_at: string;
 }
 
@@ -121,7 +122,7 @@ export default function OrderDetail() {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Order not found.</p>
-        <Link to="/portal/orders" className="text-accent text-sm mt-3 inline-block">
+        <Link to="/client-portal/orders" className="text-accent text-sm mt-3 inline-block">
           ← Back to orders
         </Link>
       </div>
@@ -130,7 +131,7 @@ export default function OrderDetail() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <Link to="/portal/orders" className="text-sm text-muted-foreground hover:text-accent inline-flex items-center gap-1">
+      <Link to="/client-portal/orders" className="text-sm text-muted-foreground hover:text-accent inline-flex items-center gap-1">
         <ArrowLeft className="w-4 h-4" /> All orders
       </Link>
 
@@ -156,6 +157,19 @@ export default function OrderDetail() {
           )}
           {order.tracking_number && <Row label="Tracking #" value={order.tracking_number} />}
           <Row label="Order Date" value={new Date(order.created_at).toLocaleString()} />
+
+          {order.color_breakdown && order.color_breakdown.length > 0 && (
+            <div className="pt-2 border-t">
+              <span className="text-muted-foreground">Color Breakdown</span>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {order.color_breakdown.map((c) => (
+                  <Badge key={c.color} variant="outline" className="capitalize text-xs">
+                    {c.color}: {c.quantity} pcs
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
