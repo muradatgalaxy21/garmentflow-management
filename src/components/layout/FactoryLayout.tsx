@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Home, LogOut, Loader2, WifiOff, User, Inbox } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +89,7 @@ export default function FactoryLayout() {
     { to: "/factory", icon: Home, label: t("factory.nav.home"), end: true },
     { to: "/factory/log", icon: ClipboardCheck, label: "Log Entry", end: false },
     { to: "/factory/my-work", icon: ClipboardList, label: t("factory.nav.myWork"), end: false },
+    { to: "/factory/inbox", icon: Inbox, label: "Inbox", end: false },
   ];
 
   return (

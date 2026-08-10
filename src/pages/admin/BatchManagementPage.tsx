@@ -442,6 +442,64 @@ export default function BatchManagementPage() {
       </Dialog>
 
 
+      {/* New Batch Dialog */}
+      <Dialog open={creating} onOpenChange={setCreating}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Batch</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreate(e.currentTarget);
+            }}
+          >
+            <div>
+              <Label className="text-xs">Order</Label>
+              <Select name="order_id" required>
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select order" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orders.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      #{o.order_number} - {o.product_summary}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Style Number</Label>
+              <Input name="style_number" required className="mt-1" placeholder="e.g. ST-1001" />
+            </div>
+            <div>
+              <Label className="text-xs">Total Quantity</Label>
+              <Input name="total_quantity" type="number" min="1" required className="mt-1" placeholder="e.g. 500" />
+            </div>
+            <div>
+              <Label className="text-xs">Material Item (optional)</Label>
+              <Select name="material_item_id">
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map((i) => (
+                    <SelectItem key={i.id} value={i.id}>
+                      {i.name} ({i.sku})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Create Batch</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Rate Configuration Dialog */}
       <Dialog open={!!rateDialogBatch} onOpenChange={(o) => !o && setRateDialogBatch(null)}>
         <DialogContent className="max-w-sm">

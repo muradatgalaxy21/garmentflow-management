@@ -91,8 +91,11 @@ export type Database = {
           closed_at: string | null
           closed_by: string | null
           department: string
+          end_enabled: boolean
+          end_verification_status: string
           opened_at: string
           opened_by: string | null
+          start_verification_status: string
           status: string
         }
         Insert: {
@@ -100,8 +103,11 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           department: string
+          end_enabled?: boolean
+          end_verification_status?: string
           opened_at?: string
           opened_by?: string | null
+          start_verification_status?: string
           status?: string
         }
         Update: {
@@ -109,8 +115,11 @@ export type Database = {
           closed_at?: string | null
           closed_by?: string | null
           department?: string
+          end_enabled?: boolean
+          end_verification_status?: string
           opened_at?: string
           opened_by?: string | null
+          start_verification_status?: string
           status?: string
         }
         Relationships: [
@@ -573,6 +582,7 @@ export type Database = {
       orders: {
         Row: {
           client_id: string
+          color_breakdown: Json
           created_at: string
           currency: string | null
           expected_delivery: string | null
@@ -587,6 +597,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          color_breakdown?: Json
           created_at?: string
           currency?: string | null
           expected_delivery?: string | null
@@ -601,6 +612,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          color_breakdown?: Json
           created_at?: string
           currency?: string | null
           expected_delivery?: string | null
@@ -803,6 +815,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      worker_inbox_messages: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          department: string | null
+          id: string
+          message: string
+          payload: Json | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          type: string
+          worker_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          message: string
+          payload?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type: string
+          worker_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          message?: string
+          payload?: Json | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_inbox_messages_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

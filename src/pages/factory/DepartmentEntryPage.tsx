@@ -81,6 +81,14 @@ export default function DepartmentEntryPage() {
           } else {
             if (!status || status.status !== "open") {
               setBlockedReason("You haven't started this department for this batch yet — use Batch Start Scan first.");
+            } else if (status.end_verification_status === "pending") {
+              setBlockedReason("Your batch end scan is already submitted — waiting on admin verification.");
+            } else if (!status.end_enabled) {
+              setBlockedReason(
+                status.start_verification_status === "denied"
+                  ? "Admin denied your batch start verification. Contact your admin before ending this batch."
+                  : "Waiting on admin to verify your batch start scan before the End QR is enabled."
+              );
             }
           }
         }
@@ -194,7 +202,7 @@ export default function DepartmentEntryPage() {
     onSubmitted: async () => {
       if (mode === "start") {
         try {
-          await openDepartment(batch.id, department, user.id);
+          await openDepartment(batch.id, department, user.id, batch.style_number);
         } catch (err: any) {
           toast({ title: "Failed to open department", description: err.message, variant: "destructive" });
           return;

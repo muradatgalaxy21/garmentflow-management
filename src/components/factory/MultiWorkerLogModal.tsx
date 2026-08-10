@@ -107,7 +107,7 @@ export default function MultiWorkerLogModal({
   const phaseObj = phases.find((p) => p.id === selectedPhase);
   const filteredWorkers = workers.filter((w) => {
     if (!phaseObj) return true;
-    if (!w.skills || w.skills.length === 0) return true; // Include workers without skills set
+    if (!w.skills || w.skills.length === 0) return false; // No skills tagged — don't show under any phase
     return w.skills.some(
       (s) => s.toLowerCase().includes(phaseObj.name.toLowerCase()) ||
              phaseObj.name.toLowerCase().includes(s.toLowerCase())

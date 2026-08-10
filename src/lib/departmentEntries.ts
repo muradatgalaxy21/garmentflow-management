@@ -94,17 +94,31 @@ export async function checkDepartmentGate(batchId: string, department: Departmen
   return { allowed: true };
 }
 
+export interface DepartmentStatusRow {
+  status: "open" | "closed";
+  opened_by: string;
+  start_verification_status: "pending" | "accepted" | "denied";
+  end_enabled: boolean;
+  end_verification_status: "none" | "pending" | "accepted" | "denied" | "reprocess";
+}
+
 export async function getDepartmentStatus(batchId: string, department: Department) {
   const { data } = await supabase
     .from("batch_department_status")
-    .select("status, opened_by")
+    .select("status, opened_by, start_verification_status, end_enabled, end_verification_status")
     .eq("batch_id", batchId)
     .eq("department", department)
     .maybeSingle();
-  return data as { status: "open" | "closed"; opened_by: string } | null;
+  return data as DepartmentStatusRow | null;
 }
 
-export async function openDepartment(batchId: string, department: Department, workerId: string) {
+/** Start scan: opens the department and files a start-verification message in the admin inbox. */
+export async function openDepartment(
+  batchId: string,
+  department: Department,
+  workerId: string,
+  styleNumber?: string
+) {
   const existing = await getDepartmentStatus(batchId, department);
   if (existing) return;
   const { error } = await supabase.from("batch_department_status").insert({
@@ -114,13 +128,57 @@ export async function openDepartment(batchId: string, department: Department, wo
     opened_by: workerId,
   });
   if (error) throw error;
+
+  const { error: msgError } = await supabase.from("worker_inbox_messages").insert({
+    type: "batch_start_verification",
+    worker_id: workerId,
+    batch_id: batchId,
+    department,
+    message: `Batch ${styleNumber ?? batchId} started in ${DEPARTMENT_LABELS[department]}. Accept to enable the End QR scan.`,
+  });
+  if (msgError) throw msgError;
 }
 
-export async function closeDepartment(batchId: string, department: Department, workerId: string) {
+/** Admin-only: finalizes an accepted end verification by closing the department. */
+export async function closeDepartment(batchId: string, department: Department, adminId: string) {
   const { error } = await supabase
     .from("batch_department_status")
-    .update({ status: "closed", closed_by: workerId, closed_at: new Date().toISOString() })
+    .update({ status: "closed", closed_by: adminId, closed_at: new Date().toISOString() })
     .eq("batch_id", batchId)
     .eq("department", department);
   if (error) throw error;
+}
+
+/** End scan: does NOT close the department — files an end-verification message and waits for admin. */
+export async function submitEndForVerification(params: {
+  batchId: string;
+  department: Department;
+  workerId: string;
+  styleNumber?: string;
+  quantityCompleted: number;
+  quantityWasted: number;
+  notes?: string | null;
+}) {
+  const { batchId, department, workerId, styleNumber, quantityCompleted, quantityWasted, notes } = params;
+
+  const { error: statusError } = await supabase
+    .from("batch_department_status")
+    .update({ end_verification_status: "pending" })
+    .eq("batch_id", batchId)
+    .eq("department", department);
+  if (statusError) throw statusError;
+
+  const { error: msgError } = await supabase.from("worker_inbox_messages").insert({
+    type: "batch_end_verification",
+    worker_id: workerId,
+    batch_id: batchId,
+    department,
+    message: `Batch ${styleNumber ?? batchId} end scan confirmed in ${DEPARTMENT_LABELS[department]}: ${quantityCompleted} completed, ${quantityWasted} wasted.`,
+    payload: {
+      quantity_completed: quantityCompleted,
+      quantity_wasted: quantityWasted,
+      notes: notes || null,
+    },
+  });
+  if (msgError) throw msgError;
 }

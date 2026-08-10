@@ -6,14 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { closeDepartment, insertDepartmentEntry, type Department } from "@/lib/departmentEntries";
+import { insertDepartmentEntry, submitEndForVerification, type Department } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 interface EndConfirmationFormProps extends DepartmentFormProps {
   department: Department;
 }
 
-export default function EndConfirmationForm({ department, batchId, workerId, onSubmitted }: EndConfirmationFormProps) {
+export default function EndConfirmationForm({ department, batchId, workerId, styleNumber, onSubmitted }: EndConfirmationFormProps) {
   const { toast } = useToast();
   const [quantityCompleted, setQuantityCompleted] = useState<number>(0);
   const [quantityWasted, setQuantityWasted] = useState<number>(0);
@@ -38,8 +38,16 @@ export default function EndConfirmationForm({ department, batchId, workerId, onS
           notes: notes || null,
         },
       });
-      await closeDepartment(batchId, department, workerId);
-      toast({ title: "Batch End Confirmed! Department Closed." });
+      await submitEndForVerification({
+        batchId,
+        department,
+        workerId,
+        styleNumber,
+        quantityCompleted,
+        quantityWasted,
+        notes,
+      });
+      toast({ title: "Batch End Submitted — waiting on admin verification." });
       onSubmitted();
     } catch (err: any) {
       toast({ title: "Error confirming batch end", description: err.message, variant: "destructive" });

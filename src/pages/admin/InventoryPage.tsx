@@ -20,8 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { UNITS, UNIT_LABELS } from "@/lib/units";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+
+const CATEGORY_SUGGESTIONS = ["fabric", "accessory", "sticker", "trim", "packaging", "finished_good"];
+
+interface OngoingBatch {
+  id: string;
+  style_number: string;
+  status: string;
+  order_number: string | null;
+}
 
 interface InventoryItem {
   id: string;
@@ -59,15 +73,51 @@ export default function InventoryPage() {
   const [editing, setEditing] = useState<InventoryItem | null>(null);
   const [adding, setAdding] = useState(false);
   const [movement, setMovement] = useState<{ item: InventoryItem; type: "in" | "out" } | null>(null);
+  const [reasonDraft, setReasonDraft] = useState("");
+  const [reasonPopoverOpen, setReasonPopoverOpen] = useState(false);
+  const [ongoingBatches, setOngoingBatches] = useState<OngoingBatch[]>([]);
   const [categoryDraft, setCategoryDraft] = useState("");
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false);
+  const [skuDraft, setSkuDraft] = useState("");
   const [stickerAttrs, setStickerAttrs] = useState({ size: "", type: "", color: "", design: "" });
   const { toast } = useToast();
+
+  const nextSku = () => {
+    const numeric = items
+      .map((i) => parseInt(i.sku, 10))
+      .filter((n) => !isNaN(n));
+    const next = (numeric.length ? Math.max(...numeric) : 0) + 1;
+    return String(next).padStart(6, "0");
+  };
+
+  useEffect(() => {
+    if (!movement) return;
+    setReasonDraft("");
+    const loadBatches = async () => {
+      const { data } = await supabase
+        .from("production_batches")
+        .select("id, style_number, status, orders(order_number)")
+        .neq("status", "completed")
+        .order("created_at", { ascending: false });
+      setOngoingBatches(
+        (data ?? []).map((b: any) => ({
+          id: b.id,
+          style_number: b.style_number,
+          status: b.status,
+          order_number: b.orders?.order_number ?? null,
+        })),
+      );
+    };
+    loadBatches();
+  }, [movement]);
 
   useEffect(() => {
     if (adding) {
       setCategoryDraft("");
+      setSkuDraft(nextSku());
       setStickerAttrs({ size: "", type: "", color: "", design: "" });
     } else if (editing) {
+      setSkuDraft(editing.sku);
       setCategoryDraft(editing.category ?? "");
       const a = (editing.attributes ?? {}) as Record<string, unknown>;
       setStickerAttrs({
@@ -257,17 +307,63 @@ export default function InventoryPage() {
             }}
             className="space-y-3"
           >
-            <Field label="SKU *" name="sku" defaultValue={editing?.sku} required />
-            <Field label="Name *" name="name" defaultValue={editing?.name} required />
             <div>
+              <Label className="text-xs">SKU * (auto-generated, editable)</Label>
+              <Input name="sku" value={skuDraft} onChange={(e) => setSkuDraft(e.target.value)} required className="mt-1" />
+            </div>
+            <Field label="Name *" name="name" defaultValue={editing?.name} required />
+            <div className="min-w-0">
               <Label className="text-xs">Category</Label>
-              <Input
-                name="category"
-                value={categoryDraft}
-                onChange={(e) => setCategoryDraft(e.target.value)}
-                placeholder="e.g. accessory, sticker, fabric"
-                className="mt-1"
-              />
+              <input type="hidden" name="category" value={categoryDraft} />
+              <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={categoryPopoverOpen}
+                    className="w-full min-w-0 justify-between font-normal mt-1"
+                  >
+                    <span className="truncate">{categoryDraft || "Select or type a category…"}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or type new category…"
+                      value={categoryDraft}
+                      onValueChange={setCategoryDraft}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <button
+                          type="button"
+                          className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent rounded-sm"
+                          onClick={() => setCategoryPopoverOpen(false)}
+                        >
+                          Use "{categoryDraft}"
+                        </button>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {CATEGORY_SUGGESTIONS.map((c) => (
+                          <CommandItem
+                            key={c}
+                            value={c}
+                            onSelect={(value) => {
+                              setCategoryDraft(value);
+                              setCategoryPopoverOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", categoryDraft === c ? "opacity-100" : "opacity-0")} />
+                            {c}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
 
             {categoryDraft === "accessory" && (
@@ -304,7 +400,21 @@ export default function InventoryPage() {
             )}
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Unit *" name="unit" defaultValue={editing?.unit ?? "pcs"} required />
+              <div>
+                <Label className="text-xs">Unit *</Label>
+                <Select name="unit" defaultValue={editing?.unit ?? "pcs"} required>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {UNITS.map((u) => (
+                      <SelectItem key={u} value={u}>
+                        {UNIT_LABELS[u]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Field
                 label="Reorder Level"
                 name="reorder_level"
@@ -343,7 +453,62 @@ export default function InventoryPage() {
             className="space-y-3"
           >
             <Field label="Quantity *" name="quantity" type="number" step="0.01" required />
-            <Field label="Reason" name="reason" placeholder="e.g. Production batch #122" />
+            <div className="min-w-0">
+              <Label className="text-xs">Reason</Label>
+              <input type="hidden" name="reason" value={reasonDraft} />
+              <Popover open={reasonPopoverOpen} onOpenChange={setReasonPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={reasonPopoverOpen}
+                    className="w-full min-w-0 justify-between font-normal mt-1"
+                  >
+                    <span className="truncate">{reasonDraft || "Select a batch or type a reason…"}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search ongoing batches or type…"
+                      value={reasonDraft}
+                      onValueChange={setReasonDraft}
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        <button
+                          type="button"
+                          className="w-full px-2 py-1.5 text-left text-sm hover:bg-accent rounded-sm"
+                          onClick={() => setReasonPopoverOpen(false)}
+                        >
+                          Use "{reasonDraft}"
+                        </button>
+                      </CommandEmpty>
+                      <CommandGroup heading="Ongoing Production">
+                        {ongoingBatches.map((b) => {
+                          const label = `Production batch #${b.style_number}${b.order_number ? ` (Order #${b.order_number})` : ""} — ${b.status}`;
+                          return (
+                            <CommandItem
+                              key={b.id}
+                              value={label}
+                              onSelect={(value) => {
+                                setReasonDraft(value);
+                                setReasonPopoverOpen(false);
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", reasonDraft === label ? "opacity-100" : "opacity-0")} />
+                              {label}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
             <DialogFooter>
               <Button type="submit">Record</Button>
             </DialogFooter>

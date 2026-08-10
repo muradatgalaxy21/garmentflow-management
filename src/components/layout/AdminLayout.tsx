@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Inbox, Package, ClipboardList, Users, Factory, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, LogOut, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
@@ -21,9 +21,11 @@ import {
 const adminNav = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false },
+  { title: "Worker Inbox", url: "/admin/worker-inbox", icon: MessagesSquare, end: false },
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false },
   { title: "Batches", url: "/admin/batches", icon: Factory, end: false },
+  { title: "Employees", url: "/admin/employees", icon: HardHat, end: false },
   { title: "Clients", url: "/admin/clients", icon: Users, end: false },
 ];
 

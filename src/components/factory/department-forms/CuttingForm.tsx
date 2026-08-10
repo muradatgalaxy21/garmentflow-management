@@ -1,12 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
+
+interface FabricItem {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  quantity_on_hand: number;
+}
 
 export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
@@ -16,11 +25,43 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
   const [color, setColor] = useState("");
   const [styleNumberInput, setStyleNumberInput] = useState(styleNumber);
   const [submitting, setSubmitting] = useState(false);
+  const [fabric, setFabric] = useState<FabricItem | null>(null);
+  const [checkingFabric, setCheckingFabric] = useState(true);
+
+  useEffect(() => {
+    const checkFabric = async () => {
+      setCheckingFabric(true);
+      const { data: batch } = await supabase
+        .from("production_batches")
+        .select("material_item_id")
+        .eq("id", batchId)
+        .maybeSingle();
+      if (!batch?.material_item_id) {
+        setFabric(null);
+        setCheckingFabric(false);
+        return;
+      }
+      const { data: item } = await supabase
+        .from("inventory_items")
+        .select("id, name, sku, unit, quantity_on_hand")
+        .eq("id", batch.material_item_id)
+        .maybeSingle();
+      setFabric((item as FabricItem) ?? null);
+      setCheckingFabric(false);
+    };
+    checkFabric();
+  }, [batchId]);
+
+  const fabricAvailable = !checkingFabric && !!fabric && Number(fabric.quantity_on_hand) > 0;
 
   const totalWeight = useMemo(() => weightPerLayer * layersQty, [weightPerLayer, layersQty]);
   const totalPcs = useMemo(() => pcsPerLayer * layersQty, [pcsPerLayer, layersQty]);
 
   const handleSubmit = async () => {
+    if (!fabricAvailable) {
+      toast({ title: "Fabric not in inventory", description: "This batch's fabric is missing or out of stock. Cutting cannot proceed.", variant: "destructive" });
+      return;
+    }
     if (layersQty <= 0 || !color.trim() || !styleNumberInput.trim()) {
       toast({ title: "Fill in layers, color and style number", variant: "destructive" });
       return;
@@ -53,6 +94,17 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
   return (
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
+        {!checkingFabric && !fabricAvailable && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-300 text-red-800 rounded-lg p-3 text-sm">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              {fabric
+                ? `Fabric "${fabric.name}" is out of stock (0 ${fabric.unit}). Cutting cannot proceed until inventory is restocked.`
+                : "No fabric assigned to this batch, or it's not in inventory. Cutting cannot proceed."}
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs font-bold text-slate-700">Weight / Layer</Label>
@@ -98,9 +150,9 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
           size="lg"
           className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl"
           onClick={handleSubmit}
-          disabled={submitting || layersQty <= 0}
+          disabled={submitting || checkingFabric || layersQty <= 0 || !fabricAvailable}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : checkingFabric ? "Checking fabric…" : "Save Entry"}
         </Button>
       </CardContent>
     </Card>

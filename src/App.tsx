@@ -26,6 +26,7 @@ import OrdersAdminPage from "@/pages/admin/OrdersAdminPage";
 import BatchManagementPage from "@/pages/admin/BatchManagementPage";
 import ClientsPage from "@/pages/admin/ClientsPage";
 import EmployeesPage from "@/pages/admin/EmployeesPage";
+import WorkerInboxPage from "@/pages/admin/WorkerInboxPage";
 
 import PortalHome from "@/pages/portal/PortalHome";
 import MyOrders from "@/pages/portal/MyOrders";
@@ -37,6 +38,7 @@ import DirectOrderPage from "@/pages/portal/DirectOrderPage";
 import FactoryDashboard from "@/pages/factory/FactoryDashboard";
 import MyWorkPage from "@/pages/factory/MyWorkPage";
 import DepartmentEntryPage from "@/pages/factory/DepartmentEntryPage";
+import InboxPage from "@/pages/factory/InboxPage";
 
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
@@ -76,6 +78,7 @@ const App = () => (
             >
               <Route index element={<AdminDashboard />} />
               <Route path="rfqs" element={<RfqInbox />} />
+              <Route path="worker-inbox" element={<WorkerInboxPage />} />
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="orders" element={<OrdersAdminPage />} />
               <Route path="batches" element={<BatchManagementPage />} />
@@ -111,6 +114,7 @@ const App = () => (
               <Route index element={<FactoryDashboard />} />
               <Route path="log" element={<DepartmentEntryPage />} />
               <Route path="my-work" element={<MyWorkPage />} />
+              <Route path="inbox" element={<InboxPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

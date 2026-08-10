@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
+import { UNITS, UNIT_LABELS, unitsAreConvertible, convertUnit, type Unit } from "@/lib/units";
 import type { DepartmentFormProps } from "./types";
 
 const ACCESSORY_GROUPS: { category: string; items: string[] }[] = [
@@ -66,6 +67,7 @@ interface InventoryMatch {
   id: string;
   name: string;
   sku: string;
+  unit: string;
   unit_cost: number | null;
   quantity_on_hand: number;
   attributes: Record<string, unknown>;
@@ -83,12 +85,22 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
   const [searching, setSearching] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
+  const [entryUnit, setEntryUnit] = useState<Unit>("pcs");
   const [submitting, setSubmitting] = useState(false);
 
   const isSticker = accessoryType.toLowerCase() === "stickers";
   const selectedItem = useMemo(() => matches.find((m) => m.id === selectedItemId) || null, [matches, selectedItemId]);
+  const itemUnit = (selectedItem?.unit as Unit) || "pcs";
+  const stockQuantity = useMemo(
+    () => (unitsAreConvertible(entryUnit, itemUnit) ? convertUnit(quantity, entryUnit, itemUnit) : quantity),
+    [quantity, entryUnit, itemUnit],
+  );
   const perItemCost = selectedItem?.unit_cost ?? null;
-  const totalCost = perItemCost !== null ? perItemCost * quantity : null;
+  const totalCost = perItemCost !== null ? perItemCost * stockQuantity : null;
+
+  useEffect(() => {
+    setEntryUnit(itemUnit);
+  }, [itemUnit]);
 
   // Non-sticker accessories: look up matching inventory as soon as a type is picked
   useEffect(() => {
@@ -101,7 +113,7 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
       setSearching(true);
       const { data } = await supabase
         .from("inventory_items")
-        .select("id, name, sku, unit_cost, quantity_on_hand, attributes")
+        .select("id, name, sku, unit, unit_cost, quantity_on_hand, attributes")
         .eq("category", "accessory")
         .contains("attributes", { type: accessoryType });
       setMatches((data as any) || []);
@@ -142,7 +154,9 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
         inventoryItemId: selectedItem?.id ?? null,
         payload: {
           accessory_type: accessoryType,
-          quantity,
+          quantity: stockQuantity,
+          entry_quantity: quantity,
+          entry_unit: entryUnit,
           per_item_cost: perItemCost,
           ...(isSticker ? { sticker_attributes: { size: stickerSize, type: stickerType, color: stickerColor, design: stickerDesign } } : {}),
         },
@@ -160,7 +174,7 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
   return (
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
-        <div>
+        <div className="min-w-0">
           <Label className="text-xs font-bold text-slate-700">Accessory Type</Label>
           <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
             <PopoverTrigger asChild>
@@ -168,7 +182,7 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
                 variant="outline"
                 role="combobox"
                 aria-expanded={typePopoverOpen}
-                className="w-full justify-between bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg mt-1"
+                className="w-full min-w-0 justify-between bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg mt-1"
               >
                 <span className="truncate">{accessoryType || "Type to search accessory…"}</span>
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -257,13 +271,32 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
 
         <div>
           <Label className="text-xs font-bold text-slate-700">Quantity</Label>
-          <Input
-            type="number"
-            min="0"
-            value={quantity}
-            onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 text-slate-900 text-center text-xl font-bold h-11 rounded-lg mt-1"
-          />
+          <div className="flex gap-2 mt-1">
+            <Input
+              type="number"
+              min="0"
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(0, parseFloat(e.target.value) || 0))}
+              className="bg-white border-slate-300 text-slate-900 text-center text-xl font-bold h-11 rounded-lg flex-1"
+            />
+            <Select value={entryUnit} onValueChange={(v) => setEntryUnit(v as Unit)}>
+              <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm h-11 rounded-lg w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {UNITS.map((u) => (
+                  <SelectItem key={u} value={u} disabled={selectedItem ? !unitsAreConvertible(u, itemUnit) : false}>
+                    {UNIT_LABELS[u]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedItem && entryUnit !== itemUnit && quantity > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              = {stockQuantity.toFixed(2)} {itemUnit} (stock unit)
+            </p>
+          )}
         </div>
 
         {totalCost !== null && (

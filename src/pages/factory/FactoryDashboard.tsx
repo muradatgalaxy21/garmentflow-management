@@ -39,6 +39,7 @@ export default function FactoryDashboard() {
   const [recentEntries, setRecentEntries] = useState<RecentEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("");
+  const [userDepartment, setUserDepartment] = useState<Department | null>(null);
   const [detailEntry, setDetailEntry] = useState<DepartmentEntryDetail | null>(null);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function FactoryDashboard() {
           .single();
         setUserName(profile?.full_name ?? user.email?.split("@")[0] ?? "Worker");
         const myDepartment = profile?.department as Department | null;
+        setUserDepartment(myDepartment);
 
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
@@ -148,7 +150,7 @@ export default function FactoryDashboard() {
       {/* Header Greeting Banner */}
       <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
         <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
-          Factory Floor Portal
+          Factory Floor Portal{userDepartment ? ` - ${DEPARTMENT_LABELS[userDepartment]}` : ""}
         </span>
         <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">
           Welcome, {userName || "Worker"}
