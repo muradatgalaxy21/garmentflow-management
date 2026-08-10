@@ -4,15 +4,63 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
-const ACCESSORY_TYPES = [
-  "button", "neck tape", "eyelet", "tip", "zip", "tag card", "label", "poly bags", "sticker",
-] as const;
+const ACCESSORY_GROUPS: { category: string; items: string[] }[] = [
+  {
+    category: "Stitching / Sewing Accessories",
+    items: [
+      "Thread", "Interlining/Fusing", "Buttons", "Snap buttons", "Zippers", "Drawstring/Drawcord",
+      "Drawcord end caps/aglets", "Elastic", "Velcro", "Rivets", "Eyelets", "Piping/Cording",
+      "Shoulder pads", "Pocket bags/lining fabric",
+    ],
+  },
+  {
+    category: "Labels & Tags",
+    items: [
+      "Main label", "Size label", "Care label", "Composition label", "Country of origin label",
+      "Hang tag", "Hang tag string/safety pin/plastic tag pin", "Barcode sticker",
+    ],
+  },
+  {
+    category: "Packing Accessories",
+    items: [
+      "Poly bags", "Tissue paper", "Cardboard/chipboard", "Collar stand/butterfly clips", "Pins",
+      "Stickers", "Master carton", "Inner carton/box", "Tape", "Silica gel packets",
+    ],
+  },
+  {
+    category: "Production Tracking / Misc",
+    items: ["Sequence tags/lot tags", "Waistband labels", "Reflective trims"],
+  },
+  {
+    category: "Parachute / Technical Jackets",
+    items: [
+      "Waterproof zippers", "Taped seams/seam tape", "Toggle stoppers", "Hood", "Mesh lining",
+      "Ripstop tape/patches", "Storm flap", "D-rings", "Reflective piping/trim",
+      "Elastic cuffs with thumbhole", "Water-repellent coating tag",
+    ],
+  },
+  {
+    category: "Sportswear — Padding / Protective",
+    items: [
+      "Knee pads", "Elbow pads", "Shoulder pads (protective)", "Chest pad/guard",
+      "Compression panels", "Foam inserts", "Pad pockets/sleeves", "Bonding tape",
+      "Silicone grippers",
+    ],
+  },
+  {
+    category: "Buyer/Export-Specific",
+    items: ["REACH compliance labels", "OEKO-TEX tags", "Other EU/UK regulatory labels"],
+  },
+];
 
 interface InventoryMatch {
   id: string;
@@ -26,6 +74,7 @@ interface InventoryMatch {
 export default function AccessoriesForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
   const [accessoryType, setAccessoryType] = useState<string>("");
+  const [typePopoverOpen, setTypePopoverOpen] = useState(false);
   const [stickerSize, setStickerSize] = useState("");
   const [stickerType, setStickerType] = useState("");
   const [stickerColor, setStickerColor] = useState("");
@@ -36,7 +85,7 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
   const [quantity, setQuantity] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
-  const isSticker = accessoryType === "sticker";
+  const isSticker = accessoryType.toLowerCase() === "stickers";
   const selectedItem = useMemo(() => matches.find((m) => m.id === selectedItemId) || null, [matches, selectedItemId]);
   const perItemCost = selectedItem?.unit_cost ?? null;
   const totalCost = perItemCost !== null ? perItemCost * quantity : null;
@@ -113,16 +162,44 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
       <CardContent className="p-4 space-y-4">
         <div>
           <Label className="text-xs font-bold text-slate-700">Accessory Type</Label>
-          <Select value={accessoryType} onValueChange={setAccessoryType}>
-            <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg mt-1">
-              <SelectValue placeholder="Select accessory type" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCESSORY_TYPES.map((t) => (
-                <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={typePopoverOpen}
+                className="w-full justify-between bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg mt-1"
+              >
+                <span className="truncate">{accessoryType || "Type to search accessory…"}</span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
+                <CommandInput placeholder="Search accessory type…" />
+                <CommandList>
+                  <CommandEmpty>No accessory found.</CommandEmpty>
+                  {ACCESSORY_GROUPS.map((group) => (
+                    <CommandGroup key={group.category} heading={group.category}>
+                      {group.items.map((item) => (
+                        <CommandItem
+                          key={item}
+                          value={item}
+                          onSelect={(value) => {
+                            setAccessoryType(value === accessoryType ? "" : value);
+                            setTypePopoverOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", accessoryType === item ? "opacity-100" : "opacity-0")} />
+                          {item}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ))}
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {isSticker && (
