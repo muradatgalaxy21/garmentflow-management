@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2, ArrowDownToLine, ArrowUpFromLine, Pencil } from "lucide-react";
+import { Plus, Loader2, ArrowDownToLine, ArrowUpFromLine, Pencil, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,6 +26,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UNITS, UNIT_LABELS } from "@/lib/units";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 
 const CATEGORY_SUGGESTIONS = ["fabric", "accessory", "sticker", "trim", "packaging", "finished_good"];
@@ -81,6 +82,7 @@ export default function InventoryPage() {
   const [skuDraft, setSkuDraft] = useState("");
   const [stickerAttrs, setStickerAttrs] = useState({ size: "", type: "", color: "", design: "" });
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   const nextSku = () => {
     const numeric = items
@@ -196,6 +198,17 @@ export default function InventoryPage() {
     load();
   };
 
+  const deleteItem = async (item: InventoryItem) => {
+    if (!window.confirm(`Delete "${item.name}" (${item.sku})? This removes its movement history and cannot be undone.`)) return;
+    const { error } = await supabase.from("inventory_items").delete().eq("id", item.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Item deleted" });
+    load();
+  };
+
   const handleMovement = async (form: HTMLFormElement) => {
     if (!movement) return;
     const fd = new FormData(form);
@@ -286,6 +299,11 @@ export default function InventoryPage() {
                     <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
+                    {isAdmin && (
+                      <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteItem(item)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

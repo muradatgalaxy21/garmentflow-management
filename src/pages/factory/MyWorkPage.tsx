@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
@@ -28,6 +29,7 @@ interface HistoryEntry {
 export default function MyWorkPage() {
   const { isRtl } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailEntry, setDetailEntry] = useState<DepartmentEntryDetail | null>(null);
@@ -76,6 +78,17 @@ export default function MyWorkPage() {
     };
     load();
   }, [user]);
+
+  const deleteEntry = async (entry: DepartmentEntryDetail) => {
+    if (!window.confirm("Delete this work entry? This cannot be undone.")) return;
+    const { error } = await supabase.from("department_entries").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    setDetailEntry(null);
+  };
 
   if (loading) {
     return (
@@ -171,7 +184,7 @@ export default function MyWorkPage() {
         ))
       )}
 
-      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} />
+      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} onDelete={deleteEntry} />
     </div>
   );
 }

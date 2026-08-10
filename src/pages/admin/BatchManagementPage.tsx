@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 
 const batchSchema = z.object({
@@ -76,6 +77,7 @@ export default function BatchManagementPage() {
   const [newRateLabel, setNewRateLabel] = useState("");
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const load = async () => {
@@ -132,6 +134,28 @@ export default function BatchManagementPage() {
     toast({ title: "Batch created" });
     setCreating(false);
     load();
+  };
+
+  const deleteBatch = async (batch: Batch) => {
+    if (!window.confirm(`Delete batch "${batch.style_number}"? This removes all its tracking history and cannot be undone.`)) return;
+    const { error } = await supabase.from("production_batches").delete().eq("id", batch.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Batch deleted" });
+    if (selectedBatch?.id === batch.id) setSelectedBatch(null);
+    load();
+  };
+
+  const deleteTrackingEntry = async (entry: TrackingEntry) => {
+    if (!window.confirm("Delete this work entry? This cannot be undone.")) return;
+    const { error } = await supabase.from("batch_tracking").delete().eq("id", entry.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setTimeline((prev) => prev.filter((t) => t.id !== entry.id));
   };
 
   const openAssignModal = async (batch: Batch) => {
@@ -368,6 +392,11 @@ export default function BatchManagementPage() {
                   <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
                     <Eye className="w-4 h-4" />
                   </Button>
+                  {isAdmin && (
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteBatch(b)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -606,12 +635,17 @@ export default function BatchManagementPage() {
                               <p className="font-medium text-foreground">{e.phase_name}</p>
                               <p className="text-xs text-muted-foreground">{e.worker_name}</p>
                             </div>
-                            <div className="text-right">
+                            <div className="flex items-center gap-1 text-right">
                               <Badge variant="outline" className="text-xs">Done: {e.quantity_completed}</Badge>
                               {e.quantity_wasted > 0 && (
                                 <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 ml-1">
                                   Waste: {e.quantity_wasted}
                                 </Badge>
+                              )}
+                              {isAdmin && (
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:text-red-600" onClick={() => deleteTrackingEntry(e)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
                               )}
                             </div>
                           </div>

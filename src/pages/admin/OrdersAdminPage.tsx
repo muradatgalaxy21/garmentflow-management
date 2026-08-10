@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Loader2, LayoutList, Kanban } from "lucide-react";
+import { Plus, Loader2, LayoutList, Kanban, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import KanbanBoard from "@/components/KanbanBoard";
 
@@ -84,6 +85,7 @@ export default function OrdersAdminPage() {
   const [updateNote, setUpdateNote] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
 
   const load = async () => {
@@ -145,6 +147,19 @@ export default function OrdersAdminPage() {
     }
     toast({ title: "Order created" });
     setCreating(false);
+    load();
+  };
+
+  const deleteOrder = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Delete order #${selected.order_number}? This removes all its batches and history and cannot be undone.`)) return;
+    const { error } = await supabase.from("orders").delete().eq("id", selected.id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Order deleted" });
+    setSelected(null);
     load();
   };
 
@@ -349,6 +364,11 @@ export default function OrdersAdminPage() {
                 <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
                   {saving ? "Saving..." : "Save Update"}
                 </Button>
+                {isAdmin && (
+                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={deleteOrder}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Delete Order
+                  </Button>
+                )}
               </div>
             </>
           )}

@@ -1,5 +1,8 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
 
 export interface DepartmentEntryDetail {
@@ -19,10 +22,13 @@ function labelize(key: string) {
 export default function DepartmentEntryDetailDialog({
   entry,
   onClose,
+  onDelete,
 }: {
   entry: DepartmentEntryDetail | null;
   onClose: () => void;
+  onDelete?: (entry: DepartmentEntryDetail) => void;
 }) {
+  const { isAdmin } = useAuth();
   return (
     <Dialog open={!!entry} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
@@ -62,6 +68,17 @@ export default function DepartmentEntryDetailDialog({
               </div>
               <p className="text-[11px] text-slate-400 pt-1">Read-only — logged entries cannot be edited here.</p>
             </div>
+            {isAdmin && onDelete && (
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  className="w-full text-red-500 hover:text-red-600 border-red-500/30"
+                  onClick={() => onDelete(entry)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete Entry
+                </Button>
+              </DialogFooter>
+            )}
           </>
         )}
       </DialogContent>
