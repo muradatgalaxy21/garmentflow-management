@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import KanbanBoard from "@/components/KanbanBoard";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 
 type OrderStatus = "pending" | "in_production" | "qc" | "shipped" | "delivered" | "cancelled";
 
@@ -87,6 +88,7 @@ export default function OrdersAdminPage() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -152,7 +154,6 @@ export default function OrdersAdminPage() {
 
   const deleteOrder = async () => {
     if (!selected) return;
-    if (!window.confirm(`Delete order #${selected.order_number}? This removes all its batches and history and cannot be undone.`)) return;
     const { error } = await supabase.from("orders").delete().eq("id", selected.id);
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });
@@ -365,7 +366,7 @@ export default function OrdersAdminPage() {
                   {saving ? "Saving..." : "Save Update"}
                 </Button>
                 {isAdmin && (
-                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={deleteOrder}>
+                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={() => setConfirmingDelete(true)}>
                     <Trash2 className="w-4 h-4 mr-2" /> Delete Order
                   </Button>
                 )}
@@ -374,6 +375,18 @@ export default function OrdersAdminPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {selected && (
+        <DeleteConfirmDialog
+          open={confirmingDelete}
+          onOpenChange={setConfirmingDelete}
+          title={`Delete Order #${selected.order_number}`}
+          confirmValue={selected.order_number}
+          fieldLabel="Order Number"
+          warning="This removes all its batches and history."
+          onConfirm={deleteOrder}
+        />
+      )}
     </div>
   );
 }

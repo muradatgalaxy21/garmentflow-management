@@ -16,6 +16,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
@@ -79,6 +80,7 @@ export default function BatchManagementPage() {
   const { toast } = useToast();
   const { isAdmin } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -137,7 +139,6 @@ export default function BatchManagementPage() {
   };
 
   const deleteBatch = async (batch: Batch) => {
-    if (!window.confirm(`Delete batch "${batch.style_number}"? This removes all its tracking history and cannot be undone.`)) return;
     const { error } = await supabase.from("production_batches").delete().eq("id", batch.id);
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });
@@ -393,7 +394,7 @@ export default function BatchManagementPage() {
                     <Eye className="w-4 h-4" />
                   </Button>
                   {isAdmin && (
-                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteBatch(b)}>
+                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => setDeletingBatch(b)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   )}
@@ -677,6 +678,18 @@ export default function BatchManagementPage() {
           }
         }}
       />
+
+      {deletingBatch && (
+        <DeleteConfirmDialog
+          open={!!deletingBatch}
+          onOpenChange={(o) => !o && setDeletingBatch(null)}
+          title={`Delete Batch "${deletingBatch.style_number}"`}
+          confirmValue={deletingBatch.style_number}
+          fieldLabel="Style Number"
+          warning="This removes all its tracking history and rates."
+          onConfirm={() => deleteBatch(deletingBatch)}
+        />
+      )}
     </div>
   );
 }
