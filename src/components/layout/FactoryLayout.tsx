@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPendingCount, registerSyncListeners } from "@/lib/offlineSync";
-import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import FactoryLanguageSwitcher from "@/components/i18n/FactoryLanguageSwitcher";
 import { GarmentLogo } from "@/components/ui/GarmentLogo";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -141,13 +141,6 @@ export default function FactoryLayout() {
               </Badge>
             )}
 
-            {/* Language Switcher */}
-            <LanguageSwitcher
-              variant="ghost"
-              size="sm"
-              className="text-slate-700 hover:text-slate-900 hover:bg-slate-100 text-xs px-2 h-8"
-            />
-
             {/* Sign out button */}
             <Button
               variant="ghost"
@@ -162,6 +155,11 @@ export default function FactoryLayout() {
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
+        </div>
+
+        {/* Language chips — prominent, large touch targets (Worker Accessibility Principle) */}
+        <div className="max-w-4xl mx-auto flex justify-center mt-2">
+          <FactoryLanguageSwitcher />
         </div>
       </header>
 

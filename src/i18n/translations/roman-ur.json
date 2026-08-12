@@ -1,0 +1,106 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "Hamare Baray Mein",
+    "capabilities": "Salahiyatein",
+    "catalog": "Catalog",
+    "contact": "Rabta Karein",
+    "signIn": "Sign In",
+    "workerPortal": "Worker Portal",
+    "clientPortal": "Customer Portal",
+    "adminPortal": "Admin Portal",
+    "requestQuote": "Qeemat Maloom Karein",
+    "myPortal": "Mera Portal",
+    "signOut": "Log Out"
+  },
+  "auth": {
+    "title": "Mulazmeen aur Customer Portal",
+    "continueAs": "Bator muntakhib karein:",
+    "client": "Customer (Client)",
+    "clientDesc": "Order dein, production check karein, aur apna account sambhalein",
+    "worker": "Factory Worker (Mulazim)",
+    "workerDesc": "Production entry, piece counting aur QR scanning ke liye login",
+    "changeRole": "Role tabdeel karein",
+    "signIn": "Sign In karein",
+    "signUp": "Naya account banayein",
+    "email": "Email Address",
+    "password": "Password",
+    "fullName": "Poora Naam",
+    "company": "Company ka naam (ikhtiyari)",
+    "submitSignIn": "Portal mein Sign In karein",
+    "submitSignUp": "Account banayein",
+    "backToSite": "Mukhya website par wapas jayein",
+    "workerNotice": "Factory Workers: Sign in karne ke baad aap seedha apne factory floor dashboard par chale jayenge."
+  },
+  "factory": {
+    "title": "En En Garments",
+    "subtitle": "Factory Floor",
+    "dashboard": {
+      "welcome": "Khush Aamdeed",
+      "today": "Aaj",
+      "piecesToday": "Aaj ke Tukray",
+      "activeBatches": "Chalta Hua Batches",
+      "scanQr": "QR Code Scan Karein",
+      "recentBatches": "Haaliya Batches",
+      "noBatches": "Koi batch nahi mila. Shuru karne ke liye QR code scan karein.",
+      "style": "Style",
+      "quantity": "Miqdaar",
+      "status": "Halat"
+    },
+    "scanner": {
+      "title": "QR Code Scan Karein",
+      "instruction": "Batch ke QR code par camera rakhein",
+      "manualEntry": "Ya QR code khud likh kar darj karein",
+      "placeholder": "QR code hash yahan likhein...",
+      "submit": "Batch Talash Karein",
+      "notFound": "Batch nahi mila. Meherbani karke QR code check karein.",
+      "cameraError": "Camera tak rasai nahi hui. Meherbani karke khud likhein.",
+      "insecureContext": "Camera ke liye HTTPS ya localhost zaroori hai. Yeh app mehfooz (https://) link se kholein, ya neeche khud likh kar darj karein.",
+      "scanning": "Scan ho raha hai..."
+    },
+    "entry": {
+      "title": "Production Darj Karein",
+      "batchDetails": "Batch ki Tafseelat",
+      "styleNumber": "Style Number",
+      "expectedQuantity": "Mutawaqqa Miqdaar",
+      "currentPhase": "Mojooda Marhala",
+      "selectPhase": "Marhala Muntakhib Karein",
+      "ratePerPiece": "Fi Piece Rate",
+      "rateNotSet": "Admin ne rate abhi tak set nahi kiya",
+      "quantityCompleted": "Mukammal Tukray",
+      "quantityWasted": "Zaya Shuda Tukray",
+      "notes": "Notes (ikhtiyari)",
+      "notesPlaceholder": "Koi kharabi ya masla ho to yahan likhein...",
+      "submit": "Entry Jama Karein",
+      "submitting": "Jama ho raha hai...",
+      "success": "Entry kaamyabi se record ho gayi!",
+      "error": "Jama nahi ho saka. Dobara koshish karein.",
+      "savedOffline": "Offline mehfooz ho gaya. Connection aane par khud hi bhej diya jayega."
+    },
+    "myWork": {
+      "title": "Mera Kaam",
+      "noEntries": "Abhi tak koi entry nahi. Shuru karne ke liye QR code scan karein.",
+      "completed": "Mukammal",
+      "wasted": "Zaya",
+      "phase": "Marhala",
+      "batch": "Batch"
+    },
+    "nav": {
+      "scan": "Scan",
+      "myWork": "Mera Kaam",
+      "home": "Home"
+    },
+    "common": {
+      "signOut": "Log Out",
+      "loading": "Load ho raha hai...",
+      "error": "Kuch ghalat ho gaya",
+      "retry": "Dobara Koshish Karein",
+      "offline": "Aap offline hain",
+      "pendingSync": "Bhejna baaki hai",
+      "language": "Zubaan",
+      "pieces": "pcs",
+      "inProgress": "Jaari Hai",
+      "completed": "Mukammal"
+    }
+  }
+}
