@@ -1,7 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type Department = "accessories" | "cutting" | "sticker" | "printing" | "embroidery";
+export type Department =
+  | "accessories"
+  | "cutting"
+  | "sticker"
+  | "printing"
+  | "embroidery"
+  | "quality"
+  | "lot_bundling"
+  | "stitching";
 export type EntryStage = "start" | "end";
+export type SubDepartment = "singer" | "overlock" | "flatlock" | "lock_stitch";
 
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   accessories: "Accessories",
@@ -9,6 +18,16 @@ export const DEPARTMENT_LABELS: Record<Department, string> = {
   sticker: "Sticker",
   printing: "Printing",
   embroidery: "Embroidery",
+  quality: "Quality",
+  lot_bundling: "Lot Bundling",
+  stitching: "Stitching Hall",
+};
+
+export const SUB_DEPARTMENT_LABELS: Record<SubDepartment, string> = {
+  singer: "Singer",
+  overlock: "Overlock",
+  flatlock: "Flatlock",
+  lock_stitch: "Lock Stitch",
 };
 
 export async function insertDepartmentEntry(params: {

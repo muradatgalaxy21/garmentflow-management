@@ -333,6 +333,44 @@ export type Database = {
           },
         ]
       }
+      bundle_transfers: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          from_sub_dept: string | null
+          id: string
+          pcs: number
+          to_sub_dept: string
+          worker_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          from_sub_dept?: string | null
+          id?: string
+          pcs: number
+          to_sub_dept: string
+          worker_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          from_sub_dept?: string | null
+          id?: string
+          pcs?: number
+          to_sub_dept?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_transfers_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "production_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_cost_rates: {
         Row: {
           department: string
@@ -678,6 +716,44 @@ export type Database = {
           },
         ]
       }
+      production_bundles: {
+        Row: {
+          batch_id: string
+          bundle_no: number
+          created_at: string
+          created_by: string | null
+          id: string
+          lot_no: string
+          pcs_count: number
+        }
+        Insert: {
+          batch_id: string
+          bundle_no: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_no: string
+          pcs_count: number
+        }
+        Update: {
+          batch_id?: string
+          bundle_no?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_no?: string
+          pcs_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_bundles_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_phases: {
         Row: {
           created_at: string
@@ -712,6 +788,7 @@ export type Database = {
           id: string
           phone: string | null
           skills: string[] | null
+          sub_department: string | null
           updated_at: string
           wage_type: string | null
         }
@@ -727,6 +804,7 @@ export type Database = {
           id: string
           phone?: string | null
           skills?: string[] | null
+          sub_department?: string | null
           updated_at?: string
           wage_type?: string | null
         }
@@ -742,6 +820,7 @@ export type Database = {
           id?: string
           phone?: string | null
           skills?: string[] | null
+          sub_department?: string | null
           updated_at?: string
           wage_type?: string | null
         }

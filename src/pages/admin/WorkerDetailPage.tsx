@@ -30,7 +30,7 @@ interface Profile {
   department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | null;
 }
 
-const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery"] as const;
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "lot_bundling", "stitching"] as const;
 
 interface WorkEntry {
   id: string;

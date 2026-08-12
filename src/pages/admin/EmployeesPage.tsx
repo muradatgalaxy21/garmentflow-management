@@ -26,10 +26,12 @@ interface Profile {
   default_piece_rate: number | null;
   skills: string[] | null;
   employee_id: string | null;
-  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | null;
+  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | "quality" | "stitching" | null;
+  sub_department: "singer" | "overlock" | "flatlock" | "lock_stitch" | null;
 }
 
-const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery"] as const;
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "stitching"] as const;
+const SUB_DEPARTMENTS = ["singer", "overlock", "flatlock", "lock_stitch"] as const;
 
 interface RoleRow {
   user_id: string;
@@ -184,6 +186,7 @@ export default function EmployeesPage() {
         default_piece_rate: editingProfile.default_piece_rate,
         skills: editingProfile.skills,
         department: editingProfile.department,
+        sub_department: editingProfile.department === "stitching" ? editingProfile.sub_department : null,
       })
       .eq("id", editingProfile.id);
 
@@ -361,6 +364,26 @@ export default function EmployeesPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {editingProfile.department === "stitching" && (
+                <div>
+                  <Label className="text-xs font-semibold">Sub-Department (Stitching Hall)</Label>
+                  <Select
+                    value={editingProfile.sub_department || "none"}
+                    onValueChange={(v) => setEditingProfile({ ...editingProfile, sub_department: v === "none" ? null : (v as Profile["sub_department"]) })}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Unassigned</SelectItem>
+                      {SUB_DEPARTMENTS.map((d) => (
+                        <SelectItem key={d} value={d} className="capitalize">{d.replace("_", " ")}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div>
                 <Label className="text-xs font-semibold mb-1.5 block">Assigned Line Roles &amp; Skills</Label>

@@ -8,12 +8,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import QrScanBox from "@/components/factory/QrScanBox";
 import type { Department } from "@/lib/departmentEntries";
-import { checkDepartmentGate, getDepartmentStatus, openDepartment } from "@/lib/departmentEntries";
+import { checkDepartmentGate, DEPARTMENT_LABELS, getDepartmentStatus, openDepartment } from "@/lib/departmentEntries";
 import AccessoriesForm from "@/components/factory/department-forms/AccessoriesForm";
 import CuttingForm from "@/components/factory/department-forms/CuttingForm";
 import StickerForm from "@/components/factory/department-forms/StickerForm";
 import PrintingForm from "@/components/factory/department-forms/PrintingForm";
 import EmbroideryForm from "@/components/factory/department-forms/EmbroideryForm";
+import QualityForm from "@/components/factory/department-forms/QualityForm";
+import LotBundlingForm from "@/components/factory/department-forms/LotBundlingForm";
+import StitchingForm from "@/components/factory/department-forms/StitchingForm";
 import EndConfirmationForm from "@/components/factory/department-forms/EndConfirmationForm";
 
 interface BatchInfo {
@@ -60,7 +63,17 @@ export default function DepartmentEntryPage() {
           .eq("id", user.id)
           .maybeSingle();
 
-        const dept = (profile?.department as Department | null) ?? null;
+        let dept = (profile?.department as Department | null) ?? null;
+
+        // Lot Bundling is cutting workers' second pass on a batch, not a
+        // separately assignable department: once their own Cutting stage
+        // is closed for this batch, route them to the bundling step instead.
+        if (dept === "cutting") {
+          const cuttingStatus = await getDepartmentStatus(batchData.id, "cutting");
+          if (cuttingStatus?.status === "closed") {
+            dept = "lot_bundling";
+          }
+        }
 
         if (dept) {
           const gate = await checkDepartmentGate(batchData.id, dept);
@@ -224,8 +237,8 @@ export default function DepartmentEntryPage() {
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Style Number</span>
             <h1 className="text-xl font-bold text-slate-900">{batch.style_number}</h1>
           </div>
-          <Badge className="bg-white text-slate-700 border-slate-300 text-xs font-semibold px-3 py-1 rounded-full capitalize">
-            {department} Dept. — {mode === "end" ? "End" : "Start"}
+          <Badge className="bg-white text-slate-700 border-slate-300 text-xs font-semibold px-3 py-1 rounded-full">
+            {DEPARTMENT_LABELS[department]} — {mode === "end" ? "End" : "Start"}
           </Badge>
         </div>
       </div>
@@ -239,6 +252,9 @@ export default function DepartmentEntryPage() {
           {department === "sticker" && <StickerForm {...formProps} />}
           {department === "printing" && <PrintingForm {...formProps} />}
           {department === "embroidery" && <EmbroideryForm {...formProps} />}
+          {department === "quality" && <QualityForm {...formProps} />}
+          {department === "lot_bundling" && <LotBundlingForm {...formProps} />}
+          {department === "stitching" && <StitchingForm {...formProps} />}
         </>
       )}
     </div>
