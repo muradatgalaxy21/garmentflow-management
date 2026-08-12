@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 export default function EmbroideryForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [costPerPiece, setCostPerPiece] = useState<number | null>(null);
   const [quantity, setQuantity] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
@@ -29,7 +31,7 @@ export default function EmbroideryForm({ batchId, styleNumber, workerId, onSubmi
 
   const handleSubmit = async () => {
     if (quantity <= 0) {
-      toast({ title: "Enter a quantity", variant: "destructive" });
+      toast({ title: t("factory.forms.embroidery.enterQuantity"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -41,10 +43,10 @@ export default function EmbroideryForm({ batchId, styleNumber, workerId, onSubmi
         payload: { cost_per_piece: costPerPiece, quantity, total_costing: totalCosting, style_no: styleNumber },
         totalCost: totalCosting,
       });
-      toast({ title: "Entry Saved!" });
+      toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving entry", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.common.errorSavingEntry"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -54,27 +56,27 @@ export default function EmbroideryForm({ batchId, styleNumber, workerId, onSubmi
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500">Cost Per Piece:</span>
+          <span className="text-xs font-medium text-slate-500">{t("factory.forms.embroidery.costPerPiece")}</span>
           <span className="text-sm font-bold text-slate-800">
-            {costPerPiece !== null ? `PKR ${costPerPiece}` : "Set by Admin"}
+            {costPerPiece !== null ? `PKR ${costPerPiece}` : t("factory.common.setByAdmin")}
           </span>
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Quantity</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.dashboard.quantity")}</Label>
           <Input type="number" min="0" value={quantity}
             onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 h-11 mt-1" />
         </div>
 
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500">Style No:</span>
+          <span className="text-xs font-medium text-slate-500">{t("factory.common.styleNo")}</span>
           <span className="text-sm font-bold text-slate-800">{styleNumber}</span>
         </div>
 
         {totalCosting !== null && (
           <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Total Costing:</span>
+            <span className="text-xs font-medium text-slate-500">{t("factory.forms.embroidery.totalCosting")}</span>
             <span className="text-sm font-bold text-slate-800">PKR {totalCosting.toFixed(2)}</span>
           </div>
         )}
@@ -85,7 +87,7 @@ export default function EmbroideryForm({ batchId, styleNumber, workerId, onSubmi
           onClick={handleSubmit}
           disabled={submitting || quantity <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>
       </CardContent>
     </Card>

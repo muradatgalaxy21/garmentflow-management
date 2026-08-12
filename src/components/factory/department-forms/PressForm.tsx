@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
@@ -19,6 +20,7 @@ interface BundleOption {
 
 export default function PressForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [bundles, setBundles] = useState<BundleOption[]>([]);
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [bundleId, setBundleId] = useState("");
@@ -42,7 +44,7 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
 
   const handleSubmit = async () => {
     if (!bundleId || pcsPressed <= 0) {
-      toast({ title: "Select a bundle and enter pieces pressed", variant: "destructive" });
+      toast({ title: t("factory.forms.press.selectBundlePieces"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -58,10 +60,10 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
           pcs_pressed: pcsPressed,
         },
       });
-      toast({ title: "Entry Saved!" });
+      toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving entry", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.common.errorSavingEntry"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -71,22 +73,22 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Bundle</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.common.bundle")}</Label>
           {loadingBundles ? (
             <div className="flex justify-center py-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : bundles.length === 0 ? (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1">
-              No bundles found for this batch yet.
+              {t("factory.common.noBundles")}
             </p>
           ) : (
             <Select value={bundleId} onValueChange={setBundleId}>
               <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                <SelectValue placeholder="Select bundle" />
+                <SelectValue placeholder={t("factory.common.selectBundle")} />
               </SelectTrigger>
               <SelectContent>
                 {bundles.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    Lot {b.lot_no} · Bundle #{b.bundle_no} ({b.pcs_count} pcs)
+                    {t("factory.common.lot")} {b.lot_no} · {t("factory.common.bundleNo")}{b.bundle_no} ({b.pcs_count} {t("factory.common.pieces")})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -95,7 +97,7 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Pieces Pressed</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.press.piecesPressed")}</Label>
           <Input type="number" min="0" value={pcsPressed}
             onChange={(e) => setPcsPressed(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
@@ -107,7 +109,7 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
           onClick={handleSubmit}
           disabled={submitting || !bundleId || pcsPressed <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>
       </CardContent>
     </Card>

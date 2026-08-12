@@ -52,7 +52,7 @@ export default function FactoryDashboard() {
           .select("full_name, department")
           .eq("id", user.id)
           .single();
-        setUserName(profile?.full_name ?? user.email?.split("@")[0] ?? "Worker");
+        setUserName(profile?.full_name ?? user.email?.split("@")[0] ?? t("factory.dashboard.workerFallback"));
         const myDepartment = profile?.department as Department | null;
         setUserDepartment(myDepartment);
 
@@ -91,7 +91,7 @@ export default function FactoryDashboard() {
           if (openStatus) {
             openDepartment = {
               batch_id: openStatus.batch_id,
-              style_number: (openStatus as any).production_batches?.style_number || "Batch",
+              style_number: (openStatus as any).production_batches?.style_number || t("factory.myWork.batch"),
               department: myDepartment,
             };
           }
@@ -150,10 +150,10 @@ export default function FactoryDashboard() {
       {/* Header Greeting Banner */}
       <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
         <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
-          Factory Floor Portal{userDepartment ? ` - ${DEPARTMENT_LABELS[userDepartment]}` : ""}
+          {t("factory.dashboard.portalBadge")}{userDepartment ? ` - ${DEPARTMENT_LABELS[userDepartment]}` : ""}
         </span>
         <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">
-          Welcome, {userName || "Worker"}
+          {t("factory.dashboard.welcome")}, {userName || t("factory.dashboard.workerFallback")}
         </h1>
       </div>
 
@@ -164,7 +164,7 @@ export default function FactoryDashboard() {
             <div className="flex items-center gap-3">
               <PlayCircle className="w-6 h-6 text-blue-600 animate-spin shrink-0" />
               <div>
-                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Open Batch Work</p>
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">{t("factory.dashboard.openBatchWork")}</p>
                 <p className="text-sm font-bold text-slate-900">
                   {stats.openDepartment.style_number} • {DEPARTMENT_LABELS[stats.openDepartment.department]}
                 </p>
@@ -175,7 +175,7 @@ export default function FactoryDashboard() {
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-xs"
               onClick={() => navigate("/factory/log?mode=end")}
             >
-              End & Confirm
+              {t("factory.dashboard.endAndConfirm")}
             </Button>
           </CardContent>
         </Card>
@@ -195,13 +195,13 @@ export default function FactoryDashboard() {
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  STEP 1
+                  {t("factory.dashboard.step1")}
                 </span>
                 <h2 className="text-base font-bold text-slate-900 leading-snug">
-                  Batch Start Scan
+                  {t("factory.dashboard.batchStartScan")}
                 </h2>
                 <p className="text-xs text-slate-500 font-normal">
-                  Scan the QR code and log your department's start details
+                  {t("factory.dashboard.batchStartScanDesc")}
                 </p>
               </div>
             </div>
@@ -221,13 +221,13 @@ export default function FactoryDashboard() {
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  STEP 2
+                  {t("factory.dashboard.step2")}
                 </span>
                 <h2 className="text-base font-bold text-slate-900 leading-snug">
-                  Batch End Scan
+                  {t("factory.dashboard.batchEndScan")}
                 </h2>
                 <p className="text-xs text-slate-500 font-normal">
-                  Scan again to confirm completed/wasted pieces and close the phase
+                  {t("factory.dashboard.batchEndScanDesc")}
                 </p>
               </div>
             </div>
@@ -248,7 +248,7 @@ export default function FactoryDashboard() {
                 {stats?.piecesToday ?? 0}
               </p>
               <p className="text-xs font-normal text-slate-500 mt-1">
-                Today's Pcs
+                {t("factory.dashboard.todaysPcs")}
               </p>
             </div>
           </CardContent>
@@ -264,7 +264,7 @@ export default function FactoryDashboard() {
                 {stats?.activeBatches ?? 0}
               </p>
               <p className="text-xs font-normal text-slate-500 mt-1">
-                Active Batches
+                {t("factory.dashboard.activeBatchesLabel")}
               </p>
             </div>
           </CardContent>
@@ -274,12 +274,12 @@ export default function FactoryDashboard() {
       {/* RECENT WORK Section — read-only detail on click */}
       <div className="pt-2">
         <h2 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-          RECENT WORK
+          {t("factory.dashboard.recentWork")}
         </h2>
         {recentEntries.length === 0 ? (
           <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
             <CardContent className="p-4 text-center text-slate-500 text-xs font-medium">
-              No recent entries found.
+              {t("factory.dashboard.noRecentEntries")}
             </CardContent>
           </Card>
         ) : (
@@ -294,7 +294,7 @@ export default function FactoryDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-bold text-slate-900">
-                        Style {entry.style_number}
+                        {t("factory.dashboard.style")} {entry.style_number}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5 font-normal capitalize">
                         {DEPARTMENT_LABELS[entry.department]} · {entry.stage}
@@ -308,7 +308,7 @@ export default function FactoryDashboard() {
                           : "bg-blue-50 text-blue-700 border-blue-200 text-xs px-3 py-1 font-medium rounded-full"
                       }
                     >
-                      {entry.stage === "end" ? "Closed" : "In Progress"}
+                      {entry.stage === "end" ? t("factory.dashboard.closed") : t("factory.common.inProgress")}
                     </Badge>
                   </div>
                 </CardContent>

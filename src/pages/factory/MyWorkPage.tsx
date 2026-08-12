@@ -28,7 +28,7 @@ interface HistoryEntry {
 }
 
 export default function MyWorkPage() {
-  const { isRtl } = useTranslation();
+  const { isRtl, t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
@@ -82,7 +82,7 @@ export default function MyWorkPage() {
   }, [user]);
 
   const deleteEntry = async (entry: DepartmentEntryDetail) => {
-    if (!window.confirm("Delete this work entry? This cannot be undone.")) return;
+    if (!window.confirm(t("factory.myWork.deleteConfirm"))) return;
     const full = entries.find((e) => e.id === entry.id);
     try {
       await deleteDepartmentEntryAndRestock(
@@ -90,7 +90,7 @@ export default function MyWorkPage() {
         user!.id
       );
     } catch (err: any) {
-      toast({ title: "Delete failed", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.myWork.deleteFailed"), description: err.message, variant: "destructive" });
       return;
     }
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
@@ -119,7 +119,7 @@ export default function MyWorkPage() {
     <div className="space-y-4 max-w-md mx-auto">
       <div className="flex items-center gap-2 mb-2">
         <ClipboardList className="w-5 h-5 text-slate-700" />
-        <h1 className="text-xl font-bold text-slate-900">My Work</h1>
+        <h1 className="text-xl font-bold text-slate-900">{t("factory.myWork.title")}</h1>
       </div>
 
       {entries.length === 0 ? (
@@ -127,7 +127,7 @@ export default function MyWorkPage() {
           <CardContent className="py-12 flex flex-col items-center justify-center text-center gap-2">
             <ClipboardList className="w-8 h-8 text-slate-400 stroke-1" />
             <p className="text-xs text-slate-500 font-medium">
-              No entries logged yet.
+              {t("factory.myWork.noEntries")}
             </p>
           </CardContent>
         </Card>
@@ -148,7 +148,7 @@ export default function MyWorkPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h2 className="text-base font-bold text-slate-900 leading-snug">
-                          Style {entry.style_number}
+                          {t("factory.dashboard.style")} {entry.style_number}
                         </h2>
                         <p className="text-xs text-slate-500 font-medium mt-0.5 capitalize">
                           {DEPARTMENT_LABELS[entry.department]} · {entry.stage}
@@ -170,7 +170,7 @@ export default function MyWorkPage() {
                           {typeof entry.payload.quantity_completed === "number" ? entry.payload.quantity_completed : "—"}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Completed
+                          {t("factory.myWork.completed")}
                         </p>
                       </div>
                       <div className="h-8 w-px bg-slate-300/70" />
@@ -179,7 +179,7 @@ export default function MyWorkPage() {
                           {typeof entry.payload.quantity_wasted === "number" ? entry.payload.quantity_wasted : "—"}
                         </p>
                         <p className="text-[11px] font-medium text-slate-500 mt-1">
-                          Wasted
+                          {t("factory.myWork.wasted")}
                         </p>
                       </div>
                     </div>

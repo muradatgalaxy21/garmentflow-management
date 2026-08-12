@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import QrScanBox from "@/components/factory/QrScanBox";
 import type { Department } from "@/lib/departmentEntries";
 import { checkDepartmentGate, DEPARTMENT_LABELS, getDepartmentStatus, openDepartment } from "@/lib/departmentEntries";
@@ -33,6 +34,7 @@ export default function DepartmentEntryPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const mode = (searchParams.get("mode") === "end" ? "end" : "start") as "start" | "end";
 
@@ -56,7 +58,7 @@ export default function DepartmentEntryPage() {
           .single();
 
         if (error || !batchData) {
-          toast({ title: "Invalid Batch QR", variant: "destructive" });
+          toast({ title: t("factory.departmentEntry.invalidQr"), variant: "destructive" });
           setLookingUp(false);
           return;
         }
@@ -83,7 +85,7 @@ export default function DepartmentEntryPage() {
         if (dept) {
           const gate = await checkDepartmentGate(batchData.id, dept);
           if (!gate.allowed) {
-            setBlockedReason(gate.reason ?? "Blocked by a previous department.");
+            setBlockedReason(gate.reason ?? t("factory.departmentEntry.blockedGeneric"));
             setLoadingDept(false);
             setLookingUp(false);
             setBatch(batchData);
@@ -94,18 +96,18 @@ export default function DepartmentEntryPage() {
           const status = await getDepartmentStatus(batchData.id, dept);
           if (mode === "start") {
             if (status?.status === "closed") {
-              setBlockedReason("This department is already closed for this batch.");
+              setBlockedReason(t("factory.departmentEntry.alreadyClosed"));
             }
           } else {
             if (!status || status.status !== "open") {
-              setBlockedReason("You haven't started this department for this batch yet — use Batch Start Scan first.");
+              setBlockedReason(t("factory.departmentEntry.notStartedYet"));
             } else if (status.end_verification_status === "pending") {
-              setBlockedReason("Your batch end scan is already submitted — waiting on admin verification.");
+              setBlockedReason(t("factory.departmentEntry.pendingVerification"));
             } else if (!status.end_enabled) {
               setBlockedReason(
                 status.start_verification_status === "denied"
-                  ? "Admin denied your batch start verification. Contact your admin before ending this batch."
-                  : "Waiting on admin to verify your batch start scan before the End QR is enabled."
+                  ? t("factory.departmentEntry.startDenied")
+                  : t("factory.departmentEntry.waitingStartVerify")
               );
             }
           }
@@ -114,13 +116,13 @@ export default function DepartmentEntryPage() {
         setBatch(batchData);
         setDepartment(dept);
       } catch (err: any) {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        toast({ title: t("factory.departmentEntry.lookupError"), description: err.message, variant: "destructive" });
       } finally {
         setLookingUp(false);
         setLoadingDept(false);
       }
     },
-    [toast, user, mode]
+    [toast, user, mode, t]
   );
 
   if (!user) return null;
@@ -132,12 +134,12 @@ export default function DepartmentEntryPage() {
           <CheckCircle className="w-10 h-10" />
         </div>
         <h2 className="text-2xl font-bold text-slate-900">
-          {mode === "end" ? "Batch End Confirmed!" : "Entry Logged!"}
+          {mode === "end" ? t("factory.departmentEntry.batchEndConfirmed") : t("factory.departmentEntry.entryLogged")}
         </h2>
         <p className="text-xs text-slate-600 font-normal">
           {mode === "end"
-            ? "This department is now closed for the batch."
-            : "Your department entry has been recorded."}
+            ? t("factory.departmentEntry.deptClosedMsg")
+            : t("factory.departmentEntry.entryRecordedMsg")}
         </p>
         <div className="flex flex-col w-full gap-3 mt-3">
           <Button
@@ -150,7 +152,7 @@ export default function DepartmentEntryPage() {
               setSubmitted(false);
             }}
           >
-            Log Another Entry
+            {t("factory.departmentEntry.logAnotherEntry")}
           </Button>
           <Button
             size="lg"
@@ -158,7 +160,7 @@ export default function DepartmentEntryPage() {
             className="w-full h-12 text-sm border-slate-300 text-slate-700 rounded-xl"
             onClick={() => navigate("/factory")}
           >
-            Return to Home
+            {t("factory.departmentEntry.returnToHome")}
           </Button>
         </div>
       </div>
@@ -170,9 +172,9 @@ export default function DepartmentEntryPage() {
       <div className="space-y-4 max-w-md mx-auto">
         <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
           <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
-            {mode === "end" ? "Batch End Scan" : "Batch Start Scan"}
+            {mode === "end" ? t("factory.dashboard.batchEndScan") : t("factory.dashboard.batchStartScan")}
           </span>
-          <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">Scan Batch QR Code</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">{t("factory.departmentEntry.scanBatchTitle")}</h1>
         </div>
         <QrScanBox onDecoded={lookupBatch} busy={lookingUp || loadingDept} />
       </div>
@@ -191,10 +193,10 @@ export default function DepartmentEntryPage() {
     return (
       <div className="text-center py-20 space-y-4 max-w-md mx-auto px-4">
         <p className="text-slate-700 text-sm font-medium">
-          No department assigned to your account. Contact your admin or manager to get assigned before logging entries.
+          {t("factory.departmentEntry.noDepartmentAssigned")}
         </p>
         <Button variant="ghost" className="text-blue-600 font-semibold" onClick={() => setBatch(null)}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Scanner
+          <ArrowLeft className="w-4 h-4 mr-2" /> {t("factory.departmentEntry.backToScanner")}
         </Button>
       </div>
     );
@@ -207,7 +209,7 @@ export default function DepartmentEntryPage() {
           {blockedReason}
         </p>
         <Button variant="ghost" className="text-blue-600 font-semibold" onClick={() => setBatch(null)}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Scanner
+          <ArrowLeft className="w-4 h-4 mr-2" /> {t("factory.departmentEntry.backToScanner")}
         </Button>
       </div>
     );
@@ -222,7 +224,7 @@ export default function DepartmentEntryPage() {
         try {
           await openDepartment(batch.id, department, user.id, batch.style_number);
         } catch (err: any) {
-          toast({ title: "Failed to open department", description: err.message, variant: "destructive" });
+          toast({ title: t("factory.departmentEntry.failedOpenDept"), description: err.message, variant: "destructive" });
           return;
         }
       }
@@ -233,17 +235,17 @@ export default function DepartmentEntryPage() {
   return (
     <div className="space-y-4 max-w-md mx-auto">
       <Button variant="ghost" size="sm" className="text-slate-600 -ml-2 hover:bg-slate-200/60" onClick={() => setBatch(null)}>
-        <ArrowLeft className="w-4 h-4 mr-1" /> Back
+        <ArrowLeft className="w-4 h-4 mr-1" /> {t("factory.common.back")}
       </Button>
 
       <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Style Number</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t("factory.entry.styleNumber")}</span>
             <h1 className="text-xl font-bold text-slate-900">{batch.style_number}</h1>
           </div>
           <Badge className="bg-white text-slate-700 border-slate-300 text-xs font-semibold px-3 py-1 rounded-full">
-            {DEPARTMENT_LABELS[department]} — {mode === "end" ? "End" : "Start"}
+            {DEPARTMENT_LABELS[department]} — {mode === "end" ? t("factory.departmentEntry.endSuffix") : t("factory.departmentEntry.startSuffix")}
           </Badge>
         </div>
       </div>

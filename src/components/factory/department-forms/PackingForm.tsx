@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry, recordInventoryMovement } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
@@ -26,6 +27,7 @@ interface InventoryMatch {
 
 export default function PackingForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [bundles, setBundles] = useState<BundleOption[]>([]);
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [bundleId, setBundleId] = useState("");
@@ -75,7 +77,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
 
   const handleSubmit = async () => {
     if (!bundleId || cartonsPacked <= 0 || pcsPerCarton <= 0) {
-      toast({ title: "Select a bundle and enter carton details", variant: "destructive" });
+      toast({ title: t("factory.forms.packing.selectBundleCartonDetails"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -97,10 +99,10 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
       if (selectedItem) {
         await recordInventoryMovement(selectedItem.id, cartonsPacked, "out", workerId, `Used in packing entry for batch ${batchId}`);
       }
-      toast({ title: "Entry Saved!" });
+      toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving entry", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.common.errorSavingEntry"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -110,22 +112,22 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Bundle</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.common.bundle")}</Label>
           {loadingBundles ? (
             <div className="flex justify-center py-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : bundles.length === 0 ? (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1">
-              No bundles found for this batch yet.
+              {t("factory.common.noBundles")}
             </p>
           ) : (
             <Select value={bundleId} onValueChange={setBundleId}>
               <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                <SelectValue placeholder="Select bundle" />
+                <SelectValue placeholder={t("factory.common.selectBundle")} />
               </SelectTrigger>
               <SelectContent>
                 {bundles.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    Lot {b.lot_no} · Bundle #{b.bundle_no} ({b.pcs_count} pcs)
+                    {t("factory.common.lot")} {b.lot_no} · {t("factory.common.bundleNo")}{b.bundle_no} ({b.pcs_count} {t("factory.common.pieces")})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -134,26 +136,26 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
         </div>
 
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200">
-          <span className="text-xs font-medium text-slate-500">Pack Ratio (per carton):</span>
+          <span className="text-xs font-medium text-slate-500">{t("factory.forms.packing.packRatio")}</span>
           <p className="text-sm font-bold text-slate-800 mt-1">
-            {ratio ? Object.entries(ratio).map(([k, v]) => `${k}:${v}`).join("  ") : "Not set by admin"}
+            {ratio ? Object.entries(ratio).map(([k, v]) => `${k}:${v}`).join("  ") : t("factory.forms.packing.notSetByAdmin")}
           </p>
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Pieces / Carton</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.piecesPerCarton")}</Label>
           <Input type="number" min="0" value={pcsPerCarton}
             onChange={(e) => setPcsPerCarton(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
           {ratioMismatch && (
             <p className="text-xs text-amber-700 mt-1">
-              Doesn't match ratio total ({expectedPerCarton} pcs/carton expected).
+              {t("factory.forms.packing.ratioMismatch").replace("{n}", String(expectedPerCarton))}
             </p>
           )}
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Cartons Packed</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.cartonsPacked")}</Label>
           <Input type="number" min="0" value={cartonsPacked}
             onChange={(e) => setCartonsPacked(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
@@ -161,15 +163,15 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
 
         {matches.length > 0 && (
           <div>
-            <Label className="text-xs font-bold text-slate-700">Packaging Material</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.packagingMaterial")}</Label>
             <Select value={selectedItemId} onValueChange={setSelectedItemId}>
               <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                <SelectValue placeholder="Select item (optional)" />
+                <SelectValue placeholder={t("factory.forms.packing.selectItemOptional")} />
               </SelectTrigger>
               <SelectContent>
                 {matches.map((m) => (
                   <SelectItem key={m.id} value={m.id}>
-                    {m.name} ({m.sku}) — {m.quantity_on_hand} in stock
+                    {m.name} ({m.sku}) — {m.quantity_on_hand} {t("factory.common.inStock")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -183,7 +185,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           onClick={handleSubmit}
           disabled={submitting || !bundleId || cartonsPacked <= 0 || pcsPerCarton <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>
       </CardContent>
     </Card>

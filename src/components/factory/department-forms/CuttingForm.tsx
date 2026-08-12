@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry, recordInventoryMovement } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
@@ -19,6 +20,7 @@ interface FabricItem {
 
 export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [weightPerLayer, setWeightPerLayer] = useState<number>(0);
   const [layerSize, setLayerSize] = useState<number>(0);
   const [layersQty, setLayersQty] = useState<number>(0);
@@ -66,11 +68,11 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
 
   const handleSubmit = async () => {
     if (!fabricAvailable) {
-      toast({ title: "Fabric not in inventory", description: "This batch's fabric is missing or out of stock. Cutting cannot proceed.", variant: "destructive" });
+      toast({ title: t("factory.forms.cutting.fabricNotInInventory"), description: t("factory.forms.cutting.fabricMissingDesc"), variant: "destructive" });
       return;
     }
     if (layersQty <= 0 || !color.trim() || !styleNumberInput.trim()) {
-      toast({ title: "Fill in layers, color and style number", variant: "destructive" });
+      toast({ title: t("factory.forms.cutting.fillLayersColorStyle"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -96,10 +98,10 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
         },
       });
       await recordInventoryMovement(fabric.id, totalWeight, "out", workerId, `Cutting entry for batch ${batchId}`);
-      toast({ title: "Entry Saved!" });
+      toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving entry", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.common.errorSavingEntry"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -113,69 +115,69 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
               {fabric
-                ? `Fabric "${fabric.name}" is out of stock (0 ${fabric.unit}). Cutting cannot proceed until inventory is restocked.`
-                : "No fabric assigned to this batch, or it's not in inventory. Cutting cannot proceed."}
+                ? t("factory.forms.cutting.fabricOutOfStock").replace("{name}", fabric.name).replace("{unit}", fabric.unit)
+                : t("factory.forms.cutting.noFabricAssigned")}
             </span>
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-xs font-bold text-slate-700">Weight / Layer</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.cutting.weightPerLayer")}</Label>
             <Input type="number" min="0" step="0.01" value={weightPerLayer}
               onChange={(e) => setWeightPerLayer(Math.max(0, parseFloat(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-700">Layer Size (fabric length)</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.cutting.layerSize")}</Label>
             <Input type="number" min="0" step="0.01" value={layerSize}
               onChange={(e) => setLayerSize(Math.max(0, parseFloat(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-700">Layers Qty</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.cutting.layersQty")}</Label>
             <Input type="number" min="0" value={layersQty}
               onChange={(e) => setLayersQty(Math.max(0, parseInt(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-700">Pcs / Layer</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.cutting.pcsPerLayer")}</Label>
             <Input type="number" min="0" value={pcsPerLayer}
               onChange={(e) => setPcsPerLayer(Math.max(0, parseInt(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-700">Weight / Piece</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.cutting.weightPerPiece")}</Label>
             <Input type="number" min="0" step="0.01" value={pieceWeight}
               onChange={(e) => setPieceWeight(Math.max(0, parseFloat(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
-            <Label className="text-xs font-bold text-slate-700">Color</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.common.color")}</Label>
             <Input value={color} onChange={(e) => setColor(e.target.value)} className="bg-white border-slate-300 h-11 mt-1" />
           </div>
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Style Number</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.entry.styleNumber")}</Label>
           <Input value={styleNumberInput} onChange={(e) => setStyleNumberInput(e.target.value)} className="bg-white border-slate-300 h-11 mt-1" />
         </div>
 
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 grid grid-cols-2 gap-2">
           <div>
-            <span className="text-[11px] font-medium text-slate-500 block">Total Weight</span>
+            <span className="text-[11px] font-medium text-slate-500 block">{t("factory.forms.cutting.totalWeight")}</span>
             <span className="text-sm font-bold text-slate-800">{totalWeight.toFixed(2)}</span>
           </div>
           <div>
-            <span className="text-[11px] font-medium text-slate-500 block">Total Pcs</span>
+            <span className="text-[11px] font-medium text-slate-500 block">{t("factory.forms.cutting.totalPcs")}</span>
             <span className="text-sm font-bold text-slate-800">{totalPcs}</span>
           </div>
           <div>
-            <span className="text-[11px] font-medium text-slate-500 block">Waste / Layer</span>
+            <span className="text-[11px] font-medium text-slate-500 block">{t("factory.forms.cutting.wastePerLayer")}</span>
             <span className="text-sm font-bold text-slate-800">{wastePerLayer.toFixed(2)}</span>
           </div>
           <div>
-            <span className="text-[11px] font-medium text-slate-500 block">Total Waste</span>
+            <span className="text-[11px] font-medium text-slate-500 block">{t("factory.forms.cutting.totalWaste")}</span>
             <span className="text-sm font-bold text-red-700">{totalWaste.toFixed(2)}</span>
           </div>
         </div>
@@ -186,7 +188,7 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
           onClick={handleSubmit}
           disabled={submitting || checkingFabric || layersQty <= 0 || !fabricAvailable}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : checkingFabric ? "Checking fabric…" : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : checkingFabric ? t("factory.forms.cutting.checkingFabric") : t("factory.common.save")}
         </Button>
       </CardContent>
     </Card>

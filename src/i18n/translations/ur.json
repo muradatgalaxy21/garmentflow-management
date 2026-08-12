@@ -45,7 +45,22 @@
       "noBatches": "کوئی بیچ نہیں ملا۔ شروع کرنے کے لیے QR کوڈ اسکین کریں۔",
       "style": "اسٹائل",
       "quantity": "مقدار",
-      "status": "حالت"
+      "status": "حالت",
+      "portalBadge": "فیکٹری فلور پورٹل",
+      "workerFallback": "ورکر",
+      "openBatchWork": "جاری بیچ کام",
+      "endAndConfirm": "ختم اور تصدیق کریں",
+      "step1": "قدم 1",
+      "batchStartScan": "بیچ شروع اسکین",
+      "batchStartScanDesc": "QR کوڈ اسکین کریں اور اپنے ڈیپارٹمنٹ کی شروعاتی تفصیلات درج کریں",
+      "step2": "قدم 2",
+      "batchEndScan": "بیچ ختم اسکین",
+      "batchEndScanDesc": "مکمل/ضائع شدہ ٹکڑوں کی تصدیق اور مرحلہ بند کرنے کے لیے دوبارہ اسکین کریں",
+      "todaysPcs": "آج کے پیس",
+      "activeBatchesLabel": "فعال بیچز",
+      "recentWork": "حالیہ کام",
+      "noRecentEntries": "کوئی حالیہ اندراج نہیں ملا۔",
+      "closed": "بند"
     },
     "scanner": {
       "title": "QR کوڈ اسکین کریں",
@@ -83,15 +98,21 @@
       "completed": "مکمل",
       "wasted": "ضائع",
       "phase": "مرحلہ",
-      "batch": "بیچ"
+      "batch": "بیچ",
+      "deleteConfirm": "یہ اندراج حذف کریں؟ اسے واپس نہیں لایا جا سکتا۔",
+      "deleteFailed": "حذف کرنے میں ناکامی"
     },
     "nav": {
       "scan": "اسکین",
       "myWork": "میرا کام",
-      "home": "ہوم"
+      "home": "ہوم",
+      "logEntry": "اندراج درج کریں",
+      "inbox": "ان باکس",
+      "restock": "دوبارہ اسٹاک"
     },
     "common": {
       "signOut": "لاگ آؤٹ",
+      "signIn": "سائن ان",
       "loading": "لوڈ ہو رہا ہے...",
       "error": "کچھ غلط ہو گیا",
       "retry": "دوبارہ کوشش کریں",
@@ -100,7 +121,248 @@
       "language": "زبان",
       "pieces": "پیس",
       "inProgress": "جاری ہے",
-      "completed": "مکمل"
+      "completed": "مکمل",
+      "save": "اندراج محفوظ کریں",
+      "bundle": "بنڈل",
+      "selectBundle": "بنڈل منتخب کریں",
+      "noBundles": "اس بیچ کے لیے ابھی تک کوئی بنڈل نہیں ملا۔",
+      "lot": "لاٹ",
+      "bundleNo": "بنڈل #",
+      "setByAdmin": "ایڈمن کی طرف سے مقرر",
+      "styleNo": "اسٹائل نمبر:",
+      "totalCost": "کل لاگت:",
+      "color": "رنگ",
+      "back": "واپس",
+      "cancel": "منسوخ کریں",
+      "selectItem": "آئٹم منتخب کریں",
+      "inStock": "اسٹاک میں",
+      "entrySaved": "اندراج محفوظ ہو گیا!",
+      "errorSavingEntry": "اندراج محفوظ کرنے میں خرابی"
+    },
+    "detailDialog": {
+      "endLabel": "اختتام",
+      "startLabel": "آغاز",
+      "totalCost": "کل لاگت",
+      "readOnlyNote": "صرف پڑھنے کے لیے — ریکارڈ شدہ اندراجات یہاں تبدیل نہیں کی جا سکتیں۔",
+      "deleteEntry": "اندراج حذف کریں"
+    },
+    "inbox": {
+      "title": "ان باکس",
+      "subtitle": "بیچ اپڈیٹس اور سوالات",
+      "askPlaceholder": "ایڈمن سے سوال پوچھیں...",
+      "sendQuery": "سوال بھیجیں",
+      "noMessages": "ابھی تک کوئی پیغام نہیں۔",
+      "adminPrefix": "ایڈمن:",
+      "loadFailed": "ان باکس لوڈ کرنے میں ناکامی",
+      "querySent": "سوال ایڈمن کو بھیج دیا گیا",
+      "sendFailed": "بھیجنے میں ناکامی",
+      "typeBatchStart": "بیچ شروع",
+      "typeBatchEnd": "بیچ ختم",
+      "typeMyQuery": "میرا سوال"
+    },
+    "restock": {
+      "title": "ایکسیسری دوبارہ اسٹاک کریں",
+      "accessoryOnlyTitle": "صرف ایکسیسریز ڈیپارٹمنٹ",
+      "accessoryOnlyDesc": "انوینٹری دوبارہ اسٹاک کرنا صرف ایکسیسریز ڈیپارٹمنٹ کے ورکرز کے لیے محدود ہے۔",
+      "accessoryType": "ایکسیسری کی قسم",
+      "typeSearchPlaceholder": "ایکسیسری تلاش کرنے کے لیے لکھیں…",
+      "searchPlaceholder": "ایکسیسری کی قسم تلاش کریں…",
+      "noAccessoryFound": "کوئی ایکسیسری نہیں ملی۔",
+      "searchingInventory": "انوینٹری تلاش ہو رہی ہے…",
+      "topUpExisting": "موجودہ آئٹم میں اضافہ کریں",
+      "topUpPlaceholder": "کوئی نہیں — نیچے نئی قسم شامل کریں",
+      "newVariantDetails": "نئی قسم کی تفصیلات",
+      "itemName": "آئٹم کا نام",
+      "weight": "وزن (مثلاً 2 کلوگرام)",
+      "size": "سائز",
+      "supplier": "سپلائر",
+      "unitCost": "فی یونٹ لاگت",
+      "reorderLevel": "دوبارہ آرڈر کی سطح",
+      "quantityToAdd": "شامل کرنے کی مقدار",
+      "addToInventory": "انوینٹری میں شامل کریں",
+      "selectTypeAndQty": "ایکسیسری کی قسم منتخب کریں اور مقدار درج کریں",
+      "restocked": "انوینٹری دوبارہ اسٹاک ہو گئی",
+      "restockFailed": "دوبارہ اسٹاک کرنے میں ناکامی"
+    },
+    "departmentEntry": {
+      "scanBatchTitle": "بیچ کا QR کوڈ اسکین کریں",
+      "invalidQr": "غلط بیچ QR",
+      "lookupError": "خرابی",
+      "alreadyClosed": "یہ ڈیپارٹمنٹ اس بیچ کے لیے پہلے ہی بند ہے۔",
+      "notStartedYet": "آپ نے اس بیچ کے لیے یہ ڈیپارٹمنٹ ابھی شروع نہیں کیا — پہلے بیچ شروع اسکین استعمال کریں۔",
+      "pendingVerification": "آپ کا بیچ ختم اسکین پہلے ہی جمع ہو چکا ہے — ایڈمن کی تصدیق کا انتظار ہے۔",
+      "startDenied": "ایڈمن نے آپ کی بیچ شروع تصدیق مسترد کر دی۔ اس بیچ کو ختم کرنے سے پہلے اپنے ایڈمن سے رابطہ کریں۔",
+      "waitingStartVerify": "End QR فعال ہونے سے پہلے ایڈمن کی طرف سے آپ کے بیچ شروع اسکین کی تصدیق کا انتظار ہے۔",
+      "noDepartmentAssigned": "آپ کے اکاؤنٹ کو کوئی ڈیپارٹمنٹ تفویض نہیں ہوا۔ اندراج درج کرنے سے پہلے اپنے ایڈمن یا منیجر سے رابطہ کریں۔",
+      "backToScanner": "اسکینر پر واپس جائیں",
+      "entryLogged": "اندراج درج ہو گیا!",
+      "batchEndConfirmed": "بیچ کا اختتام تصدیق شدہ!",
+      "deptClosedMsg": "یہ ڈیپارٹمنٹ اب اس بیچ کے لیے بند ہے۔",
+      "entryRecordedMsg": "آپ کا ڈیپارٹمنٹ اندراج ریکارڈ ہو گیا ہے۔",
+      "logAnotherEntry": "ایک اور اندراج درج کریں",
+      "returnToHome": "ہوم پر واپس جائیں",
+      "failedOpenDept": "ڈیپارٹمنٹ کھولنے میں ناکامی",
+      "endSuffix": "اختتام",
+      "startSuffix": "آغاز",
+      "blockedGeneric": "پچھلے ڈیپارٹمنٹ کی وجہ سے روکا گیا۔"
+    },
+    "qrScanBox": {
+      "insecureMsg": "کیمرہ اسکیننگ کے لیے محفوظ (https) کنکشن درکار ہے۔ نیچے دستی اندراج استعمال کریں۔",
+      "cameraErrorMsg": "کیمرے تک رسائی نہیں ہو سکی۔ براہ کرم دستی اندراج استعمال کریں۔",
+      "enterCodeHint": "QR کوڈ ٹیکسٹ یا دستی کوڈ درج کریں",
+      "placeholder": "مثلاً BATCH-QR-HASH...",
+      "submit": "جمع کریں"
+    },
+    "forms": {
+      "accessories": {
+        "stickerAttributes": "اسٹیکر کی خصوصیات",
+        "stickerType": "قسم",
+        "design": "ڈیزائن",
+        "searchInventoryBtn": "انوینٹری تلاش کریں",
+        "notInInventory": "یہ ڈیزائن/آئٹم ابھی انوینٹری میں نہیں ہے۔ اسٹاف کو یہ شامل کرنا ہوگا۔",
+        "matchingInventory": "ملتی جلتی انوینٹری",
+        "perItemCost": "فی آئٹم لاگت:",
+        "selectTypeAndQty": "ایکسیسری کی قسم منتخب کریں اور مقدار درج کریں"
+      },
+      "cutting": {
+        "fabricNotInInventory": "فیبرک انوینٹری میں نہیں",
+        "fabricMissingDesc": "اس بیچ کا فیبرک غائب ہے یا اسٹاک میں نہیں۔ کٹنگ جاری نہیں رہ سکتی۔",
+        "fillLayersColorStyle": "لیئرز، رنگ اور اسٹائل نمبر درج کریں",
+        "fabricOutOfStock": "فیبرک \"{name}\" اسٹاک میں نہیں ہے (0 {unit})۔ جب تک انوینٹری دوبارہ اسٹاک نہیں ہوتی کٹنگ جاری نہیں رہ سکتی۔",
+        "noFabricAssigned": "اس بیچ کو کوئی فیبرک تفویض نہیں ہوا، یا وہ انوینٹری میں نہیں ہے۔ کٹنگ جاری نہیں رہ سکتی۔",
+        "weightPerLayer": "وزن / لیئر",
+        "layerSize": "لیئر سائز (فیبرک کی لمبائی)",
+        "layersQty": "لیئرز کی تعداد",
+        "pcsPerLayer": "پیس / لیئر",
+        "weightPerPiece": "وزن / پیس",
+        "totalWeight": "کل وزن",
+        "totalPcs": "کل پیس",
+        "wastePerLayer": "ضیاع / لیئر",
+        "totalWaste": "کل ضیاع",
+        "checkingFabric": "فیبرک چیک ہو رہا ہے…"
+      },
+      "sticker": {
+        "type": "قسم",
+        "patchType": "پیچ کی قسم",
+        "selectPatchType": "پیچ کی قسم منتخب کریں",
+        "placement": "جگہ",
+        "selectPlacement": "جگہ منتخب کریں",
+        "fillQtyPatchPlacement": "مقدار، پیچ کی قسم اور جگہ درج کریں"
+      },
+      "printing": {
+        "selectColor": "رنگ منتخب کریں",
+        "colorNamePlaceholder": "رنگ کا نام",
+        "perColorCost": "فی رنگ لاگت:",
+        "totalQuantity": "کل مقدار",
+        "enterColorQty": "رنگ اور کل مقدار درج کریں"
+      },
+      "embroidery": {
+        "costPerPiece": "فی پیس لاگت:",
+        "totalCosting": "کل لاگت:",
+        "enterQuantity": "مقدار درج کریں"
+      },
+      "quality": {
+        "checkedQuantity": "چیک شدہ مقدار",
+        "passQuantity": "پاس مقدار",
+        "defectQuantity": "خراب مقدار:",
+        "defectReasonTag": "خرابی کی وجہ (ٹیگ)",
+        "selectReason": "وجہ منتخب کریں",
+        "defectDetailsPlaceholder": "خرابی کی تفصیلات...",
+        "enterCheckedQty": "چیک شدہ مقدار درج کریں",
+        "passExceedsChecked": "پاس مقدار چیک شدہ مقدار سے زیادہ نہیں ہو سکتی",
+        "selectDefectTag": "خرابی کی وجہ کا ٹیگ منتخب کریں",
+        "defectTags": {
+          "stitching": "سلائی",
+          "fabric": "فیبرک",
+          "printEmbroidery": "پرنٹ/کڑھائی",
+          "measurement": "پیمائش",
+          "sticker": "اسٹیکر",
+          "accessory": "ایکسیسری",
+          "other": "دیگر"
+        }
+      },
+      "lotBundling": {
+        "lotNumber": "لاٹ نمبر",
+        "bundleSizeTarget": "بنڈل سائز (ہدف)",
+        "piecesPerBundle": "پیس / بنڈل",
+        "totalBundles": "کل بنڈلز",
+        "totalPieces": "کل پیس:",
+        "createBundles": "بنڈلز بنائیں",
+        "bundlesCreated": "{n} بنڈلز بن گئے!",
+        "enterLotPcsBundles": "لاٹ نمبر، فی بنڈل پیس، اور کل بنڈلز درج کریں",
+        "errorSavingBundles": "بنڈلز محفوظ کرنے میں خرابی"
+      },
+      "stitching": {
+        "yourSubDept": "آپ کا سب ڈیپارٹمنٹ:",
+        "noBundlesLotFirst": "اس بیچ کے لیے ابھی تک کوئی بنڈل نہیں ملا — پہلے لاٹ بنڈلنگ مکمل ہونی چاہیے۔",
+        "sendTo": "بھیجیں",
+        "selectSubDepartment": "سب ڈیپارٹمنٹ منتخب کریں",
+        "pieces": "پیس",
+        "logTransfer": "منتقلی درج کریں",
+        "transferLogged": "منتقلی درج ہو گئی!",
+        "errorLoggingTransfer": "منتقلی درج کرنے میں خرابی",
+        "selectBundleDestPieces": "بنڈل، منزل، اور پیس کی تعداد منتخب کریں",
+        "noSubDeptAssigned": "آپ کے اکاؤنٹ کو کوئی سب ڈیپارٹمنٹ تفویض نہیں ہوا۔ اپنے ایڈمن یا منیجر سے رابطہ کریں۔"
+      },
+      "buttonOps": {
+        "operation": "آپریشن",
+        "selectOperation": "آپریشن منتخب کریں",
+        "piecesCompleted": "مکمل پیس",
+        "selectBundleOpPieces": "بنڈل، آپریشن، اور پیس کی تعداد منتخب کریں",
+        "noStockItemFound": "انوینٹری میں کوئی {type} نہیں ملا۔ اسٹاف کو یہ شامل کرنا ہوگا۔"
+      },
+      "clipping": {
+        "garmentType": "گارمنٹ کی قسم",
+        "selectGarmentType": "گارمنٹ کی قسم منتخب کریں",
+        "ratePerPiece": "ریٹ / پیس:",
+        "totalPay": "کل ادائیگی:",
+        "selectBundleGarmentPieces": "بنڈل، گارمنٹ کی قسم، اور پیس کی تعداد منتخب کریں",
+        "garmentTypes": {
+          "Shirt": "قمیض",
+          "Trouser": "پتلون",
+          "Jacket": "جیکٹ",
+          "T-Shirt": "ٹی شرٹ",
+          "Other": "دیگر"
+        }
+      },
+      "press": {
+        "piecesPressed": "پریس شدہ پیس",
+        "selectBundlePieces": "بنڈل منتخب کریں اور پریس شدہ پیس درج کریں"
+      },
+      "qualityFinal": {
+        "verdict": "فیصلہ",
+        "selectVerdict": "فیصلہ منتخب کریں",
+        "sendBackTo": "واپس بھیجیں",
+        "selectDepartment": "ڈیپارٹمنٹ منتخب کریں",
+        "reasonForAlteration": "تبدیلی کی وجہ",
+        "alterPlaceholder": "کیا ٹھیک کرنے کی ضرورت ہے...",
+        "rejectReason": "مسترد کرنے کی وجہ",
+        "rejectPlaceholder": "یہ بنڈل کیوں مسترد کیا جا رہا ہے...",
+        "lastCheck": "آخری چیک:",
+        "saveQualityCheck": "کوالٹی چیک محفوظ کریں",
+        "qualityCheckSaved": "کوالٹی چیک محفوظ ہو گیا!",
+        "errorSavingCheck": "کوالٹی چیک محفوظ کرنے میں خرابی",
+        "selectBundleVerdict": "بنڈل منتخب کریں اور فیصلے کی تفصیلات مکمل کریں"
+      },
+      "packing": {
+        "packRatio": "پیک تناسب (فی کارٹن):",
+        "notSetByAdmin": "ایڈمن نے مقرر نہیں کیا",
+        "piecesPerCarton": "پیس / کارٹن",
+        "ratioMismatch": "تناسب کے کل سے میل نہیں کھاتا ({n} پیس/کارٹن متوقع)۔",
+        "cartonsPacked": "پیک شدہ کارٹن",
+        "packagingMaterial": "پیکیجنگ میٹریل",
+        "selectItemOptional": "آئٹم منتخب کریں (اختیاری)",
+        "selectBundleCartonDetails": "بنڈل منتخب کریں اور کارٹن کی تفصیلات درج کریں"
+      },
+      "endConfirmation": {
+        "completedQuantity": "مکمل مقدار",
+        "wastedQuantity": "ضائع شدہ مقدار",
+        "notesPlaceholder": "اختیاری نوٹس یا وجوہات...",
+        "confirmBatchEnd": "بیچ کا اختتام تصدیق کریں",
+        "enterCompletedOrWasted": "مکمل یا ضائع شدہ مقدار درج کریں",
+        "batchEndSubmitted": "بیچ کا اختتام جمع ہو گیا — ایڈمن کی تصدیق کا انتظار ہے۔",
+        "errorConfirmingEnd": "بیچ کا اختتام تصدیق کرنے میں خرابی"
+      }
     }
   }
 }

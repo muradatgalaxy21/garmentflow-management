@@ -31,10 +31,10 @@ export default function FactoryLayout() {
           .select("full_name, department")
           .eq("id", user.id)
           .maybeSingle();
-        setUserName(profile?.full_name || user.email?.split("@")[0] || "Worker");
+        setUserName(profile?.full_name || user.email?.split("@")[0] || t("factory.dashboard.workerFallback"));
         setDepartment(profile?.department ?? null);
       } catch {
-        setUserName(user.email?.split("@")[0] || "Worker");
+        setUserName(user.email?.split("@")[0] || t("factory.dashboard.workerFallback"));
       }
     };
     fetchProfile();
@@ -81,7 +81,7 @@ export default function FactoryLayout() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-[#f3f4f6] text-slate-800">
         <h1 className="font-heading text-2xl">{t("factory.common.error")}</h1>
-        <Button onClick={() => navigate("/auth")} className="bg-slate-800 text-white">Sign In</Button>
+        <Button onClick={() => navigate("/auth")} className="bg-slate-800 text-white">{t("factory.common.signIn")}</Button>
       </div>
     );
   }
@@ -89,11 +89,11 @@ export default function FactoryLayout() {
   // Bottom navigation items for the mobile tab bar
   const navItems = [
     { to: "/factory", icon: Home, label: t("factory.nav.home"), end: true },
-    { to: "/factory/log", icon: ClipboardCheck, label: "Log Entry", end: false },
+    { to: "/factory/log", icon: ClipboardCheck, label: t("factory.nav.logEntry"), end: false },
     { to: "/factory/my-work", icon: ClipboardList, label: t("factory.nav.myWork"), end: false },
-    { to: "/factory/inbox", icon: Inbox, label: "Inbox", end: false },
+    { to: "/factory/inbox", icon: Inbox, label: t("factory.nav.inbox"), end: false },
     ...(department === "accessories"
-      ? [{ to: "/factory/restock-accessory", icon: PackagePlus, label: "Restock", end: false }]
+      ? [{ to: "/factory/restock-accessory", icon: PackagePlus, label: t("factory.nav.restock"), end: false }]
       : []),
   ];
 
@@ -112,7 +112,7 @@ export default function FactoryLayout() {
               <h1 className="text-sm font-bold text-slate-900 leading-tight">
                 En En Garments
               </h1>
-              <p className="text-[11px] font-medium text-slate-500">Factory Floor</p>
+              <p className="text-[11px] font-medium text-slate-500">{t("factory.subtitle")}</p>
             </div>
           </div>
 

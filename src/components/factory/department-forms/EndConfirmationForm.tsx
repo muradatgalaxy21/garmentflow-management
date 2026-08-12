@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry, submitEndForVerification, type Department } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
@@ -15,6 +16,7 @@ interface EndConfirmationFormProps extends DepartmentFormProps {
 
 export default function EndConfirmationForm({ department, batchId, workerId, styleNumber, onSubmitted }: EndConfirmationFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [quantityCompleted, setQuantityCompleted] = useState<number>(0);
   const [quantityWasted, setQuantityWasted] = useState<number>(0);
   const [notes, setNotes] = useState("");
@@ -22,7 +24,7 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
 
   const handleSubmit = async () => {
     if (quantityCompleted <= 0 && quantityWasted <= 0) {
-      toast({ title: "Enter completed or wasted quantity", variant: "destructive" });
+      toast({ title: t("factory.forms.endConfirmation.enterCompletedOrWasted"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -47,10 +49,10 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
         quantityWasted,
         notes,
       });
-      toast({ title: "Batch End Submitted — waiting on admin verification." });
+      toast({ title: t("factory.forms.endConfirmation.batchEndSubmitted") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error confirming batch end", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.forms.endConfirmation.errorConfirmingEnd"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -60,7 +62,7 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Completed Quantity</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.endConfirmation.completedQuantity")}</Label>
           <Input
             type="number"
             min="0"
@@ -70,7 +72,7 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
           />
         </div>
         <div>
-          <Label className="text-xs font-bold text-slate-700">Wasted Quantity</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.endConfirmation.wastedQuantity")}</Label>
           <Input
             type="number"
             min="0"
@@ -80,12 +82,12 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
           />
         </div>
         <div>
-          <Label className="text-xs font-medium text-slate-600">Notes (Optional)</Label>
+          <Label className="text-xs font-medium text-slate-600">{t("factory.entry.notes")}</Label>
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            placeholder="Optional notes or reasons..."
+            placeholder={t("factory.forms.endConfirmation.notesPlaceholder")}
             className="mt-1 bg-white border-slate-300 text-slate-900 text-xs placeholder:text-slate-400 rounded-lg"
           />
         </div>
@@ -95,7 +97,7 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm Batch End"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.forms.endConfirmation.confirmBatchEnd")}
         </Button>
       </CardContent>
     </Card>

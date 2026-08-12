@@ -45,7 +45,22 @@
       "noBatches": "Koi batch nahi mila. Shuru karne ke liye QR code scan karein.",
       "style": "Style",
       "quantity": "Miqdaar",
-      "status": "Halat"
+      "status": "Halat",
+      "portalBadge": "Factory Floor Portal",
+      "workerFallback": "Worker",
+      "openBatchWork": "Jaari Batch Kaam",
+      "endAndConfirm": "Khatam aur Tasdeeq Karein",
+      "step1": "STEP 1",
+      "batchStartScan": "Batch Shuru Scan",
+      "batchStartScanDesc": "QR code scan karein aur apne department ki shuru ki tafseelat darj karein",
+      "step2": "STEP 2",
+      "batchEndScan": "Batch Khatam Scan",
+      "batchEndScanDesc": "Mukammal/zaya shuda tukray confirm karne aur marhala band karne ke liye dobara scan karein",
+      "todaysPcs": "Aaj ke Pcs",
+      "activeBatchesLabel": "Chalta Hua Batches",
+      "recentWork": "HAALIYA KAAM",
+      "noRecentEntries": "Koi haaliya entry nahi mili.",
+      "closed": "Band"
     },
     "scanner": {
       "title": "QR Code Scan Karein",
@@ -83,15 +98,21 @@
       "completed": "Mukammal",
       "wasted": "Zaya",
       "phase": "Marhala",
-      "batch": "Batch"
+      "batch": "Batch",
+      "deleteConfirm": "Yeh entry delete karein? Yeh wapas nahi ho sakta.",
+      "deleteFailed": "Delete nahi ho saka"
     },
     "nav": {
       "scan": "Scan",
       "myWork": "Mera Kaam",
-      "home": "Home"
+      "home": "Home",
+      "logEntry": "Entry Darj Karein",
+      "inbox": "Inbox",
+      "restock": "Restock"
     },
     "common": {
       "signOut": "Log Out",
+      "signIn": "Sign In",
       "loading": "Load ho raha hai...",
       "error": "Kuch ghalat ho gaya",
       "retry": "Dobara Koshish Karein",
@@ -100,7 +121,248 @@
       "language": "Zubaan",
       "pieces": "pcs",
       "inProgress": "Jaari Hai",
-      "completed": "Mukammal"
+      "completed": "Mukammal",
+      "save": "Entry Jama Karein",
+      "bundle": "Bundle",
+      "selectBundle": "Bundle muntakhib karein",
+      "noBundles": "Iss batch ke liye abhi tak koi bundle nahi mila.",
+      "lot": "Lot",
+      "bundleNo": "Bundle #",
+      "setByAdmin": "Admin ne set kiya",
+      "styleNo": "Style No:",
+      "totalCost": "Kul Lagat:",
+      "color": "Rang",
+      "back": "Wapas",
+      "cancel": "Cancel Karein",
+      "selectItem": "Item muntakhib karein",
+      "inStock": "stock mein",
+      "entrySaved": "Entry mehfooz ho gayi!",
+      "errorSavingEntry": "Entry mehfooz karne mein khirabi"
+    },
+    "detailDialog": {
+      "endLabel": "Khatam",
+      "startLabel": "Shuru",
+      "totalCost": "Kul Lagat",
+      "readOnlyNote": "Sirf padhne ke liye — record shuda entries yahan tabdeel nahi ki ja sakti.",
+      "deleteEntry": "Entry Delete Karein"
+    },
+    "inbox": {
+      "title": "Inbox",
+      "subtitle": "Batch Updates aur Sawalaat",
+      "askPlaceholder": "Admin se sawal poochein...",
+      "sendQuery": "Sawal Bhejein",
+      "noMessages": "Abhi tak koi message nahi.",
+      "adminPrefix": "Admin:",
+      "loadFailed": "Inbox load karne mein nakami",
+      "querySent": "Sawal admin ko bhej diya gaya",
+      "sendFailed": "Bhejne mein nakami",
+      "typeBatchStart": "Batch Shuru",
+      "typeBatchEnd": "Batch Khatam",
+      "typeMyQuery": "Mera Sawal"
+    },
+    "restock": {
+      "title": "Accessory Restock Karein",
+      "accessoryOnlyTitle": "Sirf Accessories Department",
+      "accessoryOnlyDesc": "Inventory restock karna sirf Accessories department ke workers ke liye mehdood hai.",
+      "accessoryType": "Accessory ki Qisam",
+      "typeSearchPlaceholder": "Accessory talash karne ke liye likhein…",
+      "searchPlaceholder": "Accessory ki qisam talash karein…",
+      "noAccessoryFound": "Koi accessory nahi mili.",
+      "searchingInventory": "Inventory talash ho rahi hai…",
+      "topUpExisting": "Mojooda Item Mein Izafa Karein",
+      "topUpPlaceholder": "Koi nahi — neeche nayi variant shamil karein",
+      "newVariantDetails": "Nayi Variant ki Tafseelat",
+      "itemName": "Item ka naam",
+      "weight": "Wazan (misaal 2kg)",
+      "size": "Size",
+      "supplier": "Supplier",
+      "unitCost": "Fi unit lagat",
+      "reorderLevel": "Reorder level",
+      "quantityToAdd": "Shamil Karne ki Miqdaar",
+      "addToInventory": "Inventory Mein Shamil Karein",
+      "selectTypeAndQty": "Accessory ki qisam muntakhib karein aur miqdaar darj karein",
+      "restocked": "Inventory restock ho gayi",
+      "restockFailed": "Restock nahi ho saka"
+    },
+    "departmentEntry": {
+      "scanBatchTitle": "Batch ka QR Code Scan Karein",
+      "invalidQr": "Ghalat Batch QR",
+      "lookupError": "Khirabi",
+      "alreadyClosed": "Yeh department iss batch ke liye pehle hi band hai.",
+      "notStartedYet": "Aap ne iss batch ke liye yeh department abhi shuru nahi kiya — pehle Batch Start Scan istemal karein.",
+      "pendingVerification": "Aap ka batch end scan pehle hi jama ho chuka hai — admin ki tasdeeq ka intezaar hai.",
+      "startDenied": "Admin ne aap ki batch start tasdeeq mustarad kar di. Iss batch ko khatam karne se pehle apne admin se rabta karein.",
+      "waitingStartVerify": "End QR fa'aal hone se pehle admin ki taraf se aap ke batch start scan ki tasdeeq ka intezaar hai.",
+      "noDepartmentAssigned": "Aap ke account ko koi department tafweez nahi hua. Entry darj karne se pehle apne admin ya manager se rabta karein.",
+      "backToScanner": "Scanner Par Wapas Jayein",
+      "entryLogged": "Entry Darj Ho Gayi!",
+      "batchEndConfirmed": "Batch ka Ikhtitaam Tasdeeq Shuda!",
+      "deptClosedMsg": "Yeh department ab iss batch ke liye band hai.",
+      "entryRecordedMsg": "Aap ka department entry record ho gaya hai.",
+      "logAnotherEntry": "Ek Aur Entry Darj Karein",
+      "returnToHome": "Home Par Wapas Jayein",
+      "failedOpenDept": "Department kholne mein nakami",
+      "endSuffix": "Khatam",
+      "startSuffix": "Shuru",
+      "blockedGeneric": "Pichle department ki wajah se roka gaya."
+    },
+    "qrScanBox": {
+      "insecureMsg": "Camera scanning ke liye mehfooz (https) connection zaroori hai. Neeche khud likh kar darj karein.",
+      "cameraErrorMsg": "Camera tak rasai nahi hui. Meherbani karke khud likh kar darj karein.",
+      "enterCodeHint": "QR code text ya manual code darj karein",
+      "placeholder": "misaal BATCH-QR-HASH...",
+      "submit": "Jama Karein"
+    },
+    "forms": {
+      "accessories": {
+        "stickerAttributes": "Sticker ki Khususiyat",
+        "stickerType": "Qisam",
+        "design": "Design",
+        "searchInventoryBtn": "Inventory Talash Karein",
+        "notInInventory": "Yeh design/item abhi inventory mein nahi hai. Staff ko yeh shamil karna hoga.",
+        "matchingInventory": "Milti Julti Inventory",
+        "perItemCost": "Fi Item Lagat:",
+        "selectTypeAndQty": "Accessory ki qisam muntakhib karein aur miqdaar darj karein"
+      },
+      "cutting": {
+        "fabricNotInInventory": "Fabric Inventory Mein Nahi",
+        "fabricMissingDesc": "Iss batch ka fabric ghaib hai ya stock mein nahi. Cutting jaari nahi reh sakti.",
+        "fillLayersColorStyle": "Layers, rang aur style number darj karein",
+        "fabricOutOfStock": "Fabric \"{name}\" stock mein nahi hai (0 {unit}). Jab tak inventory restock nahi hoti cutting jaari nahi reh sakti.",
+        "noFabricAssigned": "Iss batch ko koi fabric tafweez nahi hua, ya woh inventory mein nahi hai. Cutting jaari nahi reh sakti.",
+        "weightPerLayer": "Wazan / Layer",
+        "layerSize": "Layer Size (fabric ki lambai)",
+        "layersQty": "Layers ki Tadaad",
+        "pcsPerLayer": "Pcs / Layer",
+        "weightPerPiece": "Wazan / Piece",
+        "totalWeight": "Kul Wazan",
+        "totalPcs": "Kul Pcs",
+        "wastePerLayer": "Zaya / Layer",
+        "totalWaste": "Kul Zaya",
+        "checkingFabric": "Fabric check ho raha hai…"
+      },
+      "sticker": {
+        "type": "Qisam",
+        "patchType": "Patch ki Qisam",
+        "selectPatchType": "Patch ki qisam muntakhib karein",
+        "placement": "Jagah",
+        "selectPlacement": "Jagah muntakhib karein",
+        "fillQtyPatchPlacement": "Miqdaar, patch ki qisam aur jagah darj karein"
+      },
+      "printing": {
+        "selectColor": "Rang muntakhib karein",
+        "colorNamePlaceholder": "Rang ka naam",
+        "perColorCost": "Fi Rang Lagat:",
+        "totalQuantity": "Kul Miqdaar",
+        "enterColorQty": "Rang aur kul miqdaar darj karein"
+      },
+      "embroidery": {
+        "costPerPiece": "Fi Piece Lagat:",
+        "totalCosting": "Kul Lagat:",
+        "enterQuantity": "Miqdaar darj karein"
+      },
+      "quality": {
+        "checkedQuantity": "Check Shuda Miqdaar",
+        "passQuantity": "Pass Miqdaar",
+        "defectQuantity": "Kharab Miqdaar:",
+        "defectReasonTag": "Kharabi ki Wajah (Tag)",
+        "selectReason": "Wajah muntakhib karein",
+        "defectDetailsPlaceholder": "Kharabi ki tafseelat...",
+        "enterCheckedQty": "Check shuda miqdaar darj karein",
+        "passExceedsChecked": "Pass miqdaar check shuda miqdaar se zyada nahi ho sakti",
+        "selectDefectTag": "Kharabi ki wajah ka tag muntakhib karein",
+        "defectTags": {
+          "stitching": "Silai",
+          "fabric": "Fabric",
+          "printEmbroidery": "Print/Kadhai",
+          "measurement": "Paimaish",
+          "sticker": "Sticker",
+          "accessory": "Accessory",
+          "other": "Deegar"
+        }
+      },
+      "lotBundling": {
+        "lotNumber": "Lot Number",
+        "bundleSizeTarget": "Bundle Size (target)",
+        "piecesPerBundle": "Pieces / Bundle",
+        "totalBundles": "Kul Bundles",
+        "totalPieces": "Kul Pieces:",
+        "createBundles": "Bundles Banayein",
+        "bundlesCreated": "{n} bundles ban gaye!",
+        "enterLotPcsBundles": "Lot number, fi bundle pieces, aur kul bundles darj karein",
+        "errorSavingBundles": "Bundles mehfooz karne mein khirabi"
+      },
+      "stitching": {
+        "yourSubDept": "Aap ka Sub-Department:",
+        "noBundlesLotFirst": "Iss batch ke liye abhi tak koi bundle nahi mila — pehle Lot Bundling mukammal honi chahiye.",
+        "sendTo": "Bhejein",
+        "selectSubDepartment": "Sub-department muntakhib karein",
+        "pieces": "Pieces",
+        "logTransfer": "Transfer Darj Karein",
+        "transferLogged": "Transfer Darj Ho Gaya!",
+        "errorLoggingTransfer": "Transfer darj karne mein khirabi",
+        "selectBundleDestPieces": "Bundle, manzil, aur pieces ki tadaad muntakhib karein",
+        "noSubDeptAssigned": "Aap ke account ko koi sub-department tafweez nahi hua. Apne admin ya manager se rabta karein."
+      },
+      "buttonOps": {
+        "operation": "Operation",
+        "selectOperation": "Operation muntakhib karein",
+        "piecesCompleted": "Mukammal Pieces",
+        "selectBundleOpPieces": "Bundle, operation, aur pieces ki tadaad muntakhib karein",
+        "noStockItemFound": "Inventory mein koi {type} nahi mila. Staff ko yeh shamil karna hoga."
+      },
+      "clipping": {
+        "garmentType": "Garment ki Qisam",
+        "selectGarmentType": "Garment ki qisam muntakhib karein",
+        "ratePerPiece": "Rate / Piece:",
+        "totalPay": "Kul Ada'igi:",
+        "selectBundleGarmentPieces": "Bundle, garment ki qisam, aur pieces ki tadaad muntakhib karein",
+        "garmentTypes": {
+          "Shirt": "Shirt",
+          "Trouser": "Trouser",
+          "Jacket": "Jacket",
+          "T-Shirt": "T-Shirt",
+          "Other": "Deegar"
+        }
+      },
+      "press": {
+        "piecesPressed": "Press Shuda Pieces",
+        "selectBundlePieces": "Bundle muntakhib karein aur press shuda pieces darj karein"
+      },
+      "qualityFinal": {
+        "verdict": "Faisla",
+        "selectVerdict": "Faisla muntakhib karein",
+        "sendBackTo": "Wapas Bhejein",
+        "selectDepartment": "Department muntakhib karein",
+        "reasonForAlteration": "Tabdeeli ki Wajah",
+        "alterPlaceholder": "Kya theek karne ki zaroorat hai...",
+        "rejectReason": "Mustarad Karne ki Wajah",
+        "rejectPlaceholder": "Yeh bundle kyun mustarad kiya ja raha hai...",
+        "lastCheck": "Aakhri Check:",
+        "saveQualityCheck": "Quality Check Mehfooz Karein",
+        "qualityCheckSaved": "Quality Check Mehfooz Ho Gaya!",
+        "errorSavingCheck": "Quality check mehfooz karne mein khirabi",
+        "selectBundleVerdict": "Bundle muntakhib karein aur faisle ki tafseelat mukammal karein"
+      },
+      "packing": {
+        "packRatio": "Pack Tanasub (fi carton):",
+        "notSetByAdmin": "Admin ne set nahi kiya",
+        "piecesPerCarton": "Pieces / Carton",
+        "ratioMismatch": "Tanasub ke kul se match nahi karta ({n} pcs/carton matwaqqa).",
+        "cartonsPacked": "Pack Shuda Cartons",
+        "packagingMaterial": "Packaging Material",
+        "selectItemOptional": "Item muntakhib karein (ikhtiyari)",
+        "selectBundleCartonDetails": "Bundle muntakhib karein aur carton ki tafseelat darj karein"
+      },
+      "endConfirmation": {
+        "completedQuantity": "Mukammal Miqdaar",
+        "wastedQuantity": "Zaya Shuda Miqdaar",
+        "notesPlaceholder": "Ikhtiyari notes ya wajuhat...",
+        "confirmBatchEnd": "Batch ka Ikhtitaam Tasdeeq Karein",
+        "enterCompletedOrWasted": "Mukammal ya zaya shuda miqdaar darj karein",
+        "batchEndSubmitted": "Batch ka ikhtitaam jama ho gaya — admin ki tasdeeq ka intezaar hai.",
+        "errorConfirmingEnd": "Batch ka ikhtitaam tasdeeq karne mein khirabi"
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import {
   insertDepartmentEntry,
   fetchBundleQualityStatuses,
@@ -41,6 +42,7 @@ const VERDICT_BADGE: Record<QualityVerdict, string> = {
 
 export default function QualityFinalForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [bundles, setBundles] = useState<BundleOption[]>([]);
   const [statuses, setStatuses] = useState<Map<string, BundleQualityStatus>>(new Map());
   const [loadingBundles, setLoadingBundles] = useState(true);
@@ -78,7 +80,7 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
 
   const handleSubmit = async () => {
     if (!canSubmit || !verdict) {
-      toast({ title: "Select a bundle and complete the verdict details", variant: "destructive" });
+      toast({ title: t("factory.forms.qualityFinal.selectBundleVerdict"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -108,10 +110,10 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
           reject_reason: verdict === "reject" ? rejectReason.trim() : null,
         },
       });
-      toast({ title: "Quality Check Saved!" });
+      toast({ title: t("factory.forms.qualityFinal.qualityCheckSaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving quality check", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.forms.qualityFinal.errorSavingCheck"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -121,22 +123,22 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Bundle</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.common.bundle")}</Label>
           {loadingBundles ? (
             <div className="flex justify-center py-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : bundles.length === 0 ? (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1">
-              No bundles found for this batch yet.
+              {t("factory.common.noBundles")}
             </p>
           ) : (
             <Select value={bundleId} onValueChange={(v) => { setBundleId(v); setVerdict(""); setRoutedTo(""); setAlterReason(""); setRejectReason(""); }}>
               <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                <SelectValue placeholder="Select bundle" />
+                <SelectValue placeholder={t("factory.common.selectBundle")} />
               </SelectTrigger>
               <SelectContent>
                 {bundles.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    Lot {b.lot_no} · Bundle #{b.bundle_no} ({b.pcs_count} pcs)
+                    {t("factory.common.lot")} {b.lot_no} · {t("factory.common.bundleNo")}{b.bundle_no} ({b.pcs_count} {t("factory.common.pieces")})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -146,7 +148,7 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
 
         {selectedStatus && (
           <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Last Check:</span>
+            <span className="text-xs font-medium text-slate-500">{t("factory.forms.qualityFinal.lastCheck")}</span>
             <Badge variant="outline" className={VERDICT_BADGE[selectedStatus.latest_verdict]}>
               {QUALITY_VERDICT_LABELS[selectedStatus.latest_verdict]}
               {selectedStatus.latest_verdict === "alter" && selectedStatus.routed_to_department
@@ -159,10 +161,10 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
         {bundleId && (
           <>
             <div>
-              <Label className="text-xs font-bold text-slate-700">Verdict</Label>
+              <Label className="text-xs font-bold text-slate-700">{t("factory.forms.qualityFinal.verdict")}</Label>
               <Select value={verdict} onValueChange={(v) => setVerdict(v as QualityVerdict)}>
                 <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                  <SelectValue placeholder="Select verdict" />
+                  <SelectValue placeholder={t("factory.forms.qualityFinal.selectVerdict")} />
                 </SelectTrigger>
                 <SelectContent>
                   {ALL_VERDICTS.map((v) => (
@@ -175,10 +177,10 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
             {verdict === "alter" && (
               <>
                 <div>
-                  <Label className="text-xs font-bold text-slate-700">Send Back To</Label>
+                  <Label className="text-xs font-bold text-slate-700">{t("factory.forms.qualityFinal.sendBackTo")}</Label>
                   <Select value={routedTo} onValueChange={(v) => setRoutedTo(v as ReworkDepartment)}>
                     <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                      <SelectValue placeholder="Select department" />
+                      <SelectValue placeholder={t("factory.forms.qualityFinal.selectDepartment")} />
                     </SelectTrigger>
                     <SelectContent>
                       {ROUTE_TARGETS.map((d) => (
@@ -188,9 +190,9 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs font-medium text-slate-600">Reason for Alteration</Label>
+                  <Label className="text-xs font-medium text-slate-600">{t("factory.forms.qualityFinal.reasonForAlteration")}</Label>
                   <Textarea value={alterReason} onChange={(e) => setAlterReason(e.target.value)} rows={2}
-                    placeholder="What needs to be fixed..."
+                    placeholder={t("factory.forms.qualityFinal.alterPlaceholder")}
                     className="mt-1 bg-white border-slate-300 text-xs" />
                 </div>
               </>
@@ -198,9 +200,9 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
 
             {verdict === "reject" && (
               <div>
-                <Label className="text-xs font-medium text-slate-600">Reject Reason</Label>
+                <Label className="text-xs font-medium text-slate-600">{t("factory.forms.qualityFinal.rejectReason")}</Label>
                 <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={2}
-                  placeholder="Why is this bundle being rejected..."
+                  placeholder={t("factory.forms.qualityFinal.rejectPlaceholder")}
                   className="mt-1 bg-white border-slate-300 text-xs" />
               </div>
             )}
@@ -213,7 +215,7 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
           onClick={handleSubmit}
           disabled={submitting || !canSubmit}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Quality Check"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.forms.qualityFinal.saveQualityCheck")}
         </Button>
       </CardContent>
     </Card>

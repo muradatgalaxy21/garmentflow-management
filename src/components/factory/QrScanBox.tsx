@@ -3,6 +3,7 @@ import { Keyboard, Loader2, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface QrScanBoxProps {
   onDecoded: (code: string) => void;
@@ -15,6 +16,7 @@ interface QrScanBoxProps {
  * insecure-context / double-stop-crash fixes) only lives in one place.
  */
 export default function QrScanBox({ onDecoded, busy }: QrScanBoxProps) {
+  const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const [cameraError, setCameraError] = useState(false);
@@ -82,12 +84,12 @@ export default function QrScanBox({ onDecoded, busy }: QrScanBoxProps) {
           {insecureContext ? (
             <div className="flex items-center gap-3 p-4 bg-[#e9ecef]/60 text-slate-700 text-xs">
               <AlertTriangle className="w-5 h-5 text-slate-500 shrink-0" />
-              <span>Camera scanning needs a secure (https) connection. Use manual entry below.</span>
+              <span>{t("factory.qrScanBox.insecureMsg")}</span>
             </div>
           ) : cameraError ? (
             <div className="flex items-center gap-3 p-4 bg-[#e9ecef]/90 text-slate-700 text-xs font-normal border-l-4 border-slate-400">
               <AlertTriangle className="w-5 h-5 text-slate-500 shrink-0" />
-              <span>Camera access denied. Please use manual entry.</span>
+              <span>{t("factory.qrScanBox.cameraErrorMsg")}</span>
             </div>
           ) : (
             <div className="relative">
@@ -106,13 +108,13 @@ export default function QrScanBox({ onDecoded, busy }: QrScanBoxProps) {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center gap-2 text-slate-600 text-xs font-medium">
             <Keyboard className="w-4 h-4 text-slate-500" />
-            <p>Enter QR code text or manual code</p>
+            <p>{t("factory.qrScanBox.enterCodeHint")}</p>
           </div>
           <div className="flex gap-2">
             <Input
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
-              placeholder="e.g. BATCH-QR-HASH..."
+              placeholder={t("factory.qrScanBox.placeholder")}
               className="bg-[#e9ecef]/90 border-slate-300 text-slate-900 placeholder:text-slate-400 h-11 text-xs font-medium focus-visible:ring-blue-500 rounded-lg"
               onKeyDown={(e) => { if (e.key === "Enter") onDecoded(manualCode); }}
             />
@@ -121,7 +123,7 @@ export default function QrScanBox({ onDecoded, busy }: QrScanBoxProps) {
               disabled={busy || !manualCode.trim()}
               className="bg-[#4675a8] hover:bg-[#38608b] text-white font-semibold h-11 px-5 rounded-lg text-xs shrink-0"
             >
-              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit"}
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : t("factory.qrScanBox.submit")}
             </Button>
           </div>
         </CardContent>

@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
 import { fetchMyInboxMessages, sendWorkerQuery, type InboxMessage } from "@/lib/workerInbox";
 
-const typeConfig: Record<InboxMessage["type"], { label: string; icon: typeof PlayCircle; color: string }> = {
-  batch_start_verification: { label: "Batch Start", icon: PlayCircle, color: "text-blue-600" },
-  batch_end_verification: { label: "Batch End", icon: CheckCircle2, color: "text-emerald-600" },
-  worker_query: { label: "My Query", icon: MessageSquare, color: "text-slate-500" },
+const typeConfig: Record<InboxMessage["type"], { labelKey: string; icon: typeof PlayCircle; color: string }> = {
+  batch_start_verification: { labelKey: "factory.inbox.typeBatchStart", icon: PlayCircle, color: "text-blue-600" },
+  batch_end_verification: { labelKey: "factory.inbox.typeBatchEnd", icon: CheckCircle2, color: "text-emerald-600" },
+  worker_query: { labelKey: "factory.inbox.typeMyQuery", icon: MessageSquare, color: "text-slate-500" },
 };
 
 const statusColors: Record<InboxMessage["status"], string> = {
@@ -27,6 +28,7 @@ const statusColors: Record<InboxMessage["status"], string> = {
 export default function InboxPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [department, setDepartment] = useState<Department | null>(null);
@@ -39,7 +41,7 @@ export default function InboxPage() {
       const data = await fetchMyInboxMessages(user.id, 50);
       setMessages(data);
     } catch (err: any) {
-      toast({ title: "Failed to load inbox", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.inbox.loadFailed"), description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -64,10 +66,10 @@ export default function InboxPage() {
     try {
       await sendWorkerQuery(user.id, query.trim(), null, department);
       setQuery("");
-      toast({ title: "Query sent to admin" });
+      toast({ title: t("factory.inbox.querySent") });
       await load();
     } catch (err: any) {
-      toast({ title: "Failed to send", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.inbox.sendFailed"), description: err.message, variant: "destructive" });
     } finally {
       setSending(false);
     }
@@ -85,9 +87,9 @@ export default function InboxPage() {
     <div className="space-y-4 max-w-md mx-auto">
       <div className="bg-[#e9ecef]/80 border border-slate-200/80 rounded-xl p-5 text-center shadow-xs">
         <span className="inline-block px-3 py-1 rounded-full text-xs font-medium text-slate-600 border border-slate-300 bg-white/70">
-          Inbox
+          {t("factory.inbox.title")}
         </span>
-        <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">Batch Updates & Queries</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mt-3 font-sans">{t("factory.inbox.subtitle")}</h1>
       </div>
 
       <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
@@ -95,7 +97,7 @@ export default function InboxPage() {
           <Textarea
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ask admin a question..."
+            placeholder={t("factory.inbox.askPlaceholder")}
             rows={2}
             className="bg-white border-slate-300 text-slate-900 text-xs rounded-lg"
           />
@@ -105,7 +107,7 @@ export default function InboxPage() {
             disabled={sending || !query.trim()}
             onClick={handleSend}
           >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-1" /> Send Query</>}
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-1" /> {t("factory.inbox.sendQuery")}</>}
           </Button>
         </CardContent>
       </Card>
@@ -113,7 +115,7 @@ export default function InboxPage() {
       {messages.length === 0 ? (
         <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl">
           <CardContent className="p-4 text-center text-slate-500 text-xs font-medium">
-            No messages yet.
+            {t("factory.inbox.noMessages")}
           </CardContent>
         </Card>
       ) : (
@@ -128,7 +130,7 @@ export default function InboxPage() {
                     <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${config.color}`} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-slate-700">{config.label}</span>
+                        <span className="text-xs font-bold text-slate-700">{t(config.labelKey)}</span>
                         {m.department && (
                           <Badge variant="outline" className="text-[10px] capitalize border-slate-300">
                             {DEPARTMENT_LABELS[m.department]}
@@ -138,7 +140,7 @@ export default function InboxPage() {
                       </div>
                       <p className="text-sm text-slate-800 mt-1">{m.message}</p>
                       {m.resolution_note && (
-                        <p className="text-xs text-slate-500 mt-1">Admin: {m.resolution_note}</p>
+                        <p className="text-xs text-slate-500 mt-1">{t("factory.inbox.adminPrefix")} {m.resolution_note}</p>
                       )}
                       <p className="text-[10px] text-slate-400 mt-1">{new Date(m.created_at).toLocaleString()}</p>
                     </div>

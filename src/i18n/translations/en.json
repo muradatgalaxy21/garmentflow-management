@@ -45,7 +45,22 @@
       "noBatches": "No batches found. Scan a QR code to begin.",
       "style": "Style",
       "quantity": "Quantity",
-      "status": "Status"
+      "status": "Status",
+      "portalBadge": "Factory Floor Portal",
+      "workerFallback": "Worker",
+      "openBatchWork": "Open Batch Work",
+      "endAndConfirm": "End & Confirm",
+      "step1": "STEP 1",
+      "batchStartScan": "Batch Start Scan",
+      "batchStartScanDesc": "Scan the QR code and log your department's start details",
+      "step2": "STEP 2",
+      "batchEndScan": "Batch End Scan",
+      "batchEndScanDesc": "Scan again to confirm completed/wasted pieces and close the phase",
+      "todaysPcs": "Today's Pcs",
+      "activeBatchesLabel": "Active Batches",
+      "recentWork": "RECENT WORK",
+      "noRecentEntries": "No recent entries found.",
+      "closed": "Closed"
     },
     "scanner": {
       "title": "Scan QR Code",
@@ -83,15 +98,21 @@
       "completed": "Completed",
       "wasted": "Wasted",
       "phase": "Phase",
-      "batch": "Batch"
+      "batch": "Batch",
+      "deleteConfirm": "Delete this work entry? This cannot be undone.",
+      "deleteFailed": "Delete failed"
     },
     "nav": {
       "scan": "Scan",
       "myWork": "My Work",
-      "home": "Home"
+      "home": "Home",
+      "logEntry": "Log Entry",
+      "inbox": "Inbox",
+      "restock": "Restock"
     },
     "common": {
       "signOut": "Sign Out",
+      "signIn": "Sign In",
       "loading": "Loading...",
       "error": "Something went wrong",
       "retry": "Retry",
@@ -100,7 +121,248 @@
       "language": "Language",
       "pieces": "pcs",
       "inProgress": "In Progress",
-      "completed": "Completed"
+      "completed": "Completed",
+      "save": "Save Entry",
+      "bundle": "Bundle",
+      "selectBundle": "Select bundle",
+      "noBundles": "No bundles found for this batch yet.",
+      "lot": "Lot",
+      "bundleNo": "Bundle #",
+      "setByAdmin": "Set by Admin",
+      "styleNo": "Style No:",
+      "totalCost": "Total Cost:",
+      "color": "Color",
+      "back": "Back",
+      "cancel": "Cancel",
+      "selectItem": "Select item",
+      "inStock": "in stock",
+      "entrySaved": "Entry Saved!",
+      "errorSavingEntry": "Error saving entry"
+    },
+    "detailDialog": {
+      "endLabel": "End",
+      "startLabel": "Start",
+      "totalCost": "Total Cost",
+      "readOnlyNote": "Read-only — logged entries cannot be edited here.",
+      "deleteEntry": "Delete Entry"
+    },
+    "inbox": {
+      "title": "Inbox",
+      "subtitle": "Batch Updates & Queries",
+      "askPlaceholder": "Ask admin a question...",
+      "sendQuery": "Send Query",
+      "noMessages": "No messages yet.",
+      "adminPrefix": "Admin:",
+      "loadFailed": "Failed to load inbox",
+      "querySent": "Query sent to admin",
+      "sendFailed": "Failed to send",
+      "typeBatchStart": "Batch Start",
+      "typeBatchEnd": "Batch End",
+      "typeMyQuery": "My Query"
+    },
+    "restock": {
+      "title": "Restock Accessory",
+      "accessoryOnlyTitle": "Accessories department only",
+      "accessoryOnlyDesc": "Restocking inventory is limited to workers assigned to the Accessories department.",
+      "accessoryType": "Accessory Type",
+      "typeSearchPlaceholder": "Type to search accessory…",
+      "searchPlaceholder": "Search accessory type…",
+      "noAccessoryFound": "No accessory found.",
+      "searchingInventory": "Searching inventory…",
+      "topUpExisting": "Top Up Existing Item",
+      "topUpPlaceholder": "None — add as new variant below",
+      "newVariantDetails": "New Variant Details",
+      "itemName": "Item name",
+      "weight": "Weight (e.g. 2kg)",
+      "size": "Size",
+      "supplier": "Supplier",
+      "unitCost": "Unit cost",
+      "reorderLevel": "Reorder level",
+      "quantityToAdd": "Quantity to Add",
+      "addToInventory": "Add to Inventory",
+      "selectTypeAndQty": "Select an accessory type and enter a quantity",
+      "restocked": "Inventory restocked",
+      "restockFailed": "Restock failed"
+    },
+    "departmentEntry": {
+      "scanBatchTitle": "Scan Batch QR Code",
+      "invalidQr": "Invalid Batch QR",
+      "lookupError": "Error",
+      "alreadyClosed": "This department is already closed for this batch.",
+      "notStartedYet": "You haven't started this department for this batch yet — use Batch Start Scan first.",
+      "pendingVerification": "Your batch end scan is already submitted — waiting on admin verification.",
+      "startDenied": "Admin denied your batch start verification. Contact your admin before ending this batch.",
+      "waitingStartVerify": "Waiting on admin to verify your batch start scan before the End QR is enabled.",
+      "noDepartmentAssigned": "No department assigned to your account. Contact your admin or manager to get assigned before logging entries.",
+      "backToScanner": "Back to Scanner",
+      "entryLogged": "Entry Logged!",
+      "batchEndConfirmed": "Batch End Confirmed!",
+      "deptClosedMsg": "This department is now closed for the batch.",
+      "entryRecordedMsg": "Your department entry has been recorded.",
+      "logAnotherEntry": "Log Another Entry",
+      "returnToHome": "Return to Home",
+      "failedOpenDept": "Failed to open department",
+      "endSuffix": "End",
+      "startSuffix": "Start",
+      "blockedGeneric": "Blocked by a previous department."
+    },
+    "qrScanBox": {
+      "insecureMsg": "Camera scanning needs a secure (https) connection. Use manual entry below.",
+      "cameraErrorMsg": "Camera access denied. Please use manual entry.",
+      "enterCodeHint": "Enter QR code text or manual code",
+      "placeholder": "e.g. BATCH-QR-HASH...",
+      "submit": "Submit"
+    },
+    "forms": {
+      "accessories": {
+        "stickerAttributes": "Sticker Attributes",
+        "stickerType": "Type",
+        "design": "Design",
+        "searchInventoryBtn": "Search Inventory",
+        "notInInventory": "This design/item is not in inventory yet. Staff will need to add it.",
+        "matchingInventory": "Matching Inventory",
+        "perItemCost": "Per Item Cost:",
+        "selectTypeAndQty": "Select accessory type and enter a quantity"
+      },
+      "cutting": {
+        "fabricNotInInventory": "Fabric not in inventory",
+        "fabricMissingDesc": "This batch's fabric is missing or out of stock. Cutting cannot proceed.",
+        "fillLayersColorStyle": "Fill in layers, color and style number",
+        "fabricOutOfStock": "Fabric \"{name}\" is out of stock (0 {unit}). Cutting cannot proceed until inventory is restocked.",
+        "noFabricAssigned": "No fabric assigned to this batch, or it's not in inventory. Cutting cannot proceed.",
+        "weightPerLayer": "Weight / Layer",
+        "layerSize": "Layer Size (fabric length)",
+        "layersQty": "Layers Qty",
+        "pcsPerLayer": "Pcs / Layer",
+        "weightPerPiece": "Weight / Piece",
+        "totalWeight": "Total Weight",
+        "totalPcs": "Total Pcs",
+        "wastePerLayer": "Waste / Layer",
+        "totalWaste": "Total Waste",
+        "checkingFabric": "Checking fabric…"
+      },
+      "sticker": {
+        "type": "Type",
+        "patchType": "Patch Type",
+        "selectPatchType": "Select patch type",
+        "placement": "Placement",
+        "selectPlacement": "Select placement",
+        "fillQtyPatchPlacement": "Fill in quantity, patch type and placement"
+      },
+      "printing": {
+        "selectColor": "Select color",
+        "colorNamePlaceholder": "Color name",
+        "perColorCost": "Per Color Cost:",
+        "totalQuantity": "Total Quantity",
+        "enterColorQty": "Enter color and total quantity"
+      },
+      "embroidery": {
+        "costPerPiece": "Cost Per Piece:",
+        "totalCosting": "Total Costing:",
+        "enterQuantity": "Enter a quantity"
+      },
+      "quality": {
+        "checkedQuantity": "Checked Quantity",
+        "passQuantity": "Pass Quantity",
+        "defectQuantity": "Defect Quantity:",
+        "defectReasonTag": "Defect Reason (Tag)",
+        "selectReason": "Select reason",
+        "defectDetailsPlaceholder": "Details on the defect...",
+        "enterCheckedQty": "Enter checked quantity",
+        "passExceedsChecked": "Pass quantity can't exceed checked quantity",
+        "selectDefectTag": "Select a defect reason tag",
+        "defectTags": {
+          "stitching": "Stitching",
+          "fabric": "Fabric",
+          "printEmbroidery": "Print/Embroidery",
+          "measurement": "Measurement",
+          "sticker": "Sticker",
+          "accessory": "Accessory",
+          "other": "Other"
+        }
+      },
+      "lotBundling": {
+        "lotNumber": "Lot Number",
+        "bundleSizeTarget": "Bundle Size (target)",
+        "piecesPerBundle": "Pieces / Bundle",
+        "totalBundles": "Total Bundles",
+        "totalPieces": "Total Pieces:",
+        "createBundles": "Create Bundles",
+        "bundlesCreated": "{n} bundles created!",
+        "enterLotPcsBundles": "Enter lot number, pieces per bundle, and total bundles",
+        "errorSavingBundles": "Error saving bundles"
+      },
+      "stitching": {
+        "yourSubDept": "Your Sub-Dept:",
+        "noBundlesLotFirst": "No bundles found for this batch yet — Lot Bundling must be completed first.",
+        "sendTo": "Send To",
+        "selectSubDepartment": "Select sub-department",
+        "pieces": "Pieces",
+        "logTransfer": "Log Transfer",
+        "transferLogged": "Transfer Logged!",
+        "errorLoggingTransfer": "Error logging transfer",
+        "selectBundleDestPieces": "Select a bundle, destination, and piece count",
+        "noSubDeptAssigned": "No sub-department assigned to your account. Contact your admin or manager."
+      },
+      "buttonOps": {
+        "operation": "Operation",
+        "selectOperation": "Select operation",
+        "piecesCompleted": "Pieces Completed",
+        "selectBundleOpPieces": "Select a bundle, operation, and piece count",
+        "noStockItemFound": "No {type} found in inventory yet. Staff will need to add it."
+      },
+      "clipping": {
+        "garmentType": "Garment Type",
+        "selectGarmentType": "Select garment type",
+        "ratePerPiece": "Rate / Piece:",
+        "totalPay": "Total Pay:",
+        "selectBundleGarmentPieces": "Select a bundle, garment type, and piece count",
+        "garmentTypes": {
+          "Shirt": "Shirt",
+          "Trouser": "Trouser",
+          "Jacket": "Jacket",
+          "T-Shirt": "T-Shirt",
+          "Other": "Other"
+        }
+      },
+      "press": {
+        "piecesPressed": "Pieces Pressed",
+        "selectBundlePieces": "Select a bundle and enter pieces pressed"
+      },
+      "qualityFinal": {
+        "verdict": "Verdict",
+        "selectVerdict": "Select verdict",
+        "sendBackTo": "Send Back To",
+        "selectDepartment": "Select department",
+        "reasonForAlteration": "Reason for Alteration",
+        "alterPlaceholder": "What needs to be fixed...",
+        "rejectReason": "Reject Reason",
+        "rejectPlaceholder": "Why is this bundle being rejected...",
+        "lastCheck": "Last Check:",
+        "saveQualityCheck": "Save Quality Check",
+        "qualityCheckSaved": "Quality Check Saved!",
+        "errorSavingCheck": "Error saving quality check",
+        "selectBundleVerdict": "Select a bundle and complete the verdict details"
+      },
+      "packing": {
+        "packRatio": "Pack Ratio (per carton):",
+        "notSetByAdmin": "Not set by admin",
+        "piecesPerCarton": "Pieces / Carton",
+        "ratioMismatch": "Doesn't match ratio total ({n} pcs/carton expected).",
+        "cartonsPacked": "Cartons Packed",
+        "packagingMaterial": "Packaging Material",
+        "selectItemOptional": "Select item (optional)",
+        "selectBundleCartonDetails": "Select a bundle and enter carton details"
+      },
+      "endConfirmation": {
+        "completedQuantity": "Completed Quantity",
+        "wastedQuantity": "Wasted Quantity",
+        "notesPlaceholder": "Optional notes or reasons...",
+        "confirmBatchEnd": "Confirm Batch End",
+        "enterCompletedOrWasted": "Enter completed or wasted quantity",
+        "batchEndSubmitted": "Batch End Submitted — waiting on admin verification.",
+        "errorConfirmingEnd": "Error confirming batch end"
+      }
     }
   }
 }

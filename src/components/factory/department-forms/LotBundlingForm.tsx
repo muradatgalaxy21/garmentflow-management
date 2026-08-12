@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [lotNo, setLotNo] = useState("");
   const [bundleSize, setBundleSize] = useState<number>(0);
   const [pcsPerBundle, setPcsPerBundle] = useState<number>(0);
@@ -19,7 +21,7 @@ export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubm
 
   const handleSubmit = async () => {
     if (!lotNo.trim() || pcsPerBundle <= 0 || totalBundles <= 0) {
-      toast({ title: "Enter lot number, pieces per bundle, and total bundles", variant: "destructive" });
+      toast({ title: t("factory.forms.lotBundling.enterLotPcsBundles"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -47,10 +49,10 @@ export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubm
           style_no: styleNumber,
         },
       });
-      toast({ title: `${totalBundles} bundles created!` });
+      toast({ title: t("factory.forms.lotBundling.bundlesCreated").replace("{n}", String(totalBundles)) });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving bundles", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.forms.lotBundling.errorSavingBundles"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -60,23 +62,23 @@ export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubm
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Lot Number</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.lotBundling.lotNumber")}</Label>
           <Input value={lotNo} onChange={(e) => setLotNo(e.target.value)} className="bg-white border-slate-300 h-11 mt-1" />
         </div>
         <div>
-          <Label className="text-xs font-bold text-slate-700">Bundle Size (target)</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.lotBundling.bundleSizeTarget")}</Label>
           <Input type="number" min="0" value={bundleSize}
             onChange={(e) => setBundleSize(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 h-11 mt-1" />
         </div>
         <div>
-          <Label className="text-xs font-bold text-slate-700">Pieces / Bundle</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.lotBundling.piecesPerBundle")}</Label>
           <Input type="number" min="0" value={pcsPerBundle}
             onChange={(e) => setPcsPerBundle(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 h-11 mt-1" />
         </div>
         <div>
-          <Label className="text-xs font-bold text-slate-700">Total Bundles</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.lotBundling.totalBundles")}</Label>
           <Input type="number" min="0" value={totalBundles}
             onChange={(e) => setTotalBundles(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 h-11 mt-1" />
@@ -84,7 +86,7 @@ export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubm
 
         {pcsPerBundle > 0 && totalBundles > 0 && (
           <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Total Pieces:</span>
+            <span className="text-xs font-medium text-slate-500">{t("factory.forms.lotBundling.totalPieces")}</span>
             <span className="text-sm font-bold text-slate-800">{pcsPerBundle * totalBundles}</span>
           </div>
         )}
@@ -95,7 +97,7 @@ export default function LotBundlingForm({ batchId, styleNumber, workerId, onSubm
           onClick={handleSubmit}
           disabled={submitting || !lotNo.trim() || pcsPerBundle <= 0 || totalBundles <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Bundles"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.forms.lotBundling.createBundles")}
         </Button>
       </CardContent>
     </Card>

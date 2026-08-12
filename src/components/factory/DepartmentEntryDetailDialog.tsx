@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/i18n/useTranslation";
 import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
 
 export interface DepartmentEntryDetail {
@@ -29,6 +30,7 @@ export default function DepartmentEntryDetailDialog({
   onDelete?: (entry: DepartmentEntryDetail) => void;
 }) {
   const { isAdmin } = useAuth();
+  const { t } = useTranslation();
   return (
     <Dialog open={!!entry} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
@@ -36,9 +38,9 @@ export default function DepartmentEntryDetailDialog({
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                Style {entry.style_number}
+                {t("factory.dashboard.style")} {entry.style_number}
                 <Badge variant="outline" className="capitalize text-xs">
-                  {DEPARTMENT_LABELS[entry.department]} · {entry.stage === "end" ? "End" : "Start"}
+                  {DEPARTMENT_LABELS[entry.department]} · {entry.stage === "end" ? t("factory.detailDialog.endLabel") : t("factory.detailDialog.startLabel")}
                 </Badge>
               </DialogTitle>
             </DialogHeader>
@@ -61,12 +63,12 @@ export default function DepartmentEntryDetailDialog({
                 ))}
                 {entry.total_cost !== null && (
                   <div className="flex items-center justify-between px-3 py-2 text-xs">
-                    <span className="text-slate-500">Total Cost</span>
+                    <span className="text-slate-500">{t("factory.detailDialog.totalCost")}</span>
                     <span className="font-semibold text-slate-800">PKR {entry.total_cost}</span>
                   </div>
                 )}
               </div>
-              <p className="text-[11px] text-slate-400 pt-1">Read-only — logged entries cannot be edited here.</p>
+              <p className="text-[11px] text-slate-400 pt-1">{t("factory.detailDialog.readOnlyNote")}</p>
             </div>
             {isAdmin && onDelete && (
               <DialogFooter>
@@ -75,7 +77,7 @@ export default function DepartmentEntryDetailDialog({
                   className="w-full text-red-500 hover:text-red-600 border-red-500/30"
                   onClick={() => onDelete(entry)}
                 >
-                  <Trash2 className="w-4 h-4 mr-2" /> Delete Entry
+                  <Trash2 className="w-4 h-4 mr-2" /> {t("factory.detailDialog.deleteEntry")}
                 </Button>
               </DialogFooter>
             )}

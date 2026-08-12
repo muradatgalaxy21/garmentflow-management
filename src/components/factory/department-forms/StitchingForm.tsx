@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry, SUB_DEPARTMENT_LABELS, type SubDepartment } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
@@ -21,6 +22,7 @@ const ALL_SUB_DEPARTMENTS: SubDepartment[] = ["singer", "overlock", "flatlock", 
 
 export default function StitchingForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [bundles, setBundles] = useState<BundleOption[]>([]);
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [bundleId, setBundleId] = useState("");
@@ -56,7 +58,7 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
 
   const handleSubmit = async () => {
     if (!bundleId || !toSubDept || pcs <= 0) {
-      toast({ title: "Select a bundle, destination, and piece count", variant: "destructive" });
+      toast({ title: t("factory.forms.stitching.selectBundleDestPieces"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -83,10 +85,10 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
           pcs,
         },
       });
-      toast({ title: "Transfer Logged!" });
+      toast({ title: t("factory.forms.stitching.transferLogged") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error logging transfer", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.forms.stitching.errorLoggingTransfer"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +99,7 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
       <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
         <CardContent className="p-4">
           <p className="text-sm text-slate-700">
-            No sub-department assigned to your account. Contact your admin or manager.
+            {t("factory.forms.stitching.noSubDeptAssigned")}
           </p>
         </CardContent>
       </Card>
@@ -108,27 +110,27 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500">Your Sub-Dept:</span>
+          <span className="text-xs font-medium text-slate-500">{t("factory.forms.stitching.yourSubDept")}</span>
           <span className="text-sm font-bold text-slate-800">{SUB_DEPARTMENT_LABELS[fromSubDept]}</span>
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Bundle</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.common.bundle")}</Label>
           {loadingBundles ? (
             <div className="flex justify-center py-3"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
           ) : bundles.length === 0 ? (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1">
-              No bundles found for this batch yet — Lot Bundling must be completed first.
+              {t("factory.forms.stitching.noBundlesLotFirst")}
             </p>
           ) : (
             <Select value={bundleId} onValueChange={setBundleId}>
               <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                <SelectValue placeholder="Select bundle" />
+                <SelectValue placeholder={t("factory.common.selectBundle")} />
               </SelectTrigger>
               <SelectContent>
                 {bundles.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
-                    Lot {b.lot_no} · Bundle #{b.bundle_no} ({b.pcs_count} pcs)
+                    {t("factory.common.lot")} {b.lot_no} · {t("factory.common.bundleNo")}{b.bundle_no} ({b.pcs_count} {t("factory.common.pieces")})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -137,10 +139,10 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Send To</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.stitching.sendTo")}</Label>
           <Select value={toSubDept} onValueChange={(v) => setToSubDept(v as SubDepartment)}>
             <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-              <SelectValue placeholder="Select sub-department" />
+              <SelectValue placeholder={t("factory.forms.stitching.selectSubDepartment")} />
             </SelectTrigger>
             <SelectContent>
               {toOptions.map((d) => (
@@ -151,7 +153,7 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
         </div>
 
         <div>
-          <Label className="text-xs font-bold text-slate-700">Pieces</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.stitching.pieces")}</Label>
           <Input type="number" min="0" value={pcs}
             onChange={(e) => setPcs(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
@@ -163,7 +165,7 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
           onClick={handleSubmit}
           disabled={submitting || !bundleId || !toSubDept || pcs <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Log Transfer"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.forms.stitching.logTransfer")}
         </Button>
       </CardContent>
     </Card>

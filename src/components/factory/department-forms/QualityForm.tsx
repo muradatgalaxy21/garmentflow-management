@@ -7,13 +7,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 const DEFECT_TAGS = ["Stitching", "Fabric", "Print/Embroidery", "Measurement", "Sticker", "Accessory", "Other"] as const;
+const DEFECT_TAG_KEYS: Record<string, string> = {
+  Stitching: "stitching",
+  Fabric: "fabric",
+  "Print/Embroidery": "printEmbroidery",
+  Measurement: "measurement",
+  Sticker: "sticker",
+  Accessory: "accessory",
+  Other: "other",
+};
 
 export default function QualityForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [checkedQty, setCheckedQty] = useState<number>(0);
   const [passQty, setPassQty] = useState<number>(0);
   const [defectTag, setDefectTag] = useState<string>("");
@@ -24,15 +35,15 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
 
   const handleSubmit = async () => {
     if (checkedQty <= 0) {
-      toast({ title: "Enter checked quantity", variant: "destructive" });
+      toast({ title: t("factory.forms.quality.enterCheckedQty"), variant: "destructive" });
       return;
     }
     if (passQty > checkedQty) {
-      toast({ title: "Pass quantity can't exceed checked quantity", variant: "destructive" });
+      toast({ title: t("factory.forms.quality.passExceedsChecked"), variant: "destructive" });
       return;
     }
     if (defectQty > 0 && !defectTag) {
-      toast({ title: "Select a defect reason tag", variant: "destructive" });
+      toast({ title: t("factory.forms.quality.selectDefectTag"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -50,10 +61,10 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
           style_no: styleNumber,
         },
       });
-      toast({ title: "Entry Saved!" });
+      toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {
-      toast({ title: "Error saving entry", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.common.errorSavingEntry"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -63,42 +74,42 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
     <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
       <CardContent className="p-4 space-y-4">
         <div>
-          <Label className="text-xs font-bold text-slate-700">Checked Quantity</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.quality.checkedQuantity")}</Label>
           <Input type="number" min="0" value={checkedQty}
             onChange={(e) => setCheckedQty(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
         </div>
         <div>
-          <Label className="text-xs font-bold text-slate-700">Pass Quantity</Label>
+          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.quality.passQuantity")}</Label>
           <Input type="number" min="0" value={passQty}
             onChange={(e) => setPassQty(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
         </div>
 
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500">Defect Quantity:</span>
+          <span className="text-xs font-medium text-slate-500">{t("factory.forms.quality.defectQuantity")}</span>
           <span className="text-sm font-bold text-red-700">{defectQty}</span>
         </div>
 
         {defectQty > 0 && (
           <>
             <div>
-              <Label className="text-xs font-bold text-slate-700">Defect Reason (Tag)</Label>
+              <Label className="text-xs font-bold text-slate-700">{t("factory.forms.quality.defectReasonTag")}</Label>
               <Select value={defectTag} onValueChange={setDefectTag}>
                 <SelectTrigger className="bg-white border-slate-300 h-11 mt-1">
-                  <SelectValue placeholder="Select reason" />
+                  <SelectValue placeholder={t("factory.forms.quality.selectReason")} />
                 </SelectTrigger>
                 <SelectContent>
-                  {DEFECT_TAGS.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  {DEFECT_TAGS.map((tag) => (
+                    <SelectItem key={tag} value={tag}>{t(`factory.forms.quality.defectTags.${DEFECT_TAG_KEYS[tag]}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label className="text-xs font-medium text-slate-600">Notes (Optional)</Label>
+              <Label className="text-xs font-medium text-slate-600">{t("factory.entry.notes")}</Label>
               <Textarea value={defectReason} onChange={(e) => setDefectReason(e.target.value)} rows={2}
-                placeholder="Details on the defect..."
+                placeholder={t("factory.forms.quality.defectDetailsPlaceholder")}
                 className="mt-1 bg-white border-slate-300 text-xs" />
             </div>
           </>
@@ -110,7 +121,7 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
           onClick={handleSubmit}
           disabled={submitting || checkedQty <= 0}
         >
-          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Save Entry"}
+          {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>
       </CardContent>
     </Card>

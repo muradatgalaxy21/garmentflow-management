@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/i18n/useTranslation";
 import { UNITS, UNIT_LABELS, type Unit } from "@/lib/units";
 import { ACCESSORY_GROUPS } from "@/lib/accessoryTypes";
 import { recordInventoryMovement } from "@/lib/departmentEntries";
@@ -27,6 +28,7 @@ interface AccessoryItem {
 export default function AccessoryRestockPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [department, setDepartment] = useState<string | null | undefined>(undefined);
 
   const [accessoryType, setAccessoryType] = useState("");
@@ -97,7 +99,7 @@ export default function AccessoryRestockPage() {
 
   const handleSubmit = async () => {
     if (!accessoryType || quantity <= 0) {
-      toast({ title: "Select an accessory type and enter a quantity", variant: "destructive" });
+      toast({ title: t("factory.restock.selectTypeAndQty"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -122,10 +124,10 @@ export default function AccessoryRestockPage() {
         itemId = created.id;
       }
       await recordInventoryMovement(itemId!, quantity, "in", user!.id, "Accessory restock");
-      toast({ title: "Inventory restocked" });
+      toast({ title: t("factory.restock.restocked") });
       reset();
     } catch (err: any) {
-      toast({ title: "Restock failed", description: err.message, variant: "destructive" });
+      toast({ title: t("factory.restock.restockFailed"), description: err.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -144,8 +146,8 @@ export default function AccessoryRestockPage() {
       <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl max-w-md mx-auto">
         <CardContent className="py-12 flex flex-col items-center text-center gap-2">
           <ShieldAlert className="w-8 h-8 text-slate-400" />
-          <p className="text-sm font-semibold text-slate-700">Accessories department only</p>
-          <p className="text-xs text-slate-500">Restocking inventory is limited to workers assigned to the Accessories department.</p>
+          <p className="text-sm font-semibold text-slate-700">{t("factory.restock.accessoryOnlyTitle")}</p>
+          <p className="text-xs text-slate-500">{t("factory.restock.accessoryOnlyDesc")}</p>
         </CardContent>
       </Card>
     );
@@ -155,13 +157,13 @@ export default function AccessoryRestockPage() {
     <div className="max-w-md mx-auto space-y-4">
       <div className="flex items-center gap-2">
         <PackagePlus className="w-5 h-5 text-slate-700" />
-        <h1 className="text-xl font-bold text-slate-900">Restock Accessory</h1>
+        <h1 className="text-xl font-bold text-slate-900">{t("factory.restock.title")}</h1>
       </div>
 
       <Card className="bg-[#e9ecef]/60 border border-slate-300/70 rounded-xl shadow-xs">
         <CardContent className="p-4 space-y-4">
           <div className="min-w-0">
-            <Label className="text-xs font-bold text-slate-700">Accessory Type</Label>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.restock.accessoryType")}</Label>
             <Popover open={typePopoverOpen} onOpenChange={setTypePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -170,15 +172,15 @@ export default function AccessoryRestockPage() {
                   aria-expanded={typePopoverOpen}
                   className="w-full min-w-0 justify-between bg-white border-slate-300 text-slate-900 text-sm h-11 font-semibold rounded-lg mt-1"
                 >
-                  <span className="truncate">{accessoryType || "Type to search accessory…"}</span>
+                  <span className="truncate">{accessoryType || t("factory.restock.typeSearchPlaceholder")}</span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}>
-                  <CommandInput placeholder="Search accessory type…" />
+                  <CommandInput placeholder={t("factory.restock.searchPlaceholder")} />
                   <CommandList>
-                    <CommandEmpty>No accessory found.</CommandEmpty>
+                    <CommandEmpty>{t("factory.restock.noAccessoryFound")}</CommandEmpty>
                     {ACCESSORY_GROUPS.map((group) => (
                       <CommandGroup key={group.category} heading={group.category}>
                         {group.items.map((item) => (
@@ -204,19 +206,19 @@ export default function AccessoryRestockPage() {
 
           {accessoryType && (
             <>
-              {searching && <p className="text-xs text-slate-500">Searching inventory…</p>}
+              {searching && <p className="text-xs text-slate-500">{t("factory.restock.searchingInventory")}</p>}
 
               {matches.length > 0 && (
                 <div>
-                  <Label className="text-xs font-bold text-slate-700">Top Up Existing Item</Label>
+                  <Label className="text-xs font-bold text-slate-700">{t("factory.restock.topUpExisting")}</Label>
                   <Select value={selectedItemId} onValueChange={setSelectedItemId}>
                     <SelectTrigger className="bg-white border-slate-300 text-slate-900 text-sm h-11 rounded-lg mt-1">
-                      <SelectValue placeholder="None — add as new variant below" />
+                      <SelectValue placeholder={t("factory.restock.topUpPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {matches.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
-                          {m.name} ({m.sku}) — {m.quantity_on_hand} {m.unit} in stock
+                          {m.name} ({m.sku}) — {m.quantity_on_hand} {m.unit} {t("factory.common.inStock")}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -226,13 +228,13 @@ export default function AccessoryRestockPage() {
 
               {!selectedItem && (
                 <div className="bg-white/80 p-3 rounded-lg border border-slate-200 space-y-2">
-                  <Label className="text-xs font-bold text-slate-700">New Variant Details</Label>
-                  <Input placeholder="Item name" value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-sm" />
+                  <Label className="text-xs font-bold text-slate-700">{t("factory.restock.newVariantDetails")}</Label>
+                  <Input placeholder={t("factory.restock.itemName")} value={name} onChange={(e) => setName(e.target.value)} className="h-9 text-sm" />
                   <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder="Color" value={color} onChange={(e) => setColor(e.target.value)} className="h-9 text-sm" />
-                    <Input placeholder="Weight (e.g. 2kg)" value={weight} onChange={(e) => setWeight(e.target.value)} className="h-9 text-sm" />
-                    <Input placeholder="Size" value={size} onChange={(e) => setSize(e.target.value)} className="h-9 text-sm" />
-                    <Input placeholder="Supplier" value={supplier} onChange={(e) => setSupplier(e.target.value)} className="h-9 text-sm" />
+                    <Input placeholder={t("factory.common.color")} value={color} onChange={(e) => setColor(e.target.value)} className="h-9 text-sm" />
+                    <Input placeholder={t("factory.restock.weight")} value={weight} onChange={(e) => setWeight(e.target.value)} className="h-9 text-sm" />
+                    <Input placeholder={t("factory.restock.size")} value={size} onChange={(e) => setSize(e.target.value)} className="h-9 text-sm" />
+                    <Input placeholder={t("factory.restock.supplier")} value={supplier} onChange={(e) => setSupplier(e.target.value)} className="h-9 text-sm" />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Select value={unit} onValueChange={(v) => setUnit(v as Unit)}>
@@ -246,13 +248,13 @@ export default function AccessoryRestockPage() {
                       </SelectContent>
                     </Select>
                     <Input
-                      type="number" min="0" placeholder="Unit cost"
+                      type="number" min="0" placeholder={t("factory.restock.unitCost")}
                       value={unitCost || ""} onChange={(e) => setUnitCost(Number(e.target.value))}
                       className="h-9 text-sm"
                     />
                   </div>
                   <Input
-                    type="number" min="0" placeholder="Reorder level"
+                    type="number" min="0" placeholder={t("factory.restock.reorderLevel")}
                     value={reorderLevel || ""} onChange={(e) => setReorderLevel(Number(e.target.value))}
                     className="h-9 text-sm"
                   />
@@ -261,7 +263,7 @@ export default function AccessoryRestockPage() {
 
               <div>
                 <Label className="text-xs font-bold text-slate-700">
-                  Quantity to Add {selectedItem ? `(${selectedItem.unit})` : unit ? `(${unit})` : ""}
+                  {t("factory.restock.quantityToAdd")} {selectedItem ? `(${selectedItem.unit})` : unit ? `(${unit})` : ""}
                 </Label>
                 <Input
                   type="number" min="0"
@@ -277,7 +279,7 @@ export default function AccessoryRestockPage() {
                 onClick={handleSubmit}
                 disabled={submitting || quantity <= 0}
               >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "Add to Inventory"}
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.restock.addToInventory")}
               </Button>
             </>
           )}
