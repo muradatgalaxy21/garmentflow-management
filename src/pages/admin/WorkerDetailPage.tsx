@@ -27,10 +27,10 @@ interface Profile {
   default_piece_rate: number | null;
   skills: string[] | null;
   employee_id: string | null;
-  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | null;
+  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | "quality" | "stitching" | "button_ops" | "clipping" | "press" | null;
 }
 
-const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "lot_bundling", "stitching"] as const;
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "lot_bundling", "stitching", "button_ops", "clipping", "press"] as const;
 
 interface WorkEntry {
   id: string;
@@ -368,7 +368,7 @@ export default function WorkerDetailPage() {
                   <SelectContent>
                     <SelectItem value="none">Unassigned</SelectItem>
                     {DEPARTMENTS.map((d) => (
-                      <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
+                      <SelectItem key={d} value={d} className="capitalize">{d.replace("_", " ")}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

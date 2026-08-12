@@ -48,7 +48,7 @@ interface ManagerProfile {
 interface Order { id: string; order_number: string; product_summary: string; }
 interface InventoryItem { id: string; name: string; sku: string; }
 interface Phase { id: string; name: string; sequence_order: number; }
-interface DeptRate { id: string; department: "printing" | "embroidery"; label: string; rate: number; }
+interface DeptRate { id: string; department: "printing" | "embroidery" | "clipping"; label: string; rate: number; }
 interface TrackingEntry {
   id: string; phase_name: string; worker_name: string;
   quantity_completed: number; quantity_wasted: number;
@@ -74,7 +74,7 @@ export default function BatchManagementPage() {
   const [rates, setRates] = useState<Record<string, string>>({});
   const [deptRatesOpen, setDeptRatesOpen] = useState(false);
   const [deptRates, setDeptRates] = useState<DeptRate[]>([]);
-  const [newRateDept, setNewRateDept] = useState<"printing" | "embroidery">("printing");
+  const [newRateDept, setNewRateDept] = useState<"printing" | "embroidery" | "clipping">("printing");
   const [newRateLabel, setNewRateLabel] = useState("");
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
@@ -596,7 +596,7 @@ export default function BatchManagementPage() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
-            Printing cost per color and the embroidery cost per piece, shown read-only to workers on the factory-floor entry forms.
+            Printing cost per color, embroidery cost per piece, and clipping rate per piece — shown read-only to workers on the factory-floor entry forms.
           </p>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {deptRates.length === 0 ? (
@@ -621,11 +621,12 @@ export default function BatchManagementPage() {
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end pt-2 border-t border-border">
             <div>
               <Label className="text-xs">Department</Label>
-              <Select value={newRateDept} onValueChange={(v: "printing" | "embroidery") => setNewRateDept(v)}>
+              <Select value={newRateDept} onValueChange={(v: "printing" | "embroidery" | "clipping") => setNewRateDept(v)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="printing">Printing</SelectItem>
                   <SelectItem value="embroidery">Embroidery</SelectItem>
+                  <SelectItem value="clipping">Clipping</SelectItem>
                 </SelectContent>
               </Select>
             </div>

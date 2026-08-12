@@ -8,9 +8,13 @@ export type Department =
   | "embroidery"
   | "quality"
   | "lot_bundling"
-  | "stitching";
+  | "stitching"
+  | "button_ops"
+  | "clipping"
+  | "press";
 export type EntryStage = "start" | "end";
 export type SubDepartment = "singer" | "overlock" | "flatlock" | "lock_stitch";
+export type ButtonOperation = "button" | "buttonhole" | "eyelet" | "bartack";
 
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   accessories: "Accessories",
@@ -21,6 +25,16 @@ export const DEPARTMENT_LABELS: Record<Department, string> = {
   quality: "Quality",
   lot_bundling: "Lot Bundling",
   stitching: "Stitching Hall",
+  button_ops: "Button / Buttonhole / Eyelet / Bartack",
+  clipping: "Clipping",
+  press: "Press",
+};
+
+export const BUTTON_OPERATION_LABELS: Record<ButtonOperation, string> = {
+  button: "Button",
+  buttonhole: "Buttonhole",
+  eyelet: "Eyelet",
+  bartack: "Bartack",
 };
 
 export const SUB_DEPARTMENT_LABELS: Record<SubDepartment, string> = {

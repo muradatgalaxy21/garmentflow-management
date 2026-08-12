@@ -17,6 +17,9 @@ import EmbroideryForm from "@/components/factory/department-forms/EmbroideryForm
 import QualityForm from "@/components/factory/department-forms/QualityForm";
 import LotBundlingForm from "@/components/factory/department-forms/LotBundlingForm";
 import StitchingForm from "@/components/factory/department-forms/StitchingForm";
+import ButtonOpsForm from "@/components/factory/department-forms/ButtonOpsForm";
+import ClippingForm from "@/components/factory/department-forms/ClippingForm";
+import PressForm from "@/components/factory/department-forms/PressForm";
 import EndConfirmationForm from "@/components/factory/department-forms/EndConfirmationForm";
 
 interface BatchInfo {
@@ -255,6 +258,9 @@ export default function DepartmentEntryPage() {
           {department === "quality" && <QualityForm {...formProps} />}
           {department === "lot_bundling" && <LotBundlingForm {...formProps} />}
           {department === "stitching" && <StitchingForm {...formProps} />}
+          {department === "button_ops" && <ButtonOpsForm {...formProps} />}
+          {department === "clipping" && <ClippingForm {...formProps} />}
+          {department === "press" && <PressForm {...formProps} />}
         </>
       )}
     </div>
