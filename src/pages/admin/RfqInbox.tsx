@@ -228,6 +228,7 @@ export default function RfqInbox() {
                             product_summary: `${selected.product_type || "Garments"} - ${selected.name}`,
                             quantity: parseInt(selected.quantity || "100") || 100,
                             status: "in_production",
+                            party_name: selected.company || selected.name,
                           })
                           .select()
                           .single();

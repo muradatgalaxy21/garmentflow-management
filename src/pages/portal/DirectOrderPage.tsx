@@ -69,6 +69,12 @@ export default function DirectOrderPage() {
     const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
 
     try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company, full_name")
+        .eq("id", user.id)
+        .single();
+
       const { data: newOrder, error } = await supabase
         .from("orders")
         .insert({
@@ -80,6 +86,7 @@ export default function DirectOrderPage() {
           color_breakdown: colors.map((c) => ({ color: c.name, quantity: Number(c.quantity) || 0 })),
           expected_delivery: expectedDelivery || null,
           status: "pending",
+          party_name: profile?.company || profile?.full_name || null,
         })
         .select()
         .single();

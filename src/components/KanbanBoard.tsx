@@ -28,6 +28,7 @@ interface BatchCard {
   total_quantity: number;
   status: string;
   order_number: string;
+  party_name: string | null;
   /** The phase this batch is currently at (latest tracking entry) */
   current_phase_id: string | null;
 }
@@ -92,9 +93,10 @@ export default function KanbanBoard({ orderId, pollInterval = 15000 }: Props) {
       const orderIds = [...new Set(batchesData.map((b) => b.order_id))];
       const { data: orders } = await supabase
         .from("orders")
-        .select("id, order_number")
+        .select("id, order_number, party_name")
         .in("id", orderIds);
       const orderMap = new Map((orders ?? []).map((o) => [o.id, o.order_number]));
+      const partyMap = new Map((orders ?? []).map((o) => [o.id, o.party_name]));
 
       // Determine each batch's current phase from latest tracking entry
       const batchIds = batchesData.map((b) => b.id);
@@ -119,6 +121,7 @@ export default function KanbanBoard({ orderId, pollInterval = 15000 }: Props) {
           total_quantity: b.total_quantity,
           status: b.status,
           order_number: orderMap.get(b.order_id) ?? "—",
+          party_name: partyMap.get(b.order_id) ?? null,
           current_phase_id: latestPhaseMap.get(b.id) ?? null,
         }))
       );
@@ -211,8 +214,8 @@ function BatchCardComponent({ batch }: { batch: BatchCard }) {
             <p className="text-sm font-medium text-foreground truncate">
               {batch.style_number}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              #{batch.order_number}
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              #{batch.order_number}{batch.party_name ? ` · ${batch.party_name}` : ""}
             </p>
           </div>
           <Badge variant="outline" className="shrink-0 text-[10px]">

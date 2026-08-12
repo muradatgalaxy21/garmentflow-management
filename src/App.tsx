@@ -29,6 +29,7 @@ import EmployeesPage from "@/pages/admin/EmployeesPage";
 import WorkerDetailPage from "@/pages/admin/WorkerDetailPage";
 import WorkerInboxPage from "@/pages/admin/WorkerInboxPage";
 import DispatchPage from "@/pages/admin/DispatchPage";
+import BatchPipelineStatusPage from "@/pages/admin/BatchPipelineStatusPage";
 
 import PortalHome from "@/pages/portal/PortalHome";
 import MyOrders from "@/pages/portal/MyOrders";
@@ -85,6 +86,7 @@ const App = () => (
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="orders" element={<OrdersAdminPage />} />
               <Route path="batches" element={<BatchManagementPage />} />
+              <Route path="pipeline-status" element={<BatchPipelineStatusPage />} />
               <Route path="dispatch" element={<DispatchPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="employees" element={<EmployeesPage />} />

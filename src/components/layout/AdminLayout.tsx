@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2 } from "lucide-react";
+import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
@@ -25,6 +25,7 @@ const adminNav = [
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false },
   { title: "Batches", url: "/admin/batches", icon: Factory, end: false },
+  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false },
   { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false },
   { title: "Employees", url: "/admin/employees", icon: HardHat, end: false },
   { title: "Clients", url: "/admin/clients", icon: Users, end: false },

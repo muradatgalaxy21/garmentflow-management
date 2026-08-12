@@ -39,6 +39,7 @@ interface Order {
   id: string;
   client_id: string;
   order_number: string;
+  party_name: string | null;
   product_summary: string;
   quantity: number;
   total_amount: number | null;
@@ -134,6 +135,7 @@ export default function OrdersAdminPage() {
       toast({ title: "Invalid input", description: parsed.error.issues[0].message, variant: "destructive" });
       return;
     }
+    const client = clients.find((c) => c.id === parsed.data.client_id);
     const { error } = await supabase.from("orders").insert({
       client_id: parsed.data.client_id,
       order_number: parsed.data.order_number,
@@ -142,6 +144,7 @@ export default function OrdersAdminPage() {
       total_amount: parsed.data.total_amount ?? null,
       currency: parsed.data.currency ?? "USD",
       expected_delivery: parsed.data.expected_delivery || null,
+      party_name: client?.company || client?.full_name || null,
     });
     if (error) {
       toast({ title: "Create failed", description: error.message, variant: "destructive" });
@@ -276,7 +279,9 @@ export default function OrdersAdminPage() {
               <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-foreground">#{o.order_number}</h3>
+                    <h3 className="font-semibold text-foreground">
+                      #{o.order_number}{o.party_name ? ` · ${o.party_name}` : ""}
+                    </h3>
                     <Badge variant="outline" className={statusColors[o.status]}>
                       {o.status.replace("_", " ")}
                     </Badge>
@@ -348,7 +353,9 @@ export default function OrdersAdminPage() {
           {selected && (
             <>
               <SheetHeader>
-                <SheetTitle>Order #{selected.order_number}</SheetTitle>
+                <SheetTitle>
+                  Order #{selected.order_number}{selected.party_name ? ` · ${selected.party_name}` : ""}
+                </SheetTitle>
               </SheetHeader>
               <div className="space-y-4 mt-6 text-sm">
                 <p className="text-foreground">{selected.product_summary}</p>

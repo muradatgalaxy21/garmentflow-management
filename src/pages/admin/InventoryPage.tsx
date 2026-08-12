@@ -36,6 +36,7 @@ interface OngoingBatch {
   style_number: string;
   status: string;
   order_number: string | null;
+  party_name: string | null;
 }
 
 interface InventoryItem {
@@ -98,7 +99,7 @@ export default function InventoryPage() {
     const loadBatches = async () => {
       const { data } = await supabase
         .from("production_batches")
-        .select("id, style_number, status, orders(order_number)")
+        .select("id, style_number, status, orders(order_number, party_name)")
         .neq("status", "completed")
         .order("created_at", { ascending: false });
       setOngoingBatches(
@@ -107,6 +108,7 @@ export default function InventoryPage() {
           style_number: b.style_number,
           status: b.status,
           order_number: b.orders?.order_number ?? null,
+          party_name: b.orders?.party_name ?? null,
         })),
       );
     };
@@ -506,7 +508,7 @@ export default function InventoryPage() {
                       </CommandEmpty>
                       <CommandGroup heading="Ongoing Production">
                         {ongoingBatches.map((b) => {
-                          const label = `Production batch #${b.style_number}${b.order_number ? ` (Order #${b.order_number})` : ""} — ${b.status}`;
+                          const label = `Production batch #${b.style_number}${b.order_number ? ` (Order #${b.order_number}${b.party_name ? ` · ${b.party_name}` : ""})` : ""} — ${b.status}`;
                           return (
                             <CommandItem
                               key={b.id}

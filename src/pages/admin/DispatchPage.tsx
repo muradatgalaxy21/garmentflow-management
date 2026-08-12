@@ -11,11 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { DEPARTMENT_LABELS, QUALITY_VERDICT_LABELS, generateBatchReport, type BatchReport } from "@/lib/departmentEntries";
+import { formatBatchIdentity } from "@/lib/batchIdentity";
 
 interface Batch {
   id: string;
   style_number: string;
   total_quantity: number;
+  order_number: string | null;
+  party_name: string | null;
 }
 
 interface Dispatch {
@@ -49,17 +52,26 @@ export default function DispatchPage() {
   const load = async () => {
     setLoading(true);
     const [batchRes, dispatchRes] = await Promise.all([
-      supabase.from("production_batches").select("id, style_number, total_quantity").order("created_at", { ascending: false }),
+      supabase.from("production_batches").select("id, style_number, total_quantity, orders(order_number, party_name)").order("created_at", { ascending: false }),
       supabase.from("batch_dispatches").select("*").order("created_at", { ascending: false }),
     ]);
-    setBatches((batchRes.data as Batch[]) ?? []);
+    setBatches(((batchRes.data as any[]) ?? []).map((b) => ({
+      id: b.id,
+      style_number: b.style_number,
+      total_quantity: b.total_quantity,
+      order_number: b.orders?.order_number ?? null,
+      party_name: b.orders?.party_name ?? null,
+    })));
     setDispatches((dispatchRes.data as Dispatch[]) ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
 
-  const batchLabel = (id: string) => batches.find((b) => b.id === id)?.style_number ?? id.slice(0, 8);
+  const batchLabel = (id: string) => {
+    const b = batches.find((x) => x.id === id);
+    return b ? formatBatchIdentity(b.order_number, b.style_number, b.party_name) : id.slice(0, 8);
+  };
 
   const handleCreate = async () => {
     if (!batchId || !dispatchDate || cartonCount <= 0) {
@@ -110,7 +122,9 @@ export default function DispatchPage() {
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
                   {batches.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.style_number} ({b.total_quantity} pcs)</SelectItem>
+                    <SelectItem key={b.id} value={b.id}>
+                      {formatBatchIdentity(b.order_number, b.style_number, b.party_name)} ({b.total_quantity} pcs)
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -145,7 +159,9 @@ export default function DispatchPage() {
             <SelectTrigger className="max-w-sm"><SelectValue placeholder="Select a batch to view its report" /></SelectTrigger>
             <SelectContent>
               {batches.map((b) => (
-                <SelectItem key={b.id} value={b.id}>{b.style_number}</SelectItem>
+                <SelectItem key={b.id} value={b.id}>
+                  {formatBatchIdentity(b.order_number, b.style_number, b.party_name)}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

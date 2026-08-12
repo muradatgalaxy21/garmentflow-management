@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 interface Order {
   id: string;
   order_number: string;
+  party_name: string | null;
   product_summary: string;
   quantity: number;
   total_amount: number | null;
@@ -139,7 +140,9 @@ export default function OrderDetail() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
-              <CardTitle className="text-xl">Order #{order.order_number}</CardTitle>
+              <CardTitle className="text-xl">
+                Order #{order.order_number}{order.party_name ? ` · ${order.party_name}` : ""}
+              </CardTitle>
               <CardDescription className="mt-1">{order.product_summary}</CardDescription>
             </div>
             <Badge variant="outline" className="capitalize text-sm font-semibold px-3 py-1">

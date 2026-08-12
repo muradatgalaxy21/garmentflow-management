@@ -19,6 +19,7 @@ import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { formatBatchIdentity } from "@/lib/batchIdentity";
 import { z } from "zod";
 
 const batchSchema = z.object({
@@ -45,7 +46,7 @@ interface ManagerProfile {
   email: string | null;
 }
 
-interface Order { id: string; order_number: string; product_summary: string; }
+interface Order { id: string; order_number: string; product_summary: string; party_name: string | null; }
 interface InventoryItem { id: string; name: string; sku: string; }
 interface Phase { id: string; name: string; sequence_order: number; }
 interface DeptRate { id: string; department: "printing" | "embroidery" | "clipping"; label: string; rate: number; }
@@ -89,7 +90,7 @@ export default function BatchManagementPage() {
     try {
       const [batchRes, orderRes, itemRes, phaseRes, mgrRolesRes] = await Promise.all([
         supabase.from("production_batches").select("*").order("created_at", { ascending: false }),
-        supabase.from("orders").select("id, order_number, product_summary"),
+        supabase.from("orders").select("id, order_number, product_summary, party_name"),
         supabase.from("inventory_items").select("id, name, sku"),
         supabase.from("production_phases").select("id, name, sequence_order").order("sequence_order"),
         supabase.from("user_roles").select("user_id").in("role", ["manager", "admin", "staff"]),
@@ -233,6 +234,8 @@ export default function BatchManagementPage() {
   const printQrCards = () => {
     if (!qrCanvasRef.current || !qrBatch) return;
     const dataUrl = qrCanvasRef.current.toDataURL("image/png");
+    const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+    const identity = escapeHtml(batchIdentity(qrBatch));
     const printWindow = window.open("", "_blank");
     if (printWindow) {
       printWindow.document.write(`
@@ -249,13 +252,13 @@ export default function BatchManagementPage() {
         <body>
           <div class="card">
             <h2>🟢 BATCH START LABEL</h2>
-            <h3>Style #${qrBatch.style_number}</h3>
+            <h3>${identity}</h3>
             <img src="${dataUrl}" />
             <p class="code">${qrBatch.qr_code_hash}</p>
           </div>
           <div class="card end">
             <h2>🔴 BATCH END LABEL</h2>
-            <h3>Style #${qrBatch.style_number}</h3>
+            <h3>${identity}</h3>
             <img src="${dataUrl}" />
             <p class="code">${qrBatch.qr_code_hash}</p>
           </div>
@@ -394,6 +397,11 @@ export default function BatchManagementPage() {
     return o ? `#${o.order_number}` : id.slice(0, 8);
   };
 
+  const batchIdentity = (b: Batch) => {
+    const o = orders.find((x) => x.id === b.order_id);
+    return formatBatchIdentity(o?.order_number, b.style_number, o?.party_name);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -438,6 +446,7 @@ export default function BatchManagementPage() {
                       {b.status}
                     </Badge>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{batchIdentity(b)}</p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {b.total_quantity} pcs • Created {new Date(b.created_at).toLocaleDateString()}
                   </p>
@@ -528,7 +537,7 @@ export default function BatchManagementPage() {
       <Dialog open={!!qrBatch} onOpenChange={(o) => !o && setQrBatch(null)}>
         <DialogContent className="max-w-md text-center">
           <DialogHeader>
-            <DialogTitle>Printable QR Labels - {qrBatch?.style_number}</DialogTitle>
+            <DialogTitle>Printable QR Labels - {qrBatch && batchIdentity(qrBatch)}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="p-3 bg-white rounded-xl shadow-md">
@@ -567,7 +576,7 @@ export default function BatchManagementPage() {
                 <SelectContent>
                   {orders.map((o) => (
                     <SelectItem key={o.id} value={o.id}>
-                      #{o.order_number} - {o.product_summary}
+                      #{o.order_number}{o.party_name ? ` · ${o.party_name}` : ""} - {o.product_summary}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -731,6 +740,7 @@ export default function BatchManagementPage() {
                 <SheetTitle>{selectedBatch.style_number}</SheetTitle>
               </SheetHeader>
               <div className="space-y-4 mt-6 text-sm">
+                <p className="text-xs text-muted-foreground">{batchIdentity(selectedBatch)}</p>
                 <p className="text-muted-foreground">
                   {selectedBatch.total_quantity} pcs • {selectedBatch.status}
                 </p>

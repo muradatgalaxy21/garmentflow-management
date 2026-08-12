@@ -772,6 +772,7 @@ export type Database = {
           expected_delivery: string | null
           id: string
           order_number: string
+          party_name: string | null
           product_summary: string
           quantity: number
           status: Database["public"]["Enums"]["order_status"]
@@ -787,6 +788,7 @@ export type Database = {
           expected_delivery?: string | null
           id?: string
           order_number: string
+          party_name?: string | null
           product_summary: string
           quantity: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -802,6 +804,7 @@ export type Database = {
           expected_delivery?: string | null
           id?: string
           order_number?: string
+          party_name?: string | null
           product_summary?: string
           quantity?: number
           status?: Database["public"]["Enums"]["order_status"]
