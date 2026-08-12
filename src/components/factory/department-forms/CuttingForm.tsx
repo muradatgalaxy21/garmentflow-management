@@ -20,8 +20,10 @@ interface FabricItem {
 export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
   const [weightPerLayer, setWeightPerLayer] = useState<number>(0);
+  const [layerSize, setLayerSize] = useState<number>(0);
   const [layersQty, setLayersQty] = useState<number>(0);
   const [pcsPerLayer, setPcsPerLayer] = useState<number>(0);
+  const [pieceWeight, setPieceWeight] = useState<number>(0);
   const [color, setColor] = useState("");
   const [styleNumberInput, setStyleNumberInput] = useState(styleNumber);
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +58,11 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
 
   const totalWeight = useMemo(() => weightPerLayer * layersQty, [weightPerLayer, layersQty]);
   const totalPcs = useMemo(() => pcsPerLayer * layersQty, [pcsPerLayer, layersQty]);
+  const wastePerLayer = useMemo(
+    () => Math.max(0, weightPerLayer - pcsPerLayer * pieceWeight),
+    [weightPerLayer, pcsPerLayer, pieceWeight]
+  );
+  const totalWaste = useMemo(() => wastePerLayer * layersQty, [wastePerLayer, layersQty]);
 
   const handleSubmit = async () => {
     if (!fabricAvailable) {
@@ -75,12 +82,16 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
         inventoryItemId: fabric.id,
         payload: {
           weight_per_layer: weightPerLayer,
+          layer_size: layerSize,
           layers_qty: layersQty,
           pcs_per_layer: pcsPerLayer,
+          piece_weight: pieceWeight,
           color,
           style_number: styleNumberInput,
           total_weight: totalWeight,
           total_pcs: totalPcs,
+          waste_per_layer: wastePerLayer,
+          total_waste: totalWaste,
           quantity: totalWeight,
         },
       });
@@ -116,6 +127,12 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
+            <Label className="text-xs font-bold text-slate-700">Layer Size (fabric length)</Label>
+            <Input type="number" min="0" step="0.01" value={layerSize}
+              onChange={(e) => setLayerSize(Math.max(0, parseFloat(e.target.value) || 0))}
+              className="bg-white border-slate-300 h-11 mt-1" />
+          </div>
+          <div>
             <Label className="text-xs font-bold text-slate-700">Layers Qty</Label>
             <Input type="number" min="0" value={layersQty}
               onChange={(e) => setLayersQty(Math.max(0, parseInt(e.target.value) || 0))}
@@ -125,6 +142,12 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
             <Label className="text-xs font-bold text-slate-700">Pcs / Layer</Label>
             <Input type="number" min="0" value={pcsPerLayer}
               onChange={(e) => setPcsPerLayer(Math.max(0, parseInt(e.target.value) || 0))}
+              className="bg-white border-slate-300 h-11 mt-1" />
+          </div>
+          <div>
+            <Label className="text-xs font-bold text-slate-700">Weight / Piece</Label>
+            <Input type="number" min="0" step="0.01" value={pieceWeight}
+              onChange={(e) => setPieceWeight(Math.max(0, parseFloat(e.target.value) || 0))}
               className="bg-white border-slate-300 h-11 mt-1" />
           </div>
           <div>
@@ -146,6 +169,14 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
           <div>
             <span className="text-[11px] font-medium text-slate-500 block">Total Pcs</span>
             <span className="text-sm font-bold text-slate-800">{totalPcs}</span>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 block">Waste / Layer</span>
+            <span className="text-sm font-bold text-slate-800">{wastePerLayer.toFixed(2)}</span>
+          </div>
+          <div>
+            <span className="text-[11px] font-medium text-slate-500 block">Total Waste</span>
+            <span className="text-sm font-bold text-red-700">{totalWaste.toFixed(2)}</span>
           </div>
         </div>
 
