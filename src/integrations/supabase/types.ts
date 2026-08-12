@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -153,6 +152,76 @@ export type Database = {
             foreignKeyName: "batch_department_status_batch_id_fkey"
             columns: ["batch_id"]
             isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_dispatches: {
+        Row: {
+          batch_id: string
+          carrier: string | null
+          carton_count: number
+          created_at: string
+          created_by: string | null
+          dispatch_date: string
+          dispatch_note: string | null
+          id: string
+        }
+        Insert: {
+          batch_id: string
+          carrier?: string | null
+          carton_count: number
+          created_at?: string
+          created_by?: string | null
+          dispatch_date: string
+          dispatch_note?: string | null
+          id?: string
+        }
+        Update: {
+          batch_id?: string
+          carrier?: string | null
+          carton_count?: number
+          created_at?: string
+          created_by?: string | null
+          dispatch_date?: string
+          dispatch_note?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_dispatches_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_pack_ratios: {
+        Row: {
+          batch_id: string
+          ratio: Json
+          set_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          ratio: Json
+          set_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          ratio?: Json
+          set_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_pack_ratios_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: true
             referencedRelation: "production_batches"
             referencedColumns: ["id"]
           },
@@ -355,6 +424,57 @@ export type Database = {
             columns: ["phase_id"]
             isOneToOne: false
             referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bundle_quality_checks: {
+        Row: {
+          alter_reason: string | null
+          batch_id: string
+          bundle_id: string
+          checked_at: string
+          checked_by: string
+          id: string
+          reject_reason: string | null
+          routed_to_department: string | null
+          verdict: string
+        }
+        Insert: {
+          alter_reason?: string | null
+          batch_id: string
+          bundle_id: string
+          checked_at?: string
+          checked_by: string
+          id?: string
+          reject_reason?: string | null
+          routed_to_department?: string | null
+          verdict: string
+        }
+        Update: {
+          alter_reason?: string | null
+          batch_id?: string
+          bundle_id?: string
+          checked_at?: string
+          checked_by?: string
+          id?: string
+          reject_reason?: string | null
+          routed_to_department?: string | null
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_quality_checks_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_quality_checks_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "production_bundles"
             referencedColumns: ["id"]
           },
         ]
@@ -976,7 +1096,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      bundle_quality_status: {
+        Row: {
+          alter_reason: string | null
+          batch_id: string | null
+          bundle_id: string | null
+          checked_at: string | null
+          checked_by: string | null
+          is_quality_complete: boolean | null
+          latest_verdict: string | null
+          reject_reason: string | null
+          routed_to_department: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_quality_checks_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_quality_checks_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "production_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_worker_enter_phase: {
@@ -1154,5 +1302,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.113.0 (currently installed v2.92.1)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

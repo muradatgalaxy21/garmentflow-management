@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2, Ban } from "lucide-react";
+import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2, Ban, Boxes, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,6 +73,8 @@ export default function BatchManagementPage() {
   const [timeline, setTimeline] = useState<TrackingEntry[]>([]);
   const [rates, setRates] = useState<Record<string, string>>({});
   const [deptRatesOpen, setDeptRatesOpen] = useState(false);
+  const [packRatioBatch, setPackRatioBatch] = useState<Batch | null>(null);
+  const [packRatioRows, setPackRatioRows] = useState<{ size: string; qty: string }[]>([]);
   const [deptRates, setDeptRates] = useState<DeptRate[]>([]);
   const [newRateDept, setNewRateDept] = useState<"printing" | "embroidery" | "clipping">("printing");
   const [newRateLabel, setNewRateLabel] = useState("");
@@ -324,6 +326,38 @@ export default function BatchManagementPage() {
     setRateDialogBatch(null);
   };
 
+  const openPackRatio = async (batch: Batch) => {
+    setPackRatioBatch(batch);
+    const { data } = await supabase.from("batch_pack_ratios").select("ratio").eq("batch_id", batch.id).maybeSingle();
+    const ratio = (data?.ratio as Record<string, number>) ?? {};
+    const rows = Object.entries(ratio).map(([size, qty]) => ({ size, qty: String(qty) }));
+    setPackRatioRows(rows.length > 0 ? rows : [{ size: "", qty: "" }]);
+  };
+
+  const savePackRatio = async () => {
+    if (!packRatioBatch) return;
+    const ratio: Record<string, number> = {};
+    for (const row of packRatioRows) {
+      const qty = parseInt(row.qty, 10);
+      if (!row.size.trim() || isNaN(qty) || qty <= 0) continue;
+      ratio[row.size.trim()] = qty;
+    }
+    if (Object.keys(ratio).length === 0) {
+      toast({ title: "Add at least one size/qty pair", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("batch_pack_ratios").upsert({
+      batch_id: packRatioBatch.id,
+      ratio,
+    }, { onConflict: "batch_id" });
+    if (error) {
+      toast({ title: "Failed to save pack ratio", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Pack ratio saved" });
+    setPackRatioBatch(null);
+  };
+
   const openDeptRates = async () => {
     setDeptRatesOpen(true);
     const { data } = await supabase.from("department_cost_rates").select("id, department, label, rate").order("department");
@@ -420,6 +454,9 @@ export default function BatchManagementPage() {
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => openRateDialog(b)}>
                     <Settings className="w-4 h-4 mr-1" /> Piece Rates
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => openPackRatio(b)}>
+                    <Boxes className="w-4 h-4 mr-1 text-purple-500" /> Pack Ratio
                   </Button>
                   <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
                     <Eye className="w-4 h-4" />
@@ -584,6 +621,43 @@ export default function BatchManagementPage() {
             ))}
           </div>
           <DialogFooter><Button onClick={saveRates}>Save Rates</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pack Ratio Dialog (stage 12 config — size/color mix per carton) */}
+      <Dialog open={!!packRatioBatch} onOpenChange={(o) => !o && setPackRatioBatch(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Boxes className="w-5 h-5 text-purple-500" /> Pack Ratio — {packRatioBatch?.style_number}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Size/color mix expected per carton (e.g. S:1, M:2, L:2, XL:1) — shown read-only to workers on the Packing form.
+          </p>
+          <div className="space-y-2">
+            {packRatioRows.map((row, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input
+                  placeholder="Size (e.g. S)"
+                  value={row.size}
+                  onChange={(e) => setPackRatioRows((prev) => prev.map((r, idx) => idx === i ? { ...r, size: e.target.value } : r))}
+                />
+                <Input
+                  type="number" min="1" placeholder="Qty"
+                  value={row.qty}
+                  onChange={(e) => setPackRatioRows((prev) => prev.map((r, idx) => idx === i ? { ...r, qty: e.target.value } : r))}
+                />
+                <Button size="icon" variant="ghost" onClick={() => setPackRatioRows((prev) => prev.filter((_, idx) => idx !== i))}>
+                  <X className="w-4 h-4 text-red-500" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setPackRatioRows((prev) => [...prev, { size: "", qty: "" }])}>
+            <Plus className="w-4 h-4 mr-1" /> Add Row
+          </Button>
+          <DialogFooter><Button onClick={savePackRatio}>Save Pack Ratio</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 

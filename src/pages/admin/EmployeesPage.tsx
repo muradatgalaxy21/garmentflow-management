@@ -26,11 +26,11 @@ interface Profile {
   default_piece_rate: number | null;
   skills: string[] | null;
   employee_id: string | null;
-  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | "quality" | "stitching" | "button_ops" | "clipping" | "press" | null;
+  department: "accessories" | "cutting" | "sticker" | "printing" | "embroidery" | "quality" | "stitching" | "button_ops" | "clipping" | "press" | "quality_final" | "packing" | null;
   sub_department: "singer" | "overlock" | "flatlock" | "lock_stitch" | null;
 }
 
-const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "stitching", "button_ops", "clipping", "press"] as const;
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "stitching", "button_ops", "clipping", "press", "quality_final", "packing"] as const;
 const SUB_DEPARTMENTS = ["singer", "overlock", "flatlock", "lock_stitch"] as const;
 
 interface RoleRow {

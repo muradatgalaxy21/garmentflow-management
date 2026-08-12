@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { checkDepartmentGate, type Department } from "@/lib/departmentEntries";
 
 // Real seeded order — accessories(1) -> cutting(2) -> [sticker|printing|embroidery](3)
-// -> quality(4) -> lot_bundling(5) -> stitching(6) -> button_ops(7) -> clipping(8) -> press(9).
+// -> quality(4) -> lot_bundling(5) -> stitching(6) -> button_ops(7) -> clipping(8) -> press(9)
+// -> quality_final(10) -> packing(11).
 const SEQUENCE = [
   { department: "accessories", order_index: 1, parallel_group: 1 },
   { department: "cutting", order_index: 2, parallel_group: 1 },
@@ -15,6 +16,8 @@ const SEQUENCE = [
   { department: "button_ops", order_index: 7, parallel_group: 5 },
   { department: "clipping", order_index: 8, parallel_group: 6 },
   { department: "press", order_index: 9, parallel_group: 7 },
+  { department: "quality_final", order_index: 10, parallel_group: 8 },
+  { department: "packing", order_index: 11, parallel_group: 9 },
 ];
 
 let statusRows: { department: string; status: "open" | "closed" }[] = [];
@@ -86,6 +89,34 @@ describe("checkDepartmentGate — stages 7-9 (button_ops, clipping, press)", () 
   it("accepts any one of the parallel stage-3 alternatives (printing) ahead of button_ops chain", async () => {
     closedThrough("accessories", "cutting", "printing", "quality", "lot_bundling", "stitching");
     const result = await checkDepartmentGate("batch-1", "button_ops");
+    expect(result.allowed).toBe(true);
+  });
+});
+
+describe("checkDepartmentGate — stages 10-11 (quality_final, packing)", () => {
+  it("blocks quality_final until press is closed", async () => {
+    closedThrough("accessories", "cutting", "sticker", "quality", "lot_bundling", "stitching", "button_ops", "clipping");
+    const result = await checkDepartmentGate("batch-1", "quality_final");
+    expect(result.allowed).toBe(false);
+    expect(result.blockedByDepartment).toBe("press");
+  });
+
+  it("allows quality_final once press is closed", async () => {
+    closedThrough("accessories", "cutting", "sticker", "quality", "lot_bundling", "stitching", "button_ops", "clipping", "press");
+    const result = await checkDepartmentGate("batch-1", "quality_final");
+    expect(result.allowed).toBe(true);
+  });
+
+  it("blocks packing until quality_final is closed", async () => {
+    closedThrough("accessories", "cutting", "sticker", "quality", "lot_bundling", "stitching", "button_ops", "clipping", "press");
+    const result = await checkDepartmentGate("batch-1", "packing");
+    expect(result.allowed).toBe(false);
+    expect(result.blockedByDepartment).toBe("quality_final");
+  });
+
+  it("allows packing once the full chain through quality_final is closed", async () => {
+    closedThrough("accessories", "cutting", "sticker", "quality", "lot_bundling", "stitching", "button_ops", "clipping", "press", "quality_final");
+    const result = await checkDepartmentGate("batch-1", "packing");
     expect(result.allowed).toBe(true);
   });
 });

@@ -11,10 +11,15 @@ export type Department =
   | "stitching"
   | "button_ops"
   | "clipping"
-  | "press";
+  | "press"
+  | "quality_final"
+  | "packing";
 export type EntryStage = "start" | "end";
 export type SubDepartment = "singer" | "overlock" | "flatlock" | "lock_stitch";
 export type ButtonOperation = "button" | "buttonhole" | "eyelet" | "bartack";
+export type QualityVerdict = "confirm" | "alter" | "reject";
+/** Departments an "alter" verdict can route a bundle back to (stages 1-9, excluding quality_final/packing themselves). */
+export type ReworkDepartment = Exclude<Department, "quality_final" | "packing">;
 
 export const DEPARTMENT_LABELS: Record<Department, string> = {
   accessories: "Accessories",
@@ -28,6 +33,14 @@ export const DEPARTMENT_LABELS: Record<Department, string> = {
   button_ops: "Button / Buttonhole / Eyelet / Bartack",
   clipping: "Clipping",
   press: "Press",
+  quality_final: "Quality (Final)",
+  packing: "Packing",
+};
+
+export const QUALITY_VERDICT_LABELS: Record<QualityVerdict, string> = {
+  confirm: "Confirm — Pass",
+  alter: "Alter — Send Back",
+  reject: "Reject",
 };
 
 export const BUTTON_OPERATION_LABELS: Record<ButtonOperation, string> = {
@@ -97,6 +110,23 @@ export async function deleteDepartmentEntryAndRestock(
   if (entry.inventory_item_id && qty > 0) {
     await recordInventoryMovement(entry.inventory_item_id, qty, "in", performedBy, "Restock — deleted work entry");
   }
+}
+
+export interface BundleQualityStatus {
+  bundle_id: string;
+  latest_verdict: QualityVerdict;
+  routed_to_department: ReworkDepartment | null;
+  is_quality_complete: boolean;
+}
+
+/** Latest quality_final verdict per bundle for this batch — stage 11's computed "quality complete" status. */
+export async function fetchBundleQualityStatuses(batchId: string): Promise<Map<string, BundleQualityStatus>> {
+  const { data } = await supabase
+    .from("bundle_quality_status")
+    .select("bundle_id, latest_verdict, routed_to_department, is_quality_complete")
+    .eq("batch_id", batchId);
+  const rows = (data as unknown as BundleQualityStatus[]) ?? [];
+  return new Map(rows.map((r) => [r.bundle_id, r]));
 }
 
 interface SequenceRow {
@@ -248,4 +278,61 @@ export async function submitEndForVerification(params: {
     },
   });
   if (msgError) throw msgError;
+}
+
+/** Numeric payload keys worth rolling up into the stage-13 auto-generated batch report. */
+const REPORT_NUMERIC_KEYS = [
+  "quantity", "checked_qty", "pass_qty", "defect_qty",
+  "pcs_completed", "pcs", "pcs_pressed", "cartons_packed", "waste",
+] as const;
+
+export interface DepartmentReportRow {
+  department: Department;
+  entryCount: number;
+  totals: Record<string, number>;
+}
+
+export interface BatchReport {
+  departments: DepartmentReportRow[];
+  qualityVerdicts: Record<QualityVerdict, number>;
+  bundleCount: number;
+}
+
+/** Rolls up pass/waste/reject numbers per stage for a batch — stage 13's "auto-generated batch report". */
+export async function generateBatchReport(batchId: string): Promise<BatchReport> {
+  const [{ data: entries }, { data: checks }, { count: bundleCount }] = await Promise.all([
+    supabase.from("department_entries").select("department, payload").eq("batch_id", batchId),
+    supabase.from("bundle_quality_checks").select("verdict").eq("batch_id", batchId),
+    supabase.from("production_bundles").select("id", { count: "exact", head: true }).eq("batch_id", batchId),
+  ]);
+
+  const byDept = new Map<Department, DepartmentReportRow>();
+  for (const row of entries ?? []) {
+    const dept = row.department as Department;
+    const payload = (row.payload as Record<string, unknown>) ?? {};
+    let entry = byDept.get(dept);
+    if (!entry) {
+      entry = { department: dept, entryCount: 0, totals: {} };
+      byDept.set(dept, entry);
+    }
+    entry.entryCount += 1;
+    for (const key of REPORT_NUMERIC_KEYS) {
+      const val = payload[key];
+      if (typeof val === "number") {
+        entry.totals[key] = (entry.totals[key] ?? 0) + val;
+      }
+    }
+  }
+
+  const qualityVerdicts: Record<QualityVerdict, number> = { confirm: 0, alter: 0, reject: 0 };
+  for (const c of checks ?? []) {
+    const v = c.verdict as QualityVerdict;
+    qualityVerdicts[v] = (qualityVerdicts[v] ?? 0) + 1;
+  }
+
+  return {
+    departments: [...byDept.values()].sort((a, b) => DEPARTMENT_LABELS[a.department].localeCompare(DEPARTMENT_LABELS[b.department])),
+    qualityVerdicts,
+    bundleCount: bundleCount ?? 0,
+  };
 }
