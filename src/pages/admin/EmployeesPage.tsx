@@ -88,13 +88,17 @@ export default function EmployeesPage() {
     setLoadingPayouts(true);
     const { data: tracking, error: tErr } = await supabase
       .from("batch_tracking")
-      .select("worker_id, quantity_completed, quantity_wasted, batch_id, phase_id");
+      .select("worker_id, quantity_completed, quantity_wasted, batch_id, phase_id, panel_rate_id");
 
     const { data: rates, error: rErr } = await supabase
       .from("batch_phase_rates")
       .select("batch_id, phase_id, rate_per_piece");
 
-    if (tErr || rErr) {
+    const { data: panelRates, error: prErr } = await supabase
+      .from("batch_phase_panel_rates")
+      .select("id, rate_per_piece");
+
+    if (tErr || rErr || prErr) {
       toast({ title: "Failed to fetch payout data", variant: "destructive" });
       setLoadingPayouts(false);
       return;
@@ -103,6 +107,10 @@ export default function EmployeesPage() {
     const rateMap = new Map<string, number>();
     rates?.forEach((r) => {
       rateMap.set(`${r.batch_id}_${r.phase_id}`, Number(r.rate_per_piece || 0));
+    });
+    const panelRateMap = new Map<string, number>();
+    panelRates?.forEach((r) => {
+      panelRateMap.set(r.id, Number(r.rate_per_piece || 0));
     });
 
     const summaryMap = new Map<string, WorkerPayoutSummary>();
@@ -126,7 +134,9 @@ export default function EmployeesPage() {
         summary.total_pieces += Number(t.quantity_completed || 0);
         summary.total_wasted += Number(t.quantity_wasted || 0);
         if (summary.wage_type.includes("Dihaari")) {
-          const rate = rateMap.get(`${t.batch_id}_${t.phase_id}`) || 0;
+          const rate = t.panel_rate_id
+            ? panelRateMap.get(t.panel_rate_id) ?? 0
+            : rateMap.get(`${t.batch_id}_${t.phase_id}`) || 0;
           summary.calculated_payout += Number(t.quantity_completed || 0) * rate;
         }
       }

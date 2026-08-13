@@ -73,6 +73,7 @@ export default function BatchManagementPage() {
   const [qrBatch, setQrBatch] = useState<Batch | null>(null);
   const [timeline, setTimeline] = useState<TrackingEntry[]>([]);
   const [rates, setRates] = useState<Record<string, string>>({});
+  const [panelRates, setPanelRates] = useState<{ id?: string; label: string; rate: string }[]>([]);
   const [deptRatesOpen, setDeptRatesOpen] = useState(false);
   const [packRatioBatch, setPackRatioBatch] = useState<Batch | null>(null);
   const [packRatioRows, setPackRatioRows] = useState<{ size: string; qty: string }[]>([]);
@@ -301,6 +302,8 @@ export default function BatchManagementPage() {
     }
   };
 
+  const cuttingPhase = phases.find((p) => p.name === "Cutting");
+
   const openRateDialog = async (batch: Batch) => {
     setRateDialogBatch(batch);
     const { data } = await supabase
@@ -312,11 +315,22 @@ export default function BatchManagementPage() {
       rateMap[r.phase_id] = String(r.rate_per_piece);
     }
     setRates(rateMap);
+
+    if (cuttingPhase) {
+      const { data: panelData } = await supabase
+        .from("batch_phase_panel_rates")
+        .select("id, label, rate_per_piece")
+        .eq("batch_id", batch.id)
+        .eq("phase_id", cuttingPhase.id);
+      const rows = (panelData ?? []).map((r) => ({ id: r.id, label: r.label, rate: String(r.rate_per_piece) }));
+      setPanelRates(rows.length > 0 ? rows : [{ label: "", rate: "" }]);
+    }
   };
 
   const saveRates = async () => {
     if (!rateDialogBatch) return;
     for (const phase of phases) {
+      if (phase.id === cuttingPhase?.id) continue; // Cutting uses panelRates below, not the flat rate.
       const rateValue = parseFloat(rates[phase.id] ?? "0");
       if (isNaN(rateValue) || rateValue < 0) continue;
       await supabase.from("batch_phase_rates").upsert({
@@ -325,6 +339,26 @@ export default function BatchManagementPage() {
         rate_per_piece: rateValue,
       }, { onConflict: "batch_id,phase_id" });
     }
+
+    if (cuttingPhase) {
+      await supabase
+        .from("batch_phase_panel_rates")
+        .delete()
+        .eq("batch_id", rateDialogBatch.id)
+        .eq("phase_id", cuttingPhase.id);
+      const validPanels = panelRates
+        .filter((p) => p.label.trim() && !isNaN(parseFloat(p.rate)) && parseFloat(p.rate) >= 0)
+        .map((p) => ({
+          batch_id: rateDialogBatch.id,
+          phase_id: cuttingPhase.id,
+          label: p.label.trim(),
+          rate_per_piece: parseFloat(p.rate),
+        }));
+      if (validPanels.length > 0) {
+        await supabase.from("batch_phase_panel_rates").insert(validPanels);
+      }
+    }
+
     toast({ title: "Rates saved" });
     setRateDialogBatch(null);
   };
@@ -617,17 +651,58 @@ export default function BatchManagementPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Set Rates - {rateDialogBatch?.style_number}</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            {phases.map((p) => (
-              <div key={p.id}>
-                <Label className="text-xs">{p.name} (Rs/piece)</Label>
-                <Input
-                  type="number" step="0.01" min="0"
-                  value={rates[p.id] ?? ""}
-                  onChange={(e) => setRates((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                  className="mt-1" placeholder="0.00"
-                />
-              </div>
-            ))}
+            {phases.map((p) =>
+              p.id === cuttingPhase?.id ? (
+                <div key={p.id} className="space-y-2">
+                  <Label className="text-xs">{p.name} — panel/size rates (Rs/piece)</Label>
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    Cutting pays differently per panel/size — add one row per rate, e.g. "Front Panel - L".
+                  </p>
+                  {panelRates.map((row, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        value={row.label}
+                        placeholder="e.g. Front Panel - L"
+                        onChange={(e) =>
+                          setPanelRates((prev) => prev.map((r, ri) => (ri === i ? { ...r, label: e.target.value } : r)))
+                        }
+                        className="flex-1"
+                      />
+                      <Input
+                        type="number" step="0.01" min="0" placeholder="0.00"
+                        value={row.rate}
+                        onChange={(e) =>
+                          setPanelRates((prev) => prev.map((r, ri) => (ri === i ? { ...r, rate: e.target.value } : r)))
+                        }
+                        className="w-24"
+                      />
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+                        onClick={() => setPanelRates((prev) => prev.filter((_, ri) => ri !== i))}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button" size="sm" variant="outline"
+                    onClick={() => setPanelRates((prev) => [...prev, { label: "", rate: "" }])}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Add panel rate
+                  </Button>
+                </div>
+              ) : (
+                <div key={p.id}>
+                  <Label className="text-xs">{p.name} (Rs/piece)</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={rates[p.id] ?? ""}
+                    onChange={(e) => setRates((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                    className="mt-1" placeholder="0.00"
+                  />
+                </div>
+              )
+            )}
           </div>
           <DialogFooter><Button onClick={saveRates}>Save Rates</Button></DialogFooter>
         </DialogContent>

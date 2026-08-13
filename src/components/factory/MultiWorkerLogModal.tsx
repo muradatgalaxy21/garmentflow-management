@@ -22,6 +22,12 @@ interface Phase {
   name: string;
 }
 
+interface PanelRate {
+  id: string;
+  label: string;
+  rate_per_piece: number;
+}
+
 interface WorkerProfile {
   id: string;
   full_name: string | null;
@@ -63,12 +69,34 @@ export default function MultiWorkerLogModal({
   const [notes, setNotes] = useState<string>("");
   const [loadingWorkers, setLoadingWorkers] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [panelRates, setPanelRates] = useState<PanelRate[]>([]);
+  const [selectedPanelRateId, setSelectedPanelRateId] = useState<string>("");
 
   useEffect(() => {
     if (phases.length > 0 && !selectedPhase) {
       setSelectedPhase(phases[0].id);
     }
   }, [phases, selectedPhase]);
+
+  const selectedPhaseObj = phases.find((p) => p.id === selectedPhase);
+  const isCutting = selectedPhaseObj?.name === "Cutting";
+
+  useEffect(() => {
+    if (!batch || !isCutting) {
+      setPanelRates([]);
+      setSelectedPanelRateId("");
+      return;
+    }
+    supabase
+      .from("batch_phase_panel_rates")
+      .select("id, label, rate_per_piece")
+      .eq("batch_id", batch.id)
+      .eq("phase_id", selectedPhase)
+      .then(({ data }) => {
+        setPanelRates((data as PanelRate[]) ?? []);
+        setSelectedPanelRateId("");
+      });
+  }, [batch, selectedPhase, isCutting]);
 
   useEffect(() => {
     if (!open) return;
@@ -147,6 +175,10 @@ export default function MultiWorkerLogModal({
       toast({ title: "Barae meherbani kam az kam 1 worker select karein", variant: "destructive" });
       return;
     }
+    if (isCutting && panelRates.length > 0 && !selectedPanelRateId) {
+      toast({ title: "Cutting ke liye panel rate select karein", variant: "destructive" });
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -157,6 +189,7 @@ export default function MultiWorkerLogModal({
         quantity_completed: number;
         quantity_wasted: number;
         notes: string;
+        panel_rate_id: string | null;
       }> = [];
 
       if (entryMode === "split") {
@@ -172,6 +205,7 @@ export default function MultiWorkerLogModal({
             quantity_completed: qty,
             quantity_wasted: 0,
             notes: notes ? `[Manager On-Behalf] ${notes}` : "[Manager On-Behalf Entry]",
+            panel_rate_id: selectedPanelRateId || null,
           });
         });
       } else {
@@ -184,6 +218,7 @@ export default function MultiWorkerLogModal({
             quantity_completed: Number(entry.completed || 0),
             quantity_wasted: Number(entry.wasted || 0),
             notes: notes ? `[Manager On-Behalf] ${notes}` : "[Manager On-Behalf Entry]",
+            panel_rate_id: selectedPanelRateId || null,
           });
         });
       }
@@ -245,6 +280,31 @@ export default function MultiWorkerLogModal({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Cutting Panel Rate Selection */}
+          {isCutting && (
+            <div>
+              <Label className="text-xs font-bold text-slate-300">Panel / Size Rate</Label>
+              {panelRates.length === 0 ? (
+                <p className="text-xs text-amber-400 mt-1">
+                  Iss batch ke liye Cutting panel rates set nahi hain — pehle "Piece Rates" se set karein.
+                </p>
+              ) : (
+                <Select value={selectedPanelRateId} onValueChange={setSelectedPanelRateId}>
+                  <SelectTrigger className="mt-1 font-bold">
+                    <SelectValue placeholder="Panel rate choose karein" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {panelRates.map((r) => (
+                      <SelectItem key={r.id} value={r.id} className="font-semibold py-2">
+                        {r.label} — Rs {r.rate_per_piece}/pc
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
 
           {/* Workers Selection */}
           <div className="space-y-2">

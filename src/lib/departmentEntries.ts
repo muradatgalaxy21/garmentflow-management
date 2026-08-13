@@ -99,7 +99,13 @@ export async function recordInventoryMovement(
 
 /** Deletes a logged work entry and, if it consumed a tracked inventory item, restocks the quantity. */
 export async function deleteDepartmentEntryAndRestock(
-  entry: { id: string; inventory_item_id?: string | null; payload?: Record<string, unknown> | null },
+  entry: {
+    id: string;
+    inventory_item_id?: string | null;
+    payload?: Record<string, unknown> | null;
+    batch_id?: string;
+    department?: Department;
+  },
   performedBy: string
 ) {
   const { error } = await supabase.from("department_entries").delete().eq("id", entry.id);
@@ -109,6 +115,25 @@ export async function deleteDepartmentEntryAndRestock(
   const qty = typeof payload.quantity === "number" ? payload.quantity : 0;
   if (entry.inventory_item_id && qty > 0) {
     await recordInventoryMovement(entry.inventory_item_id, qty, "in", performedBy, "Restock — deleted work entry");
+  }
+
+  // If this was the last department_entries row for this batch+department, the
+  // open/closed batch_department_status row it left behind is now stale (e.g. a
+  // worker's dashboard showing "Open Batch Work" for a batch whose entries were
+  // all deleted) — clear it so the department can be scanned fresh.
+  if (entry.batch_id && entry.department) {
+    const { count } = await supabase
+      .from("department_entries")
+      .select("id", { count: "exact", head: true })
+      .eq("batch_id", entry.batch_id)
+      .eq("department", entry.department);
+    if (!count) {
+      await supabase
+        .from("batch_department_status")
+        .delete()
+        .eq("batch_id", entry.batch_id)
+        .eq("department", entry.department);
+    }
   }
 }
 
@@ -285,6 +310,23 @@ const REPORT_NUMERIC_KEYS = [
   "quantity", "checked_qty", "pass_qty", "defect_qty",
   "pcs_completed", "pcs", "pcs_pressed", "cartons_packed", "waste",
 ] as const;
+
+/** Priority order for picking the single "pieces done" number out of a department_entries payload — field names differ per department form. */
+const PIECE_COUNT_KEYS = [
+  "quantity_completed", "total_pcs", "pcs_completed", "pcs_pressed", "pcs", "quantity", "checked_qty",
+] as const;
+
+/** Best-effort "pieces" figure for a work entry, across every department's payload shape. Packing counts as cartons x pcs/carton. */
+export function getEntryPieceCount(payload: Record<string, unknown>): number | null {
+  const cartons = payload.cartons_packed;
+  const perCarton = payload.pcs_per_carton;
+  if (typeof cartons === "number" && typeof perCarton === "number") return cartons * perCarton;
+  for (const key of PIECE_COUNT_KEYS) {
+    const value = payload[key];
+    if (typeof value === "number") return value;
+  }
+  return null;
+}
 
 export interface DepartmentReportRow {
   department: Department;

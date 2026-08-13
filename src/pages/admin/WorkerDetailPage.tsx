@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, type Department, type EntryStage } from "@/lib/departmentEntries";
+import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, getEntryPieceCount, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
@@ -119,7 +119,13 @@ export default function WorkerDetailPage() {
     const full = entries.find((e) => e.id === entry.id);
     try {
       await deleteDepartmentEntryAndRestock(
-        { id: entry.id, inventory_item_id: full?.inventory_item_id, payload: full?.payload },
+        {
+          id: entry.id,
+          inventory_item_id: full?.inventory_item_id,
+          payload: full?.payload,
+          batch_id: full?.batch_id,
+          department: full?.department,
+        },
         user!.id
       );
     } catch (err: any) {
@@ -448,7 +454,7 @@ function WorkTable({ entries, onSelect }: { entries: WorkEntry[]; onSelect: (ent
               </Badge>
             </td>
             <td className="p-3 text-right font-mono">
-              {typeof e.payload.quantity_completed === "number" ? e.payload.quantity_completed : "—"}
+              {getEntryPieceCount(e.payload) ?? "—"}
             </td>
           </tr>
         ))}

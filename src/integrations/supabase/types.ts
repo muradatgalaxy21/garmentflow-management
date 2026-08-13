@@ -320,12 +320,55 @@ export type Database = {
           },
         ]
       }
+      batch_phase_panel_rates: {
+        Row: {
+          batch_id: string
+          created_at: string
+          id: string
+          label: string
+          phase_id: string
+          rate_per_piece: number
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          id?: string
+          label: string
+          phase_id: string
+          rate_per_piece?: number
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          phase_id?: string
+          rate_per_piece?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_phase_panel_rates_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_phase_panel_rates_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       batch_tracking: {
         Row: {
           batch_id: string
           created_at: string
           id: string
           notes: string | null
+          panel_rate_id: string | null
           phase_id: string
           quantity_completed: number
           quantity_wasted: number
@@ -336,6 +379,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          panel_rate_id?: string | null
           phase_id: string
           quantity_completed?: number
           quantity_wasted?: number
@@ -346,6 +390,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          panel_rate_id?: string | null
           phase_id?: string
           quantity_completed?: number
           quantity_wasted?: number
@@ -357,6 +402,13 @@ export type Database = {
             columns: ["batch_id"]
             isOneToOne: false
             referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_tracking_panel_rate_id_fkey"
+            columns: ["panel_rate_id"]
+            isOneToOne: false
+            referencedRelation: "batch_phase_panel_rates"
             referencedColumns: ["id"]
           },
           {

@@ -86,7 +86,13 @@ export default function MyWorkPage() {
     const full = entries.find((e) => e.id === entry.id);
     try {
       await deleteDepartmentEntryAndRestock(
-        { id: entry.id, inventory_item_id: full?.inventory_item_id, payload: full?.payload },
+        {
+          id: entry.id,
+          inventory_item_id: full?.inventory_item_id,
+          payload: full?.payload,
+          batch_id: full?.batch_id,
+          department: full?.department,
+        },
         user!.id
       );
     } catch (err: any) {
