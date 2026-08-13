@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { generateBatchReport } from "@/lib/departmentEntries";
 
 let entryRows: { department: string; payload: Record<string, unknown> }[] = [];
-let checkRows: { verdict: string }[] = [];
+let checkRows: { latest_verdict: string }[] = [];
 let bundleCount = 0;
 
 function makeQuery(data: unknown, count?: number) {
@@ -18,7 +18,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: (table: string) => {
       if (table === "department_entries") return makeQuery(entryRows);
-      if (table === "bundle_quality_checks") return makeQuery(checkRows);
+      if (table === "bundle_quality_status") return makeQuery(checkRows);
       if (table === "production_bundles") return makeQuery(null, bundleCount);
       throw new Error(`unexpected table in test: ${table}`);
     },
@@ -62,7 +62,7 @@ describe("generateBatchReport — stage 13 auto-generated batch report", () => {
   it("tallies quality verdicts independently of department_entries", async () => {
     entryRows = [];
     checkRows = [
-      { verdict: "confirm" }, { verdict: "confirm" }, { verdict: "alter" }, { verdict: "reject" },
+      { latest_verdict: "confirm" }, { latest_verdict: "confirm" }, { latest_verdict: "alter" }, { latest_verdict: "reject" },
     ];
     bundleCount = 4;
 

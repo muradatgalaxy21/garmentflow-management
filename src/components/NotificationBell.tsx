@@ -61,9 +61,13 @@ export default function NotificationBell() {
 
   useEffect(() => {
     fetchNotifications();
-    // Poll every 30 seconds for new notifications
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("admin-notifications")
+      .on("postgres_changes", { event: "*", schema: "public", table: "admin_notifications" }, fetchNotifications)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // 2. Mark a single notification as read

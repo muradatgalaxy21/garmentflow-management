@@ -56,8 +56,17 @@ export default function InboxPage() {
       .maybeSingle()
       .then(({ data }) => setDepartment((data?.department as Department | null) ?? null));
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel(`worker-inbox-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "worker_inbox_messages", filter: `worker_id=eq.${user.id}` },
+        load
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleSend = async () => {

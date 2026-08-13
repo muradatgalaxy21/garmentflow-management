@@ -302,7 +302,9 @@ export interface BatchReport {
 export async function generateBatchReport(batchId: string): Promise<BatchReport> {
   const [{ data: entries }, { data: checks }, { count: bundleCount }] = await Promise.all([
     supabase.from("department_entries").select("department, payload").eq("batch_id", batchId),
-    supabase.from("bundle_quality_checks").select("verdict").eq("batch_id", batchId),
+    // Latest verdict per bundle (same view BatchPipelineStatusPage uses) — querying
+    // bundle_quality_checks directly would double-count bundles re-checked after "alter".
+    supabase.from("bundle_quality_status").select("latest_verdict").eq("batch_id", batchId),
     supabase.from("production_bundles").select("id", { count: "exact", head: true }).eq("batch_id", batchId),
   ]);
 
@@ -326,7 +328,7 @@ export async function generateBatchReport(batchId: string): Promise<BatchReport>
 
   const qualityVerdicts: Record<QualityVerdict, number> = { confirm: 0, alter: 0, reject: 0 };
   for (const c of checks ?? []) {
-    const v = c.verdict as QualityVerdict;
+    const v = c.latest_verdict as QualityVerdict;
     qualityVerdicts[v] = (qualityVerdicts[v] ?? 0) + 1;
   }
 

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS } from "@/lib/departmentEntries";
 import {
   fetchInboxMessages,
@@ -53,8 +54,13 @@ function WorkerInboxTab() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("worker-inbox-admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "worker_inbox_messages" }, load)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const act = async (fn: () => Promise<void>, id: string) => {
@@ -245,8 +251,13 @@ function ClientInboxTab() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("client-inbox-admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "client_inbox_messages" }, load)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const act = async (m: ClientInboxMessage) => {

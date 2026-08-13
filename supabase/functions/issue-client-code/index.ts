@@ -2,16 +2,15 @@
 // Issue Client Code Edge Function
 //
 // Admin/staff-only: generates a one-time client portal access code
-// tied to an order (plan.md §7). Email delivery via Resend is NOT
-// wired yet — this stubs the send (console.log) and returns the
-// code in the response so the admin can relay it manually until a
-// RESEND_API_KEY is configured. Swap the stub for a real Resend call
-// (see §9.2 — same edge function should also serve manager email
-// notifications once built) without changing the DB/UI contract.
+// tied to an order (plan.md §7). Email delivery now goes through the
+// shared `_shared/email.ts` sender (plan.md §9.2) — still returns the
+// code in the response either way, so the admin dialog can show/relay
+// it manually as a fallback even once RESEND_API_KEY is configured.
 // ---------------------------------------------------------------
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,10 +90,14 @@ serve(async (req: Request) => {
       });
     }
 
-    // TODO(§9.2): replace with Resend send once RESEND_API_KEY is configured.
-    console.log(`[issue-client-code] STUBBED EMAIL to ${email}: your access code is ${code} (expires ${expiresAt})`);
+    const { sent } = await sendEmail(
+      email,
+      "Your En En Garments portal access code",
+      `<p>Your one-time access code is <strong>${code}</strong>.</p>` +
+        `<p>Enter it at the activation page to unlock your client portal. This code expires ${expiresAt}.</p>`
+    );
 
-    return new Response(JSON.stringify({ ok: true, code, expiresAt, emailSent: false }), {
+    return new Response(JSON.stringify({ ok: true, code, expiresAt, emailSent: sent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {

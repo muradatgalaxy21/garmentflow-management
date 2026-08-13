@@ -1,0 +1,48 @@
+name: Supabase migration sync check
+
+# plan.md §9.7 — catches migrations written locally but never pushed to the
+# remote Supabase project (happened 2026-08-04, 2026-08-10). Fails the build
+# if `supabase migration list` shows any migration with a Local timestamp
+# but no matching Remote one.
+#
+# Requires repo secrets (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_ACCESS_TOKEN  - from https://supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD   - the project's Postgres password
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  migration-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref bwfpqkplwdjwjzrymhuh
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Check local migrations are all pushed to remote
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          OUTPUT=$(supabase migration list)
+          echo "$OUTPUT"
+          # Each data row is "  <local> | <remote> | <time>". A migration only on
+          # the left side (local set but remote column blank) means it hasn't
+          # been pushed to the linked project yet.
+          if echo "$OUTPUT" | awk -F'|' 'NF>=2 { local=$1; remote=$2; gsub(/[ \t]/,"",local); gsub(/[ \t]/,"",remote); if (local != "" && local != "Local" && remote == "") { found=1 } } END { exit !found }'; then
+            echo "::error::Local-only migration(s) found — run 'supabase db push' before merging."
+            exit 1
+          fi

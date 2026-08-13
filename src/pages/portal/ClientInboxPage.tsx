@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchMyClientInboxMessages, sendClientQuery, type ClientInboxMessage } from "@/lib/clientInbox";
 
 const statusColors: Record<ClientInboxMessage["status"], string> = {
@@ -37,9 +38,19 @@ export default function ClientInboxPage() {
   };
 
   useEffect(() => {
+    if (!user) return;
     load();
-    const interval = setInterval(load, 15000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel(`client-inbox-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "client_inbox_messages", filter: `client_id=eq.${user.id}` },
+        load
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const handleSend = async () => {
