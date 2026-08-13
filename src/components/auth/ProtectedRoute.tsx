@@ -7,11 +7,15 @@ interface Props {
   // If provided, the user must hold one of these roles to enter the route.
   // Omit for any-authenticated-user routes (e.g. client portal).
   requireRoles?: AppRole[];
+  // If true, a client-role user whose profiles.client_activated is still
+  // false (hasn't redeemed their access code yet, plan.md §7) is redirected
+  // to /activate-account instead of being let through.
+  requireClientActivated?: boolean;
 }
 
 // Wrapper component that gates a route by login state and (optionally) by role.
-export default function ProtectedRoute({ children, requireRoles }: Props) {
-  const { user, roles, loading } = useAuth();
+export default function ProtectedRoute({ children, requireRoles, requireClientActivated }: Props) {
+  const { user, roles, clientActivated, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -32,6 +36,10 @@ export default function ProtectedRoute({ children, requireRoles }: Props) {
     if (!allowed) {
       return <Navigate to="/" replace />;
     }
+  }
+
+  if (requireClientActivated && roles.includes("client") && !clientActivated) {
+    return <Navigate to="/activate-account" replace />;
   }
 
   return <>{children}</>;

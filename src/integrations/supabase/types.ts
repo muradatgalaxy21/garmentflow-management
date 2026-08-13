@@ -927,6 +927,7 @@ export type Database = {
       profiles: {
         Row: {
           base_salary: number | null
+          client_activated: boolean
           company: string | null
           created_at: string
           default_piece_rate: number | null
@@ -943,6 +944,7 @@ export type Database = {
         }
         Insert: {
           base_salary?: number | null
+          client_activated?: boolean
           company?: string | null
           created_at?: string
           default_piece_rate?: number | null
@@ -959,6 +961,7 @@ export type Database = {
         }
         Update: {
           base_salary?: number | null
+          client_activated?: boolean
           company?: string | null
           created_at?: string
           default_piece_rate?: number | null
@@ -1043,6 +1046,100 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      client_inbox_messages: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          message: string
+          order_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          message: string
+          order_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_inbox_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          email: string | null
+          expires_at: string
+          id: string
+          order_id: string | null
+          redeemed_at: string | null
+          redeemed_by: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          email?: string | null
+          expires_at: string
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invite_codes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       worker_inbox_messages: {
         Row: {

@@ -21,7 +21,7 @@ import {
 const adminNav = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false },
-  { title: "Worker Inbox", url: "/admin/worker-inbox", icon: MessagesSquare, end: false },
+  { title: "Inbox", url: "/admin/inbox", icon: MessagesSquare, end: false },
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false },
   { title: "Batches", url: "/admin/batches", icon: Factory, end: false },

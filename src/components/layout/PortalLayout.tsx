@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate, Link } from "react-router-dom";
-import { Home, Package, User, LogOut, ArrowLeft } from "lucide-react";
+import { Home, Package, User, LogOut, ArrowLeft, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
@@ -8,6 +8,7 @@ import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 const portalNav = [
   { to: "/client-portal", label: "Overview", icon: Home, end: true },
   { to: "/client-portal/orders", label: "My Orders", icon: Package, end: false },
+  { to: "/client-portal/inbox", label: "Inbox", icon: MessageSquare, end: false },
   { to: "/client-portal/profile", label: "Profile", icon: User, end: false },
 ];
 

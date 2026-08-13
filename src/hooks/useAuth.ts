@@ -9,6 +9,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  clientActivated: boolean;
   loading: boolean;
 }
 
@@ -24,6 +25,7 @@ export function useAuth(): AuthState & {
     user: null,
     session: null,
     roles: [],
+    clientActivated: true,
     loading: true,
   });
 
@@ -41,7 +43,7 @@ export function useAuth(): AuthState & {
         setTimeout(() => fetchRoles(session.user.id), 0);
         setState((prev) => ({ ...prev, user: session.user, session, roles: prev.roles }));
       } else {
-        setState({ user: null, session: null, roles: [], loading: false });
+        setState({ user: null, session: null, roles: [], clientActivated: true, loading: false });
       }
     });
 
@@ -51,25 +53,31 @@ export function useAuth(): AuthState & {
         setState((prev) => ({ ...prev, user: session.user, session }));
         fetchRoles(session.user.id);
       } else {
-        setState({ user: null, session: null, roles: [], loading: false });
+        setState({ user: null, session: null, roles: [], clientActivated: true, loading: false });
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch which roles the user has (a single user can have multiple)
+  // Fetch which roles the user has (a single user can have multiple), plus the
+  // client-portal activation flag (plan.md §7) so ProtectedRoute can gate on it.
   const fetchRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const [{ data: roleRows, error }, { data: profile }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("client_activated").eq("id", userId).maybeSingle(),
+    ]);
     if (error) {
       console.error("Failed to fetch roles", error);
       setState((s) => ({ ...s, loading: false }));
       return;
     }
-    setState((s) => ({ ...s, roles: (data ?? []).map((r) => r.role as AppRole), loading: false }));
+    setState((s) => ({
+      ...s,
+      roles: (roleRows ?? []).map((r) => r.role as AppRole),
+      clientActivated: profile?.client_activated ?? true,
+      loading: false,
+    }));
   };
 
   const signOut = async () => {

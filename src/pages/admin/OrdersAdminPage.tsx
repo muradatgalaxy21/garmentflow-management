@@ -90,6 +90,8 @@ export default function OrdersAdminPage() {
   const { isAdmin } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [issuingCode, setIssuingCode] = useState(false);
+  const [issuedCode, setIssuedCode] = useState<{ code: string; email: string } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -230,6 +232,28 @@ export default function OrdersAdminPage() {
     toast({ title: "Order updated" });
     setSelected(null);
     load();
+  };
+
+  // §7: issue a one-time client-portal access code tied to this order.
+  // Email delivery is stubbed until Resend is wired — the code is shown
+  // here so the admin can relay it manually in the meantime.
+  const issueAccessCode = async () => {
+    if (!selected) return;
+    const client = clients.find((c) => c.id === selected.client_id);
+    if (!client?.email) {
+      toast({ title: "No email on file", description: "This client has no email address to issue a code for.", variant: "destructive" });
+      return;
+    }
+    setIssuingCode(true);
+    const { data, error } = await supabase.functions.invoke("issue-client-code", {
+      body: { orderId: selected.id, email: client.email },
+    });
+    setIssuingCode(false);
+    if (error || data?.error) {
+      toast({ title: "Failed to issue code", description: data?.error ?? error?.message, variant: "destructive" });
+      return;
+    }
+    setIssuedCode({ code: data.code, email: client.email });
   };
 
   return (
@@ -400,6 +424,9 @@ export default function OrdersAdminPage() {
                 <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
                   {saving ? "Saving..." : "Save Update"}
                 </Button>
+                <Button variant="outline" className="w-full" onClick={issueAccessCode} disabled={issuingCode}>
+                  {issuingCode ? "Issuing..." : "Issue Client Access Code"}
+                </Button>
                 {isAdmin && (
                   <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={requestDeleteOrder}>
                     <Trash2 className="w-4 h-4 mr-2" /> Delete Order
@@ -410,6 +437,24 @@ export default function OrdersAdminPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!issuedCode} onOpenChange={(o) => !o && setIssuedCode(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Access Code Issued</DialogTitle>
+          </DialogHeader>
+          {issuedCode && (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">
+                Email delivery isn't wired up yet — relay this code to <strong>{issuedCode.email}</strong> manually:
+              </p>
+              <p className="text-2xl font-mono font-bold tracking-widest text-center bg-muted rounded py-3">
+                {issuedCode.code}
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {selected && (
         <DeleteConfirmDialog

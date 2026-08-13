@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 interface Order {
   id: string;
@@ -145,9 +146,14 @@ export default function OrderDetail() {
               </CardTitle>
               <CardDescription className="mt-1">{order.product_summary}</CardDescription>
             </div>
-            <Badge variant="outline" className="capitalize text-sm font-semibold px-3 py-1">
-              {order.status.replace("_", " ")}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="capitalize text-sm font-semibold px-3 py-1">
+                {order.status.replace("_", " ")}
+              </Badge>
+              <Button asChild size="sm" variant="outline">
+                <Link to={`/client-portal/inbox?order_id=${order.id}`}>Ask about this order</Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">

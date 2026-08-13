@@ -17,6 +17,7 @@ import CatalogPage from "@/pages/CatalogPage";
 import ContactPage from "@/pages/ContactPage";
 import AuthPage from "@/pages/AuthPage";
 import AdminAuthPage from "@/pages/AdminAuthPage";
+import ActivateAccountPage from "@/pages/ActivateAccountPage";
 import NotFound from "@/pages/NotFound";
 
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -27,7 +28,7 @@ import BatchManagementPage from "@/pages/admin/BatchManagementPage";
 import ClientsPage from "@/pages/admin/ClientsPage";
 import EmployeesPage from "@/pages/admin/EmployeesPage";
 import WorkerDetailPage from "@/pages/admin/WorkerDetailPage";
-import WorkerInboxPage from "@/pages/admin/WorkerInboxPage";
+import AdminInboxPage from "@/pages/admin/InboxPage";
 import DispatchPage from "@/pages/admin/DispatchPage";
 import BatchPipelineStatusPage from "@/pages/admin/BatchPipelineStatusPage";
 
@@ -35,6 +36,7 @@ import PortalHome from "@/pages/portal/PortalHome";
 import MyOrders from "@/pages/portal/MyOrders";
 import OrderDetail from "@/pages/portal/OrderDetail";
 import ProfilePage from "@/pages/portal/ProfilePage";
+import ClientInboxPage from "@/pages/portal/ClientInboxPage";
 
 import DirectOrderPage from "@/pages/portal/DirectOrderPage";
 
@@ -67,6 +69,14 @@ const App = () => (
 
             {/* Auth (no chrome) */}
             <Route path="/auth" element={<AuthPage />} />
+            <Route
+              path="/activate-account"
+              element={
+                <ProtectedRoute requireRoles={["client"]}>
+                  <ActivateAccountPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Hidden admin sign-in / provisioning — reached via 4x logo click, never linked */}
             <Route path="/system-access" element={<AdminAuthPage />} />
@@ -82,7 +92,7 @@ const App = () => (
             >
               <Route index element={<AdminDashboard />} />
               <Route path="rfqs" element={<RfqInbox />} />
-              <Route path="worker-inbox" element={<WorkerInboxPage />} />
+              <Route path="inbox" element={<AdminInboxPage />} />
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="orders" element={<OrdersAdminPage />} />
               <Route path="batches" element={<BatchManagementPage />} />
@@ -97,7 +107,7 @@ const App = () => (
             <Route
               path="/client-portal"
               element={
-                <ProtectedRoute requireRoles={["client"]}>
+                <ProtectedRoute requireRoles={["client"]} requireClientActivated>
                   <PortalLayout />
                 </ProtectedRoute>
               }
@@ -106,6 +116,7 @@ const App = () => (
               <Route path="direct-order" element={<DirectOrderPage />} />
               <Route path="orders" element={<MyOrders />} />
               <Route path="orders/:id" element={<OrderDetail />} />
+              <Route path="inbox" element={<ClientInboxPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
 
