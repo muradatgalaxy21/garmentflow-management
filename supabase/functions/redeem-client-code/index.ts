@@ -87,13 +87,27 @@ serve(async (req: Request) => {
       });
     }
 
-    const { error: redeemError } = await admin
+    // Atomic conditional update: the WHERE status='unused' clause makes this
+    // a compare-and-swap. If two requests race on the same code, only the
+    // first UPDATE affects a row — the second gets an empty result instead
+    // of silently double-redeeming (the earlier select-then-update had a
+    // TOCTOU gap here).
+    const { data: redeemed, error: redeemError } = await admin
       .from("client_invite_codes")
       .update({ status: "redeemed", redeemed_by: caller.id, redeemed_at: new Date().toISOString() })
-      .eq("id", invite.id);
+      .eq("id", invite.id)
+      .eq("status", "unused")
+      .select("id")
+      .maybeSingle();
     if (redeemError) {
       return new Response(JSON.stringify({ error: redeemError.message }), {
         status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!redeemed) {
+      return new Response(JSON.stringify({ error: "This code has already been used or revoked" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
