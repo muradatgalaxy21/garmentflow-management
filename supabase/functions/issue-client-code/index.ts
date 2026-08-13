@@ -18,11 +18,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// CSPRNG with rejection sampling — Math.random() is not safe for an access
+// code (predictable, guessable). Rejection sampling avoids modulo bias from
+// alphabet.length (33) not evenly dividing 256.
 function generateCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no O/0/I/1 ambiguity
+  const limit = 256 - (256 % alphabet.length);
   let code = "";
-  for (let i = 0; i < 8; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+  const buf = new Uint8Array(1);
+  while (code.length < 8) {
+    crypto.getRandomValues(buf);
+    if (buf[0] < limit) code += alphabet[buf[0] % alphabet.length];
   }
   return code;
 }
