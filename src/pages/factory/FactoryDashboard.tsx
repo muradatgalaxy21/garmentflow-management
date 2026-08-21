@@ -89,11 +89,27 @@ export default function FactoryDashboard() {
             .maybeSingle();
 
           if (openStatus) {
-            openDepartment = {
-              batch_id: openStatus.batch_id,
-              style_number: (openStatus as any).production_batches?.style_number || t("factory.myWork.batch"),
-              department: myDepartment,
-            };
+            // Self-heal: a status row can outlive its entries (partial delete, manual
+            // cleanup, etc). Don't show "open work" unless a live entry backs it up.
+            const { count: liveEntries } = await supabase
+              .from("department_entries")
+              .select("id", { count: "exact", head: true })
+              .eq("batch_id", openStatus.batch_id)
+              .eq("department", myDepartment);
+
+            if (!liveEntries) {
+              await supabase
+                .from("batch_department_status")
+                .delete()
+                .eq("batch_id", openStatus.batch_id)
+                .eq("department", myDepartment);
+            } else {
+              openDepartment = {
+                batch_id: openStatus.batch_id,
+                style_number: (openStatus as any).production_batches?.style_number || t("factory.myWork.batch"),
+                department: myDepartment,
+              };
+            }
           }
         }
 
