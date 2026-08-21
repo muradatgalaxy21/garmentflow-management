@@ -313,7 +313,7 @@ const REPORT_NUMERIC_KEYS = [
 
 /** Priority order for picking the single "pieces done" number out of a department_entries payload — field names differ per department form. */
 const PIECE_COUNT_KEYS = [
-  "quantity_completed", "total_pcs", "pcs_completed", "pcs_pressed", "pcs", "quantity", "checked_qty",
+  "quantity_completed", "total_pcs", "pcs_completed", "pcs_pressed", "pcs", "quantity", "checked_qty", "pcs_count",
 ] as const;
 
 /** Best-effort "pieces" figure for a work entry, across every department's payload shape. Packing counts as cartons x pcs/carton. */

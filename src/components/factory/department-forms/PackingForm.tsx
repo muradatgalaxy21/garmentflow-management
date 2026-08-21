@@ -37,6 +37,17 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
   const [matches, setMatches] = useState<InventoryMatch[]>([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("rate")
+      .eq("department", "packing")
+      .eq("label", "default")
+      .maybeSingle()
+      .then(({ data }) => setRatePerPiece(data ? Number(data.rate) : null));
+  }, []);
 
   useEffect(() => {
     supabase
@@ -74,6 +85,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
   const selectedItem = useMemo(() => matches.find((m) => m.id === selectedItemId) || null, [matches, selectedItemId]);
   const expectedPerCarton = ratio ? Object.values(ratio).reduce((sum, n) => sum + n, 0) : null;
   const ratioMismatch = expectedPerCarton !== null && pcsPerCarton > 0 && pcsPerCarton !== expectedPerCarton;
+  const totalCost = ratePerPiece !== null ? ratePerPiece * cartonsPacked * pcsPerCarton : null;
 
   const handleSubmit = async () => {
     if (!bundleId || cartonsPacked <= 0 || pcsPerCarton <= 0) {
@@ -95,6 +107,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           pcs_per_carton: pcsPerCarton,
           ratio_snapshot: ratio,
         },
+        totalCost,
       });
       if (selectedItem) {
         await recordInventoryMovement(selectedItem.id, cartonsPacked, "out", workerId, `Used in packing entry for batch ${batchId}`);
@@ -176,6 +189,13 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
           </div>
         )}
 

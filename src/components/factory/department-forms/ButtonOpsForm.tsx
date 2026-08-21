@@ -51,6 +51,15 @@ export default function ButtonOpsForm({ batchId, workerId, onSubmitted }: Depart
   const [matches, setMatches] = useState<InventoryMatch[]>([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [rates, setRates] = useState<{ label: string; rate: number }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("label, rate")
+      .eq("department", "button_ops")
+      .then(({ data }) => setRates(data || []));
+  }, []);
 
   useEffect(() => {
     supabase
@@ -83,6 +92,11 @@ export default function ButtonOpsForm({ batchId, workerId, onSubmitted }: Depart
 
   const selectedItem = useMemo(() => matches.find((m) => m.id === selectedItemId) || null, [matches, selectedItemId]);
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
+  const ratePerPiece = useMemo(
+    () => (operationType ? rates.find((r) => r.label === operationType)?.rate ?? null : null),
+    [rates, operationType]
+  );
+  const totalCost = ratePerPiece !== null ? ratePerPiece * pcsCompleted : null;
 
   const handleSubmit = async () => {
     if (!bundleId || !operationType || pcsCompleted <= 0) {
@@ -103,6 +117,7 @@ export default function ButtonOpsForm({ batchId, workerId, onSubmitted }: Depart
           operation_type: operationType,
           pcs_completed: pcsCompleted,
         },
+        totalCost,
       });
       if (selectedItem) {
         await recordInventoryMovement(selectedItem.id, pcsCompleted, "out", workerId, `Used in ${operationType} entry for batch ${batchId}`);
@@ -187,6 +202,13 @@ export default function ButtonOpsForm({ batchId, workerId, onSubmitted }: Depart
             onChange={(e) => setPcsCompleted(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
         </div>
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+          </div>
+        )}
 
         <Button
           size="lg"

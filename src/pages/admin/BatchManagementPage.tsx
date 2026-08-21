@@ -49,7 +49,15 @@ interface ManagerProfile {
 interface Order { id: string; order_number: string; product_summary: string; party_name: string | null; }
 interface InventoryItem { id: string; name: string; sku: string; }
 interface Phase { id: string; name: string; sequence_order: number; }
-interface DeptRate { id: string; department: "printing" | "embroidery" | "clipping"; label: string; rate: number; }
+type RateDept = "printing" | "embroidery" | "clipping" | "sticker" | "quality" | "stitching" | "button_ops" | "press" | "quality_final" | "packing";
+interface DeptRate { id: string; department: RateDept; label: string; rate: number; }
+// Label hint per department — what value each factory-floor form looks up.
+// Departments not listed here use a free-text label (printing: any color name).
+const RATE_LABEL_HINTS: Partial<Record<RateDept, string>> = {
+  stitching: "singer / overlock / flatlock / lock_stitch",
+  button_ops: "button / buttonhole / eyelet / bartack",
+  sticker: "default", quality: "default", press: "default", quality_final: "default", packing: "default", clipping: "default", embroidery: "default",
+};
 interface TrackingEntry {
   id: string; phase_name: string; worker_name: string;
   quantity_completed: number; quantity_wasted: number;
@@ -78,7 +86,7 @@ export default function BatchManagementPage() {
   const [packRatioBatch, setPackRatioBatch] = useState<Batch | null>(null);
   const [packRatioRows, setPackRatioRows] = useState<{ size: string; qty: string }[]>([]);
   const [deptRates, setDeptRates] = useState<DeptRate[]>([]);
-  const [newRateDept, setNewRateDept] = useState<"printing" | "embroidery" | "clipping">("printing");
+  const [newRateDept, setNewRateDept] = useState<RateDept>("printing");
   const [newRateLabel, setNewRateLabel] = useState("");
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
@@ -754,7 +762,7 @@ export default function BatchManagementPage() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
-            Printing cost per color, embroidery cost per piece, and clipping rate per piece — shown read-only to workers on the factory-floor entry forms.
+            Printing/Embroidery are cost-tracking only (like Cutting — not wage). The rest pay the worker per piece — shown read-only to workers on the factory-floor entry forms and summed into their payout.
           </p>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {deptRates.length === 0 ? (
@@ -779,12 +787,19 @@ export default function BatchManagementPage() {
           <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end pt-2 border-t border-border">
             <div>
               <Label className="text-xs">Department</Label>
-              <Select value={newRateDept} onValueChange={(v: "printing" | "embroidery" | "clipping") => setNewRateDept(v)}>
+              <Select value={newRateDept} onValueChange={(v: RateDept) => setNewRateDept(v)}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="printing">Printing</SelectItem>
-                  <SelectItem value="embroidery">Embroidery</SelectItem>
+                  <SelectItem value="printing">Printing (cost only)</SelectItem>
+                  <SelectItem value="embroidery">Embroidery (cost only)</SelectItem>
+                  <SelectItem value="sticker">Sticker</SelectItem>
+                  <SelectItem value="quality">Quality</SelectItem>
+                  <SelectItem value="stitching">Stitching Hall</SelectItem>
+                  <SelectItem value="button_ops">Button Ops</SelectItem>
                   <SelectItem value="clipping">Clipping</SelectItem>
+                  <SelectItem value="press">Press</SelectItem>
+                  <SelectItem value="quality_final">Quality (Final)</SelectItem>
+                  <SelectItem value="packing">Packing</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -793,7 +808,7 @@ export default function BatchManagementPage() {
               <Input
                 value={newRateLabel}
                 onChange={(e) => setNewRateLabel(e.target.value)}
-                placeholder={newRateDept === "printing" ? "e.g. Red" : "default"}
+                placeholder={newRateDept === "printing" ? "e.g. Red" : RATE_LABEL_HINTS[newRateDept] ?? "default"}
                 className="mt-1"
               />
             </div>
@@ -802,6 +817,11 @@ export default function BatchManagementPage() {
               <Input type="number" step="0.01" min="0" value={newRateValue} onChange={(e) => setNewRateValue(e.target.value)} className="mt-1" />
             </div>
           </div>
+          {(newRateDept === "stitching" || newRateDept === "button_ops") && (
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Label must exactly match one of: {RATE_LABEL_HINTS[newRateDept]} (lowercase).
+            </p>
+          )}
           <Button onClick={addDeptRate} className="w-full">Save Rate</Button>
         </DialogContent>
       </Dialog>

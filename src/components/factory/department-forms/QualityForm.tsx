@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
@@ -30,8 +31,20 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
   const [defectTag, setDefectTag] = useState<string>("");
   const [defectReason, setDefectReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("rate")
+      .eq("department", "quality")
+      .eq("label", "default")
+      .maybeSingle()
+      .then(({ data }) => setRatePerPiece(data ? Number(data.rate) : null));
+  }, []);
 
   const defectQty = useMemo(() => Math.max(0, checkedQty - passQty), [checkedQty, passQty]);
+  const totalCost = ratePerPiece !== null ? ratePerPiece * checkedQty : null;
 
   const handleSubmit = async () => {
     if (checkedQty <= 0) {
@@ -60,6 +73,7 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
           defect_reason: defectReason || null,
           style_no: styleNumber,
         },
+        totalCost,
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -90,6 +104,13 @@ export default function QualityForm({ batchId, styleNumber, workerId, onSubmitte
           <span className="text-xs font-medium text-slate-500">{t("factory.forms.quality.defectQuantity")}</span>
           <span className="text-sm font-bold text-red-700">{defectQty}</span>
         </div>
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+          </div>
+        )}
 
         {defectQty > 0 && (
           <>

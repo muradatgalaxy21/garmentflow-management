@@ -52,6 +52,17 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
   const [alterReason, setAlterReason] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("rate")
+      .eq("department", "quality_final")
+      .eq("label", "default")
+      .maybeSingle()
+      .then(({ data }) => setRatePerPiece(data ? Number(data.rate) : null));
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -71,6 +82,7 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
   const selectedStatus = bundleId ? statuses.get(bundleId) : null;
+  const totalCost = ratePerPiece !== null && selectedBundle ? ratePerPiece * selectedBundle.pcs_count : null;
 
   const canSubmit =
     !!bundleId &&
@@ -104,11 +116,13 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
           bundle_id: bundleId,
           lot_no: selectedBundle?.lot_no ?? null,
           bundle_no: selectedBundle?.bundle_no ?? null,
+          pcs_count: selectedBundle?.pcs_count ?? null,
           verdict,
           routed_to_department: verdict === "alter" ? routedTo : null,
           alter_reason: verdict === "alter" ? alterReason.trim() : null,
           reject_reason: verdict === "reject" ? rejectReason.trim() : null,
         },
+        totalCost,
       });
       toast({ title: t("factory.forms.qualityFinal.qualityCheckSaved") });
       onSubmitted();
@@ -207,6 +221,13 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
               </div>
             )}
           </>
+        )}
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+          </div>
         )}
 
         <Button

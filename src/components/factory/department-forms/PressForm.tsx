@@ -26,6 +26,7 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
   const [bundleId, setBundleId] = useState("");
   const [pcsPressed, setPcsPressed] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
+  const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
 
   useEffect(() => {
     supabase
@@ -40,7 +41,18 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
       });
   }, [batchId]);
 
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("rate")
+      .eq("department", "press")
+      .eq("label", "default")
+      .maybeSingle()
+      .then(({ data }) => setRatePerPiece(data ? Number(data.rate) : null));
+  }, []);
+
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
+  const totalCost = ratePerPiece !== null ? ratePerPiece * pcsPressed : null;
 
   const handleSubmit = async () => {
     if (!bundleId || pcsPressed <= 0) {
@@ -59,6 +71,7 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
           bundle_no: selectedBundle?.bundle_no ?? null,
           pcs_pressed: pcsPressed,
         },
+        totalCost,
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -102,6 +115,13 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
             onChange={(e) => setPcsPressed(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
         </div>
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+          </div>
+        )}
 
         <Button
           size="lg"

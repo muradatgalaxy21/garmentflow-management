@@ -12,6 +12,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { getEntryPieceCount } from "@/lib/departmentEntries";
+
+// Departments where department_entries.total_cost is the worker's per-piece
+// wage — summed straight into payout. Everything else (accessories: material
+// cost; cutting/printing/embroidery/lot_bundling: cost-tracking only, workers
+// salaried) is excluded on purpose — confirmed with user 2026-08-21.
+const WAGE_BEARING_DEPARTMENTS = [
+  "sticker", "quality", "stitching", "button_ops", "clipping", "press", "quality_final", "packing",
+] as const;
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
@@ -98,7 +107,12 @@ export default function EmployeesPage() {
       .from("batch_phase_panel_rates")
       .select("id, rate_per_piece");
 
-    if (tErr || rErr || prErr) {
+    const { data: deptEntries, error: dErr } = await supabase
+      .from("department_entries")
+      .select("worker_id, department, payload, total_cost")
+      .in("department", WAGE_BEARING_DEPARTMENTS);
+
+    if (tErr || rErr || prErr || dErr) {
       toast({ title: "Failed to fetch payout data", variant: "destructive" });
       setLoadingPayouts(false);
       return;
@@ -139,6 +153,19 @@ export default function EmployeesPage() {
             : rateMap.get(`${t.batch_id}_${t.phase_id}`) || 0;
           summary.calculated_payout += Number(t.quantity_completed || 0) * rate;
         }
+      }
+    });
+
+    // Real worker QR-logged work — department_entries.total_cost is already
+    // rate × pieces at the rate live when the entry was submitted (historical
+    // integrity, same pattern as the printing/embroidery/clipping forms).
+    deptEntries?.forEach((e) => {
+      const summary = summaryMap.get(e.worker_id);
+      if (!summary) return;
+      const pieces = getEntryPieceCount((e.payload as Record<string, unknown>) ?? {}) ?? 0;
+      summary.total_pieces += pieces;
+      if (summary.wage_type.includes("Dihaari")) {
+        summary.calculated_payout += Number(e.total_cost || 0);
       }
     });
 

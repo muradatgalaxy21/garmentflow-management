@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
 import { insertDepartmentEntry } from "@/lib/departmentEntries";
@@ -22,6 +23,19 @@ export default function StickerForm({ batchId, styleNumber, workerId, onSubmitte
   const [placement, setPlacement] = useState<string>("");
   const [color, setColor] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("department_cost_rates")
+      .select("rate")
+      .eq("department", "sticker")
+      .eq("label", "default")
+      .maybeSingle()
+      .then(({ data }) => setRatePerPiece(data ? Number(data.rate) : null));
+  }, []);
+
+  const totalCost = ratePerPiece !== null ? ratePerPiece * quantity : null;
 
   const handleSubmit = async () => {
     if (quantity <= 0 || !patchType || !placement) {
@@ -37,6 +51,7 @@ export default function StickerForm({ batchId, styleNumber, workerId, onSubmitte
         payload: {
           quantity, type, patch_type: patchType, placement, color, style_no: styleNumber,
         },
+        totalCost,
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -95,6 +110,13 @@ export default function StickerForm({ batchId, styleNumber, workerId, onSubmitte
           <span className="text-xs font-medium text-slate-500">{t("factory.common.styleNo")}</span>
           <span className="text-sm font-bold text-slate-800">{styleNumber}</span>
         </div>
+
+        {totalCost !== null && (
+          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
+            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+          </div>
+        )}
 
         <Button
           size="lg"
