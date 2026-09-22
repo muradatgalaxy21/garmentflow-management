@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
-import WhatsAppWidget from "@/components/WhatsAppWidget";
 import ChatBot from "@/components/ChatBot";
 
 // Wraps all public-facing pages with shared header, footer, and floating widgets
@@ -13,7 +12,6 @@ export default function PublicLayout() {
         <Outlet />
       </main>
       <Footer />
-      <WhatsAppWidget />
       <ChatBot />
     </div>
   );

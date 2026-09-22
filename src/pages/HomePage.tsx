@@ -233,10 +233,10 @@ export default function HomePage() {
               Three Generations of Craftsmanship
             </h2>
             <p className="text-[15px] text-[#5B5142] leading-[1.8] m-0 mb-[18px]">
-              Founded by Nazim Ud Din — who began as a worker stitching socks and trousers — En En
+              Founded by our Ex-CEO/Founder — who began as a worker stitching socks and trousers — En En
               Garments grew from a single tailor into a manufacturing unit with 80+ skilled
-              employees. Today, his son Zubair Nazim leads the company as Owner and CEO, partnered
-              with elder son Firas Ahmad as a top-level manager and partial owner.
+              employees. Today, our Current CEO leads the company, partnered
+              with our Current CFO as a top-level manager and partial owner.
             </p>
             <p className="text-[15px] text-[#5B5142] leading-[1.8] m-0 mb-[30px]">
               We serve both international export clients and trusted local vendors, with cutting,

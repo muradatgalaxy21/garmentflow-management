@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, Phone, MapPin } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -89,7 +89,7 @@ export default function ContactPage() {
       console.error("RFQ submit failed", err);
       toast({
         title: "Submission Failed",
-        description: "Please try again or contact us via WhatsApp.",
+        description: "Please try again or contact us via email.",
         variant: "destructive",
       });
     } finally {
@@ -174,7 +174,7 @@ export default function ContactPage() {
                   <Input
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    placeholder="+92 300 8408936"
+                    placeholder="Your phone number"
                     className="mt-1 bg-[#FAF8F3] border-[#E5DFD3] text-sm focus:border-[#B88E28]"
                   />
                 </div>
@@ -247,24 +247,11 @@ export default function ContactPage() {
                   <div>
                     <p className="text-xs font-bold text-[#1E293B]">Email</p>
                     <a
-                      href="mailto:zubair.nazim@accounts.ffclothings.com"
+                      href="mailto:info@enengarments.com"
                       className="text-sm text-gray-600 hover:text-[#B88E28] break-all mt-0.5 inline-block"
                     >
-                      zubair.nazim@accounts.ffclothings.com
+                      info@enengarments.com
                     </a>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full border border-[#B88E28]/40 bg-[#FAF7F0] text-[#B88E28] flex items-center justify-center shrink-0 mt-0.5">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-[#1E293B]">Phone (Owner)</p>
-                    <a href="tel:+923008408936" className="text-sm text-gray-600 hover:text-[#B88E28] mt-0.5 inline-block">
-                      0300 8408936
-                    </a>
-                    <p className="text-xs text-gray-500 mt-0.5">Zubair Nazim — Owner & CEO</p>
                   </div>
                 </div>
 
@@ -274,7 +261,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-[#1E293B]">Location</p>
-                    <p className="text-sm text-gray-600 mt-0.5">Pakistan — Shipping worldwide</p>
+                    <p className="text-sm text-gray-600 mt-0.5">Lahore, Pakistan</p>
                   </div>
                 </div>
               </div>
@@ -283,8 +270,9 @@ export default function ContactPage() {
             <div className="p-5 rounded-lg bg-[#EFE8D9] border border-[#E4DDD0]">
               <h4 className="font-heading font-bold text-[#1E293B] text-sm">Response Time</h4>
               <p className="mt-1.5 text-sm text-gray-600 leading-relaxed">
-                We respond to all inquiries within 24 business hours. For urgent orders, reach us
-                on WhatsApp.
+                Working hours are 9AM – 9PM. Inquiries during working hours are responded to within
+                2-4 hours. Inquiries received outside working hours are responded to the next
+                working day.
               </p>
             </div>
           </motion.div>

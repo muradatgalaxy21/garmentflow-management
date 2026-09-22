@@ -36,21 +36,18 @@ const values = [
 const timeline = [
   {
     era: "1990s",
-    name: "Nazim Ud Din",
-    role: "Founder",
+    role: "Ex-CEO/Founder",
     text: "Started as a worker sewing socks and trousers, then built his own unit from a single tailor into a small workshop with a handful of workers.",
   },
   {
     era: "2000s",
-    name: "Zubair Nazim",
-    role: "Owner & CEO",
+    role: "Current CEO",
     text: "Joined his father and helped scale the business into a full-fledged manufacturing unit with 80+ employees, expanding into exports and local vendor supply.",
   },
   {
     era: "Present",
-    name: "Firas Ahmad",
-    role: "Manager & Partial Owner",
-    text: "Elder son of Zubair, currently studying while serving as a top-level manager and partial owner of the factory.",
+    role: "Current CFO",
+    text: "Currently studying while serving as a top-level manager and partial owner of the factory.",
   },
 ];
 
@@ -88,7 +85,7 @@ export default function AboutPage() {
             <div className="h-[2px] w-12 bg-[#B88E28] mb-4" />
             <h2 className="font-heading text-3xl md:text-4xl font-bold text-[#1E293B]">Our Story</h2>
             <p className="mt-5 text-gray-700 leading-relaxed">
-              En En Garments was founded by <strong>Nazim Ud Din</strong>, who began his journey as
+              En En Garments was founded by our <strong>Ex-CEO/Founder</strong>, who began his journey as
               a worker stitching socks and trousers. With years of hands-on experience he stepped
               out on his own — starting as a single tailor, then growing to a few workers, and
               eventually building a full-fledged manufacturing unit with 80+ employees.
@@ -96,9 +93,9 @@ export default function AboutPage() {
             <p className="mt-4 text-gray-700 leading-relaxed">
               When his son grew up, the two paired up to scale the business together. Our
               grandfather has since passed away — <em>may Allah grant him Jannah</em> — and the
-              family heritage continues under the leadership of his son{" "}
-              <strong>Zubair Nazim</strong>, current Owner and CEO. Today, Zubair is partnered with
-              his elder son <strong>Firas Ahmad</strong>, who is currently studying while serving
+              family heritage continues under the leadership of our{" "}
+              <strong>Current CEO</strong>. Today, he is partnered with
+              our <strong>Current CFO</strong>, who is currently studying while serving
               as a top-level manager and partial owner of the factory.
             </p>
             <p className="mt-4 text-gray-700 leading-relaxed">
@@ -138,7 +135,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             {timeline.map((step, i) => (
               <motion.div
-                key={step.name}
+                key={step.role}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -150,9 +147,8 @@ export default function AboutPage() {
                     {step.era}
                   </span>
                   <h3 className="font-heading text-xl font-bold text-[#1E293B] mt-1">
-                    {step.name}
+                    {step.role}
                   </h3>
-                  <p className="text-sm text-gray-500 italic mt-0.5">{step.role}</p>
                   <div className="h-[1.5px] w-8 bg-[#B88E28] my-4" />
                   <p className="text-sm text-gray-600 leading-relaxed">{step.text}</p>
                 </div>
