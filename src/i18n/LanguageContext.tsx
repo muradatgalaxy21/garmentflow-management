@@ -54,7 +54,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [explicitLanguage, setExplicitLanguage] = useState<Language | null>(getStoredLanguage);
 
   const isFactoryRoute = location.pathname.startsWith("/factory");
-  const language: Language = explicitLanguage ?? (isFactoryRoute ? "roman-ur" : "en");
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  // Admin portal is English-only — no switcher there, and a language chosen
+  // elsewhere (client/worker portal) must never leak in and strand admin in RTL.
+  const language: Language = isAdminRoute
+    ? "en"
+    : explicitLanguage ?? (isFactoryRoute ? "roman-ur" : "en");
 
   // Synchronize HTML document attributes (lang & dir) when language changes
   useEffect(() => {

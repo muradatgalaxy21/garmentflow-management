@@ -3,7 +3,6 @@ import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, 
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
-import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 import {
   Sidebar,
   SidebarContent,
@@ -106,7 +105,6 @@ export default function AdminLayout() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <LanguageSwitcher variant="outline" size="sm" />
               <NotificationBell />
               <Button
                 variant="ghost"
