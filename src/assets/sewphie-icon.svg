@@ -1,10 +1,153 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="56" height="56">
-  <circle cx="50" cy="50" r="48" fill="#ffffff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 520 1760 1110" width="880" height="555" xmlns:c2pa="http://c2pa.org/manifest"><metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpkMGI1NGExZi1kYWIwLTRiOWItOGVmMy01NjFmZDU1NDg5ZDEAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaNdA6rHvNOPxatvLlEzWuREAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo2NmVhMDg4ZC1jN2ZkLTRkZjUtOTUzMC1jOTcwNzc1Y2Y2ODdscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoCgUbA6qFfZKpYKnTu/GQpQAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggzE5YQ7PjjF3616xEBmJ19ZWdICkX0VRBZVGHTZt7ftukZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaKRm5GTgTiP/yt17VBFSA/kAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRNAAAAAAAAAAAAAAAAAGRoYXNoWCA+fXYLPYlTKS1rqmn73HeG5bpScsve007UZF9H1HZpcmRuYW1lbmp1bWJmIG1hbmlmZXN0amV4Y2x1c2lvbnOBomVzdGFydBibZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmQwYjU0YTFmLWRhYjAtNGI5Yi04ZWYzLTU2MWZkNTU0ODlkMS9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjk5OGY0MGE4LWNjZDItNDBhNi1iY2FhLWZmNDYyY2MzNTE3MnJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCDMTlhDs+OMXfrXrEQGYnX1lZ0gKRfRVEFlUYdNm3t+26JjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggerjSPK6Q94uk8USY0dcEIxq15kGdy+CoHkCR4wL1YQWiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggXT+PGnYRCY+dAhbRxQ6l/dQLZYalv8yGNUnAP/S/Zh10Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQGUUiiKpOU61zjG2b4MULZe1FVZJNU45gDPUrwxyzeXK/jEa7vnkXGGUeHYxa2we0QZyx+Et/WsYRG7MxNXXHjw=</c2pa:manifest></metadata>
+  <defs>
+    <linearGradient id="baseG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#97999e"/>
+      <stop offset="0.55" stop-color="#8d9095"/>
+      <stop offset="1" stop-color="#77777d"/>
+    </linearGradient>
+    <linearGradient id="wheelG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b3b5ba"/>
+      <stop offset="1" stop-color="#8f9196"/>
+    </linearGradient>
+    <clipPath id="bodyClip">
+      <path id="bodyShape" d="M650,705 Q985,688 1322,712 Q1402,728 1412,822 L1432,1308 L1056,1308 L1090,1152 Q1106,1062 1100,1030 Q1086,985 1000,985 L880,985 Q810,990 786,1060 Q760,1142 690,1143 L592,1143 Q516,1141 506,1060 L492,922 Q486,780 560,738 Q600,712 650,705 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- ground shadow -->
+  <ellipse cx="965" cy="1552" rx="615" ry="44" fill="#c1c2c7"/>
+
   <g>
-    <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" keyTimes="0;0.5;1" dur="2.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
-    <path d="M50 24c-14.9 0-27 10.1-27 22.5 0 7.2 4 13.6 10.4 17.7-.4 3-1.7 6.7-4.4 10 4.7-.7 9.3-2.6 12.9-5.3 2.5.7 5.2 1.1 8.1 1.1 14.9 0 27-10.1 27-22.5S64.9 24 50 24z" fill="#4b5885"/>
-    <circle cx="39" cy="46.5" r="4.2" fill="#ffffff"/>
-    <circle cx="50" cy="46.5" r="4.2" fill="#ffffff"/>
-    <circle cx="61" cy="46.5" r="4.2" fill="#ffffff"/>
+    <animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" keyTimes="0;0.5;1" dur="2.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
+
+    <!-- feet -->
+    <rect x="500" y="1515" width="112" height="60" rx="20" fill="#6c6d73" stroke="#3d3e53" stroke-width="8"/>
+    <rect x="1310" y="1515" width="116" height="60" rx="20" fill="#6c6d73" stroke="#3d3e53" stroke-width="8"/>
+
+    <!-- thread guide post + thread + spool (behind body) -->
+    <rect x="663" y="658" width="48" height="70" rx="12" fill="#8f9196" stroke="#3d3e53" stroke-width="7"/>
+    <path d="M702,682 Q960,678 1196,640" fill="none" stroke="#8a8b90" stroke-width="5" stroke-linecap="round"/>
+    <rect x="1227" y="572" width="18" height="36" rx="9" fill="#8f9196" stroke="#3d3e53" stroke-width="6"/>
+    <rect x="1197" y="604" width="80" height="100" rx="6" fill="#77767b" stroke="#3d3e53" stroke-width="7"/>
+    <g stroke="#9a9ba0" stroke-width="5" stroke-linecap="round">
+      <line x1="1206" y1="628" x2="1268" y2="628"/><line x1="1206" y1="648" x2="1268" y2="648"/>
+      <line x1="1206" y1="668" x2="1268" y2="668"/><line x1="1206" y1="688" x2="1268" y2="688"/>
+    </g>
+    <rect x="1185" y="590" width="104" height="24" rx="11" fill="#9a9ca1" stroke="#3d3e53" stroke-width="7"/>
+    <rect x="1185" y="694" width="104" height="24" rx="11" fill="#9a9ca1" stroke="#3d3e53" stroke-width="7"/>
+
+    <!-- handwheel (behind body) -->
+    <rect x="1392" y="826" width="134" height="166" rx="48" fill="#8f9196" stroke="#3d3e53" stroke-width="8"/>
+    <rect x="1428" y="772" width="64" height="274" rx="30" fill="url(#wheelG)" stroke="#3d3e53" stroke-width="8"/>
+    <rect x="1447" y="795" width="14" height="110" rx="7" fill="#d4d6da" opacity="0.7"/>
+
+    <!-- right arm (gentle present gesture) -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0 1420 1095;-3 1420 1095;0 1420 1095" dur="2.6s" repeatCount="indefinite"/>
+      <path d="M1400,1090 Q1470,1148 1575,1162" fill="none" stroke="#3d3e53" stroke-width="50" stroke-linecap="round"/>
+      <path d="M1400,1090 Q1470,1148 1575,1162" fill="none" stroke="#4b5885" stroke-width="34" stroke-linecap="round"/>
+      <!-- right hand -->
+      <g stroke-linecap="round" fill="none">
+        <g stroke="#3d3e53" stroke-width="56">
+          <line x1="1612" y1="1142" x2="1664" y2="1078"/>
+          <line x1="1640" y1="1166" x2="1746" y2="1162"/>
+          <line x1="1640" y1="1196" x2="1750" y2="1224"/>
+          <line x1="1622" y1="1216" x2="1712" y2="1266"/>
+        </g>
+        <ellipse cx="1600" cy="1182" rx="70" ry="64" fill="#919197" stroke="#3d3e53" stroke-width="8"/>
+        <g stroke="#919197" stroke-width="40">
+          <line x1="1612" y1="1142" x2="1664" y2="1078"/>
+          <line x1="1640" y1="1166" x2="1746" y2="1162"/>
+          <line x1="1640" y1="1196" x2="1750" y2="1224"/>
+          <line x1="1622" y1="1216" x2="1712" y2="1266"/>
+        </g>
+        <ellipse cx="1600" cy="1182" rx="62" ry="56" fill="#919197" stroke="none"/>
+        <path d="M1648,1238 Q1662,1222 1682,1226" stroke="#3d3e53" stroke-width="7"/>
+        <path d="M1628,1175 Q1648,1168 1664,1180" stroke="#3d3e53" stroke-width="7"/>
+      </g>
+    </g>
+
+    <!-- left arm + hand (waving) -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0 505 1055;-10 505 1055;5 505 1055;-10 505 1055;5 505 1055;0 505 1055;0 505 1055" keyTimes="0;0.14;0.28;0.42;0.56;0.7;1" dur="2.8s" repeatCount="indefinite"/>
+      <path d="M515,1058 Q372,1022 338,885" fill="none" stroke="#3d3e53" stroke-width="50" stroke-linecap="round"/>
+      <path d="M515,1058 Q372,1022 338,885" fill="none" stroke="#4b5885" stroke-width="34" stroke-linecap="round"/>
+      <g>
+        <animateTransform attributeName="transform" type="rotate" values="0 338 890;-9 338 890;7 338 890;-9 338 890;7 338 890;0 338 890;0 338 890" keyTimes="0;0.14;0.28;0.42;0.56;0.7;1" dur="2.8s" repeatCount="indefinite"/>
+        <g stroke-linecap="round" fill="none">
+          <g stroke="#3d3e53" stroke-width="56">
+            <line x1="268" y1="832" x2="198" y2="768"/>
+            <line x1="284" y1="806" x2="246" y2="690"/>
+            <line x1="316" y1="802" x2="312" y2="678"/>
+            <line x1="352" y1="838" x2="404" y2="760"/>
+          </g>
+          <ellipse cx="310" cy="840" rx="74" ry="68" fill="#919197" stroke="#3d3e53" stroke-width="8"/>
+          <g stroke="#919197" stroke-width="40">
+            <line x1="268" y1="832" x2="198" y2="768"/>
+            <line x1="284" y1="806" x2="246" y2="690"/>
+            <line x1="316" y1="802" x2="312" y2="678"/>
+            <line x1="352" y1="838" x2="404" y2="760"/>
+          </g>
+          <ellipse cx="310" cy="840" rx="66" ry="60" fill="#919197" stroke="none"/>
+          <path d="M238,806 L262,790" stroke="#3d3e53" stroke-width="7"/>
+          <path d="M318,842 Q320,812 346,798" stroke="#3d3e53" stroke-width="7"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- main body -->
+    <use href="#bodyShape" fill="#4b5885"/>
+    <g clip-path="url(#bodyClip)">
+      <!-- inner shading around the throat and right edge -->
+      <path d="M786,1060 Q810,990 880,985 L1000,985 Q1086,985 1100,1030 Q1106,1062 1090,1152 L1056,1308" fill="none" stroke="#3a4570" stroke-width="60" opacity="0.55"/>
+      <path d="M1412,822 L1432,1308" fill="none" stroke="#3a4570" stroke-width="50" opacity="0.5"/>
+      <path d="M506,1060 Q516,1141 592,1143 L690,1143 Q760,1142 786,1060" fill="none" stroke="#3a4570" stroke-width="40" opacity="0.45"/>
+    </g>
+    <use href="#bodyShape" fill="none" stroke="#3d3e53" stroke-width="9" stroke-linejoin="round"/>
+
+    <!-- faceplate seam -->
+    <path d="M633,733 L638,1020" stroke="#2f3448" stroke-width="9" stroke-linecap="round"/>
+    <path d="M630,860 Q616,885 630,910" fill="none" stroke="#2f3448" stroke-width="12" stroke-linecap="round"/>
+
+    <!-- highlights -->
+    <path d="M772,738 Q1030,722 1296,770" fill="none" stroke="#8a95bf" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M528,905 Q532,800 598,758" fill="none" stroke="#8a95bf" stroke-width="14" stroke-linecap="round" opacity="0.75"/>
+    <path d="M665,748 L690,744" fill="none" stroke="#8a95bf" stroke-width="12" stroke-linecap="round" opacity="0.75"/>
+
+    <!-- tension dial -->
+    <circle cx="705" cy="1025" r="42" fill="#a4a5aa" stroke="#3d3e53" stroke-width="8"/>
+    <circle cx="705" cy="1025" r="22" fill="#bcbcbe" stroke="#5f6069" stroke-width="5"/>
+
+    <!-- needle assembly -->
+    <path d="M600,1146 Q602,1262 652,1288" fill="none" stroke="#8a8b90" stroke-width="5" stroke-linecap="round"/>
+    <rect x="645" y="1143" width="32" height="112" rx="9" fill="#8f9196" stroke="#3d3e53" stroke-width="7"/>
+    <circle cx="692" cy="1192" r="16" fill="#77767b" stroke="#3d3e53" stroke-width="5"/>
+    <path d="M651,1252 L671,1252 L663,1302 Z" fill="#9a9ca1" stroke="#3d3e53" stroke-width="5" stroke-linejoin="round"/>
+
+    <!-- face -->
+    <ellipse cx="802" cy="878" rx="40" ry="23" fill="#8b8c8f"/>
+    <ellipse cx="1108" cy="878" rx="40" ry="23" fill="#8b8c8f"/>
+    <g fill="none" stroke="#4c2f27" stroke-width="10" stroke-linecap="round">
+      <path d="M814,830 Q842,794 870,830"/>
+      <path d="M1040,830 Q1068,794 1096,830"/>
+      <path d="M906,860 Q955,912 1004,860"/>
+    </g>
+
+    <!-- heart patch -->
+    <rect x="1182" y="1054" width="182" height="182" rx="18" fill="#9c9da1" stroke="#3d3e53" stroke-width="7"/>
+    <g stroke="#3d3e53" stroke-width="7" stroke-linecap="round">
+      <line x1="1220" y1="1042" x2="1220" y2="1066"/><line x1="1256" y1="1042" x2="1256" y2="1066"/><line x1="1292" y1="1042" x2="1292" y2="1066"/><line x1="1328" y1="1042" x2="1328" y2="1066"/>
+      <line x1="1220" y1="1224" x2="1220" y2="1248"/><line x1="1256" y1="1224" x2="1256" y2="1248"/><line x1="1292" y1="1224" x2="1292" y2="1248"/><line x1="1328" y1="1224" x2="1328" y2="1248"/>
+      <line x1="1170" y1="1100" x2="1194" y2="1100"/><line x1="1170" y1="1136" x2="1194" y2="1136"/><line x1="1170" y1="1172" x2="1194" y2="1172"/><line x1="1170" y1="1208" x2="1194" y2="1208"/>
+      <line x1="1352" y1="1086" x2="1376" y2="1086"/><line x1="1352" y1="1122" x2="1376" y2="1122"/><line x1="1352" y1="1158" x2="1376" y2="1158"/><line x1="1352" y1="1194" x2="1376" y2="1194"/>
+    </g>
+    <path d="M1273,1196 C1232,1168 1222,1140 1240,1122 C1255,1109 1270,1116 1273,1132 C1276,1116 1291,1109 1306,1122 C1324,1140 1314,1168 1273,1196 Z" fill="#7d8086" stroke="#3f4a78" stroke-width="7" stroke-linejoin="round"/>
+
+    <!-- base -->
+    <rect x="434" y="1306" width="1062" height="228" rx="50" fill="url(#baseG)" stroke="#3d3e53" stroke-width="9"/>
+    <path d="M478,1400 Q480,1352 520,1340" fill="none" stroke="#c4c6ca" stroke-width="12" stroke-linecap="round"/>
+    <path d="M566,1338 L605,1338" stroke="#c4c6ca" stroke-width="10" stroke-linecap="round"/>
+    <path d="M680,1340 L705,1340" stroke="#c4c6ca" stroke-width="10" stroke-linecap="round"/>
+    <path d="M745,1336 L1392,1333" stroke="#b9bbc0" stroke-width="12" stroke-linecap="round"/>
   </g>
 </svg>
