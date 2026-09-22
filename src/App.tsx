@@ -1,5 +1,7 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,44 +11,49 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import PortalLayout from "@/components/layout/PortalLayout";
 import FactoryLayout from "@/components/layout/FactoryLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-
-import HomePage from "@/pages/HomePage";
-import AboutPage from "@/pages/AboutPage";
-import CapabilitiesPage from "@/pages/CapabilitiesPage";
-import CatalogPage from "@/pages/CatalogPage";
-import ContactPage from "@/pages/ContactPage";
-import AuthPage from "@/pages/AuthPage";
-import AdminAuthPage from "@/pages/AdminAuthPage";
-import ActivateAccountPage from "@/pages/ActivateAccountPage";
-import NotFound from "@/pages/NotFound";
-
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import RfqInbox from "@/pages/admin/RfqInbox";
-import InventoryPage from "@/pages/admin/InventoryPage";
-import OrdersAdminPage from "@/pages/admin/OrdersAdminPage";
-import BatchManagementPage from "@/pages/admin/BatchManagementPage";
-import ClientsPage from "@/pages/admin/ClientsPage";
-import EmployeesPage from "@/pages/admin/EmployeesPage";
-import WorkerDetailPage from "@/pages/admin/WorkerDetailPage";
-import AdminInboxPage from "@/pages/admin/InboxPage";
-import DispatchPage from "@/pages/admin/DispatchPage";
-import BatchPipelineStatusPage from "@/pages/admin/BatchPipelineStatusPage";
-
-import PortalHome from "@/pages/portal/PortalHome";
-import MyOrders from "@/pages/portal/MyOrders";
-import OrderDetail from "@/pages/portal/OrderDetail";
-import ProfilePage from "@/pages/portal/ProfilePage";
-import ClientInboxPage from "@/pages/portal/ClientInboxPage";
-
-import DirectOrderPage from "@/pages/portal/DirectOrderPage";
-
-import FactoryDashboard from "@/pages/factory/FactoryDashboard";
-import MyWorkPage from "@/pages/factory/MyWorkPage";
-import DepartmentEntryPage from "@/pages/factory/DepartmentEntryPage";
-import InboxPage from "@/pages/factory/InboxPage";
-import AccessoryRestockPage from "@/pages/factory/AccessoryRestockPage";
-
 import { LanguageProvider } from "@/i18n/LanguageContext";
+
+const HomePage = lazy(() => import("@/pages/HomePage"));
+const AboutPage = lazy(() => import("@/pages/AboutPage"));
+const CapabilitiesPage = lazy(() => import("@/pages/CapabilitiesPage"));
+const CatalogPage = lazy(() => import("@/pages/CatalogPage"));
+const ContactPage = lazy(() => import("@/pages/ContactPage"));
+const AuthPage = lazy(() => import("@/pages/AuthPage"));
+const AdminAuthPage = lazy(() => import("@/pages/AdminAuthPage"));
+const ActivateAccountPage = lazy(() => import("@/pages/ActivateAccountPage"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const RfqInbox = lazy(() => import("@/pages/admin/RfqInbox"));
+const InventoryPage = lazy(() => import("@/pages/admin/InventoryPage"));
+const OrdersAdminPage = lazy(() => import("@/pages/admin/OrdersAdminPage"));
+const BatchManagementPage = lazy(() => import("@/pages/admin/BatchManagementPage"));
+const ClientsPage = lazy(() => import("@/pages/admin/ClientsPage"));
+const EmployeesPage = lazy(() => import("@/pages/admin/EmployeesPage"));
+const WorkerDetailPage = lazy(() => import("@/pages/admin/WorkerDetailPage"));
+const AdminInboxPage = lazy(() => import("@/pages/admin/InboxPage"));
+const DispatchPage = lazy(() => import("@/pages/admin/DispatchPage"));
+const BatchPipelineStatusPage = lazy(() => import("@/pages/admin/BatchPipelineStatusPage"));
+
+const PortalHome = lazy(() => import("@/pages/portal/PortalHome"));
+const MyOrders = lazy(() => import("@/pages/portal/MyOrders"));
+const OrderDetail = lazy(() => import("@/pages/portal/OrderDetail"));
+const ProfilePage = lazy(() => import("@/pages/portal/ProfilePage"));
+const ClientInboxPage = lazy(() => import("@/pages/portal/ClientInboxPage"));
+
+const DirectOrderPage = lazy(() => import("@/pages/portal/DirectOrderPage"));
+
+const FactoryDashboard = lazy(() => import("@/pages/factory/FactoryDashboard"));
+const MyWorkPage = lazy(() => import("@/pages/factory/MyWorkPage"));
+const DepartmentEntryPage = lazy(() => import("@/pages/factory/DepartmentEntryPage"));
+const InboxPage = lazy(() => import("@/pages/factory/InboxPage"));
+const AccessoryRestockPage = lazy(() => import("@/pages/factory/AccessoryRestockPage"));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="w-6 h-6 animate-spin text-accent" />
+  </div>
+);
 
 const queryClient = new QueryClient();
 
@@ -57,6 +64,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <LanguageProvider>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public marketing site */}
             <Route element={<PublicLayout />}>
@@ -138,6 +146,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </LanguageProvider>
       </BrowserRouter>
     </TooltipProvider>

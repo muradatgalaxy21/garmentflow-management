@@ -42,7 +42,7 @@ export default function PortalLayout() {
 
             {/* Brand logo + name */}
             <div className="flex items-center gap-2.5">
-              <img src="/logo-mark.svg" alt="En En Garments" className="w-7 h-7 shrink-0" />
+              <img src="/logo-mark.svg" alt="En En Garments" className="h-10 w-auto shrink-0" />
               <div>
                 <p className="font-heading font-bold leading-tight text-base">En En Garments</p>
                 <p className="text-[10px] opacity-60 leading-none">Client Portal</p>

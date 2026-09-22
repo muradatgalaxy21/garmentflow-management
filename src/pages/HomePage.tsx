@@ -262,6 +262,7 @@ export default function HomePage() {
               alt="Folded fabric stacks"
               className="rounded-[4px] object-cover w-full h-[340px] shadow-sm"
               loading="lazy"
+              decoding="async"
               width={800}
               height={600}
             />
@@ -270,6 +271,7 @@ export default function HomePage() {
               alt="Tailor fitting a garment"
               className="rounded-[4px] object-cover w-full h-[340px] mt-[36px] shadow-sm"
               loading="lazy"
+              decoding="async"
               width={800}
               height={600}
             />
