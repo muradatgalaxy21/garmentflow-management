@@ -216,6 +216,18 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
+
+          <div className="flex justify-center mt-[42px]">
+            <a
+              href="https://enengarments.com/capabilities#:~:text=Our%20Production%20Process"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-fill-navy inline-flex items-center justify-center gap-2 px-[32px] py-[15px] rounded-[3px] text-[14px] font-semibold tracking-wide shadow-md hover:shadow-xl hover:-translate-y-0.5 transition-all"
+            >
+              See Our Production Process
+              <ChevronRight size={16} />
+            </a>
+          </div>
         </div>
       </section>
 
