@@ -93,23 +93,43 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Toggle button in bottom-left to avoid the WhatsApp widget */}
+      {/* Floating AI assistant toggle - SVG itself acts as the button */}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label="Open AI assistant"
-        className="fixed bottom-6 left-6 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-xl ring-2 ring-white hover:scale-105 transition-transform"
+        aria-label={open ? "Close AI assistant" : "Open AI assistant"}
+        className="fixed bottom-6 left-6 z-50 p-0 bg-transparent border-0 outline-none focus:outline-none cursor-pointer hover:scale-110 active:scale-95 transition-transform duration-200"
       >
-        {open ? <X size={22} /> : <img src={chatbotIcon} alt="" className="w-9 h-9" />}
+        {open ? (
+          <div className="flex items-center justify-center w-11 h-11 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90">
+            <X size={20} />
+          </div>
+        ) : (
+          <img
+            src={chatbotIcon}
+            alt="Open AI assistant"
+            className="w-11 h-11 object-contain drop-shadow-md select-none"
+          />
+        )}
       </button>
 
       {open && (
         <div className="fixed bottom-24 left-6 z-50 w-[min(92vw,380px)] h-[min(70vh,560px)] bg-card border border-border rounded-lg shadow-2xl flex flex-col overflow-hidden">
-          <header className="bg-primary text-primary-foreground px-4 py-3 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-gold" />
-            <div>
-              <p className="font-heading font-semibold text-sm">En En Garments Assistant</p>
-              <p className="text-xs opacity-70">Ask about products, MOQs, exports</p>
+          <header className="bg-primary text-primary-foreground px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-gold" />
+              <div>
+                <p className="font-heading font-semibold text-sm">En En Garments Assistant</p>
+                <p className="text-xs opacity-70">Ask about products, MOQs, exports</p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close chat"
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 p-1 rounded-md transition-colors"
+            >
+              <X size={18} />
+            </button>
           </header>
 
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
