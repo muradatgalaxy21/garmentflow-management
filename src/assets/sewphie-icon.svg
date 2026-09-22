@@ -14,8 +14,6 @@
     </clipPath>
   </defs>
 
-  <!-- ground shadow -->
-  <ellipse cx="965" cy="1552" rx="615" ry="44" fill="#c1c2c7"/>
 
   <g>
     <animateTransform attributeName="transform" type="translate" values="0 0;0 -8;0 0" keyTimes="0;0.5;1" dur="2.6s" repeatCount="indefinite" calcMode="spline" keySplines="0.45 0 0.55 1;0.45 0 0.55 1"/>
