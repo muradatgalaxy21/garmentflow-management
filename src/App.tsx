@@ -13,6 +13,8 @@ import FactoryLayout from "@/components/layout/FactoryLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
+import TitleManager from "@/components/common/TitleManager";
+
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
 const CapabilitiesPage = lazy(() => import("@/pages/CapabilitiesPage"));
@@ -63,6 +65,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <TitleManager />
         <LanguageProvider>
           <Suspense fallback={<RouteFallback />}>
           <Routes>

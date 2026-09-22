@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, getEntryPieceCount, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
@@ -57,6 +58,12 @@ export default function WorkerDetailPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<Profile | null>(null);
   const [detailEntry, setDetailEntry] = useState<DepartmentEntryDetail | null>(null);
+
+  useDocumentTitle(
+    profile?.full_name
+      ? `${profile.full_name} - Employees - Admin Portal - En En Garments`
+      : "Worker Profile - Admin Portal - En En Garments"
+  );
 
   const load = async () => {
     if (!id) return;

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 interface Order {
   id: string;
@@ -49,6 +50,12 @@ export default function OrderDetail() {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [batches, setBatches] = useState<BatchProgress[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useDocumentTitle(
+    order?.order_number
+      ? `Order #${order.order_number} - Client Portal - En En Garments`
+      : "Order Details - Client Portal - En En Garments"
+  );
 
   useEffect(() => {
     if (!id) return;
