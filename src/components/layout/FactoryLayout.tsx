@@ -31,14 +31,44 @@ export default function FactoryLayout() {
           .select("full_name, department")
           .eq("id", user.id)
           .maybeSingle();
-        setUserName(profile?.full_name || user.email?.split("@")[0] || t("factory.dashboard.workerFallback"));
+        setUserName(profile?.full_name || user.email?.split("@")[0] || user.phone || t("factory.dashboard.workerFallback"));
         setDepartment(profile?.department ?? null);
       } catch {
-        setUserName(user.email?.split("@")[0] || t("factory.dashboard.workerFallback"));
+        setUserName(user.email?.split("@")[0] || user.phone || t("factory.dashboard.workerFallback"));
       }
     };
     fetchProfile();
   }, [user]);
+
+  // 1b. Sign out after 24h of no activity, otherwise refresh the activity stamp.
+  // ponytail: client-side only (localStorage); Supabase Pro inactivity timeout if server enforcement is needed.
+  useEffect(() => {
+    if (!user) return;
+    const KEY = "worker_last_active";
+    const touch = () => {
+      try { localStorage.setItem(KEY, String(Date.now())); } catch { /* storage blocked */ }
+    };
+    // Returns false (and signs out) when the last activity is older than 24h.
+    const check = () => {
+      let last = 0;
+      try { last = Number(localStorage.getItem(KEY) ?? 0); } catch { /* storage blocked */ }
+      if (last && Date.now() - last > 24 * 60 * 60 * 1000) {
+        try { localStorage.removeItem(KEY); } catch { /* storage blocked */ }
+        signOut();
+        return false;
+      }
+      touch();
+      return true;
+    };
+    if (!check()) return;
+    const onVisible = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pointerdown", touch);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pointerdown", touch);
+    };
+  }, [user, signOut]);
 
   // 2. Register offline sync listeners on mount
   useEffect(() => {

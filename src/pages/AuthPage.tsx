@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePkPhone } from "@/lib/phone";
 import { useTranslation } from "@/i18n/useTranslation";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -79,6 +80,154 @@ function PasswordField({
   );
 }
 
+const RESEND_SECONDS = 60;
+
+// Worker sign-in / sign-up by phone number + SMS OTP (no password).
+function WorkerPhoneAuth({ mode, onSignedIn }: { mode: "signin" | "signup"; onSignedIn: (userId: string) => void }) {
+  const { toast } = useToast();
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  const sendCode = async (phone: string) => {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+      options:
+        mode === "signup"
+          ? { shouldCreateUser: true, data: { full_name: fullName.trim(), requested_role: "worker" } }
+          : { shouldCreateUser: false },
+    });
+    setLoading(false);
+    if (error) {
+      const description = /signups not allowed|user not found/i.test(error.message)
+        ? "No account found for this number. Use Sign Up first."
+        : error.message;
+      toast({ title: "Could not send code", description, variant: "destructive" });
+      return;
+    }
+    setSentTo(phone);
+    setCode("");
+    setCooldown(RESEND_SECONDS);
+  };
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === "signup" && fullName.trim().length < 2) {
+      toast({ title: "Invalid input", description: "Name is required", variant: "destructive" });
+      return;
+    }
+    const phone = normalizePkPhone(phoneInput);
+    if (!phone) {
+      toast({ title: "Invalid input", description: "Enter a valid Pakistani mobile number (03XXXXXXXXX)", variant: "destructive" });
+      return;
+    }
+    sendCode(phone);
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sentTo || !/^\d{6}$/.test(code)) {
+      toast({ title: "Invalid input", description: "Enter the 6-digit code", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase.auth.verifyOtp({ phone: sentTo, token: code, type: "sms" });
+    setLoading(false);
+    if (error || !data.user) {
+      toast({ title: "Verification failed", description: error?.message ?? "Invalid code", variant: "destructive" });
+      return;
+    }
+    try { localStorage.setItem("worker_last_active", String(Date.now())); } catch { /* storage blocked */ }
+    onSignedIn(data.user.id);
+  };
+
+  const inputCls = "mt-1 bg-[#FAF8F3] border-[#E5DFD3]";
+  const btnCls = "w-full bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-2.5";
+
+  if (sentTo) {
+    return (
+      <form onSubmit={handleVerify} className="space-y-4 text-left" noValidate>
+        <p className="text-xs text-gray-500">{sentTo}</p>
+        <div>
+          <Label htmlFor={`${mode}-otp`} className="text-xs font-semibold text-[#1E293B]">{t("auth.otp")}</Label>
+          <Input
+            id={`${mode}-otp`}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            className={`${inputCls} tracking-[0.5em] text-center text-lg`}
+            autoFocus
+          />
+        </div>
+        <Button type="submit" disabled={loading} className={btnCls}>
+          {loading ? t("factory.common.loading") : t("auth.verifyCode")}
+        </Button>
+        <div className="flex justify-between text-xs">
+          <button type="button" onClick={() => setSentTo(null)} className="text-[#B88E28] hover:underline">
+            {t("auth.changeNumber")}
+          </button>
+          <button
+            type="button"
+            disabled={cooldown > 0 || loading}
+            onClick={() => sendCode(sentTo)}
+            className="text-[#B88E28] hover:underline disabled:text-gray-400 disabled:no-underline"
+          >
+            {cooldown > 0 ? `${t("auth.resendIn")} ${cooldown}s` : t("auth.resend")}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSend} className="space-y-4 text-left" noValidate>
+      {mode === "signup" && (
+        <div>
+          <Label htmlFor="worker-signup-name" className="text-xs font-semibold text-[#1E293B]">{t("auth.fullName")}</Label>
+          <Input
+            id="worker-signup-name"
+            autoComplete="name"
+            maxLength={100}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className={inputCls}
+          />
+        </div>
+      )}
+      <div>
+        <Label htmlFor={`${mode}-phone`} className="text-xs font-semibold text-[#1E293B]">{t("auth.phone")}</Label>
+        <Input
+          id={`${mode}-phone`}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder={t("auth.phoneHint")}
+          maxLength={16}
+          value={phoneInput}
+          onChange={(e) => setPhoneInput(e.target.value)}
+          className={inputCls}
+        />
+      </div>
+      <Button type="submit" disabled={loading} className={btnCls}>
+        {loading ? t("factory.common.loading") : t("auth.sendCode")}
+      </Button>
+    </form>
+  );
+}
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,6 +283,13 @@ export default function AuthPage() {
 
     setLoading(false);
     toast({ title: "Welcome back" });
+    navigate(target, { replace: true });
+  };
+
+  const handleWorkerSignedIn = async (userId: string) => {
+    const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
+    const target = cameFromProtectedRoute ? from : await resolveRoleTarget(userId, "/factory");
+    toast({ title: "Welcome" });
     navigate(target, { replace: true });
   };
 
@@ -241,6 +397,20 @@ export default function AuthPage() {
                 </div>
               )}
 
+              {role === "worker" ? (
+                <Tabs defaultValue="signin" className="w-full">
+                  <TabsList className="grid grid-cols-2 w-full mb-4">
+                    <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+                    <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="signin">
+                    <WorkerPhoneAuth mode="signin" onSignedIn={handleWorkerSignedIn} />
+                  </TabsContent>
+                  <TabsContent value="signup">
+                    <WorkerPhoneAuth mode="signup" onSignedIn={handleWorkerSignedIn} />
+                  </TabsContent>
+                </Tabs>
+              ) : (
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid grid-cols-2 w-full mb-4">
                   <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
@@ -358,6 +528,7 @@ export default function AuthPage() {
                   </form>
                 </TabsContent>
               </Tabs>
+              )}
             </>
           )}
 

@@ -30,7 +30,15 @@
     "submitSignIn": "Portal mein Sign In karein",
     "submitSignUp": "Account banayein",
     "backToSite": "Mukhya website par wapas jayein",
-    "workerNotice": "Factory Workers: Sign in karne ke baad aap seedha apne factory floor dashboard par chale jayenge."
+    "workerNotice": "Factory Workers: Sign in karne ke baad aap seedha apne factory floor dashboard par chale jayenge.",
+    "phone": "Mobile Number",
+    "phoneHint": "maslan 03001234567",
+    "sendCode": "Code Bhejein",
+    "otp": "6 adad ka code",
+    "verifyCode": "Tasdeeq karein",
+    "resendIn": "Dobara code bhejein",
+    "resend": "Code dobara bhejein",
+    "changeNumber": "Number tabdeel karein"
   },
   "factory": {
     "title": "En En Garments",

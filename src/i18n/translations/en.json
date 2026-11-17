@@ -30,7 +30,15 @@
     "submitSignIn": "Sign In to Portal",
     "submitSignUp": "Create Account",
     "backToSite": "Back to main website",
-    "workerNotice": "Factory Workers: Signing in will take you directly to your worker floor dashboard."
+    "workerNotice": "Factory Workers: Signing in will take you directly to your worker floor dashboard.",
+    "phone": "Mobile Number",
+    "phoneHint": "e.g. 03001234567",
+    "sendCode": "Send Code",
+    "otp": "6-digit code",
+    "verifyCode": "Verify & Continue",
+    "resendIn": "Resend code in",
+    "resend": "Resend code",
+    "changeNumber": "Change number"
   },
   "factory": {
     "title": "En En Garments",

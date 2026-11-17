@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizePkPhone } from "@/lib/phone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -240,16 +241,15 @@ export default function EmployeesPage() {
   const createWorker = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const email = String(fd.get("email") ?? "").trim();
-    const password = String(fd.get("password") ?? "");
+    const phone = normalizePkPhone(String(fd.get("phone") ?? ""));
     const fullName = String(fd.get("fullName") ?? "").trim();
-    if (!email || password.length < 6) {
-      toast({ title: "Invalid input", description: "Email and a 6+ character password are required.", variant: "destructive" });
+    if (!phone) {
+      toast({ title: "Invalid input", description: "Enter a valid Pakistani mobile number (03XXXXXXXXX).", variant: "destructive" });
       return;
     }
     setCreatingWorker(true);
     const { error } = await supabase.functions.invoke("admin-create-worker", {
-      body: { email, password, fullName },
+      body: { phone, fullName },
     });
     setCreatingWorker(false);
     if (error) {
@@ -278,18 +278,14 @@ export default function EmployeesPage() {
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
               <UserPlus className="w-4 h-4 text-accent" /> Create New Employee Account
             </h2>
-            <form onSubmit={createWorker} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+            <form onSubmit={createWorker} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
               <div>
                 <Label htmlFor="worker-name" className="text-xs">Full Name</Label>
                 <Input id="worker-name" name="fullName" placeholder="e.g. Tariq Mehmood" className="mt-1" />
               </div>
               <div>
-                <Label htmlFor="worker-email" className="text-xs">Email Address</Label>
-                <Input id="worker-email" name="email" type="email" required placeholder="worker@factory.com" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="worker-password" className="text-xs">Password</Label>
-                <Input id="worker-password" name="password" type="password" required minLength={6} placeholder="••••••••" className="mt-1" />
+                <Label htmlFor="worker-phone" className="text-xs">Mobile Number</Label>
+                <Input id="worker-phone" name="phone" type="tel" required placeholder="03001234567" className="mt-1" />
               </div>
               <Button type="submit" size="sm" disabled={creatingWorker} className="bg-accent text-accent-foreground hover:bg-accent/90">
                 {creatingWorker ? "Creating..." : "Create Account"}
