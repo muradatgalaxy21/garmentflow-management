@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { hasPermission, type Permission } from "@/lib/permissions";
 
 // Application-level role values mirror the `app_role` enum in the database
 export type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
@@ -9,6 +10,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   roles: AppRole[];
+  permissions: string[];
   clientActivated: boolean;
   loading: boolean;
 }
@@ -19,12 +21,14 @@ export function useAuth(): AuthState & {
   isStaff: boolean;
   isWorker: boolean;
   isManager: boolean;
+  can: (p: Permission) => boolean;
   signOut: () => Promise<void>;
 } {
   const [state, setState] = useState<AuthState>({
     user: null,
     session: null,
     roles: [],
+    permissions: [],
     clientActivated: true,
     loading: true,
   });
@@ -43,7 +47,7 @@ export function useAuth(): AuthState & {
         setTimeout(() => fetchRoles(session.user.id), 0);
         setState((prev) => ({ ...prev, user: session.user, session, roles: prev.roles }));
       } else {
-        setState({ user: null, session: null, roles: [], clientActivated: true, loading: false });
+        setState({ user: null, session: null, roles: [], permissions: [], clientActivated: true, loading: false });
       }
     });
 
@@ -53,7 +57,7 @@ export function useAuth(): AuthState & {
         setState((prev) => ({ ...prev, user: session.user, session }));
         fetchRoles(session.user.id);
       } else {
-        setState({ user: null, session: null, roles: [], clientActivated: true, loading: false });
+        setState({ user: null, session: null, roles: [], permissions: [], clientActivated: true, loading: false });
       }
     });
 
@@ -63,9 +67,10 @@ export function useAuth(): AuthState & {
   // Fetch which roles the user has (a single user can have multiple), plus the
   // client-portal activation flag (plan.md §7) so ProtectedRoute can gate on it.
   const fetchRoles = async (userId: string) => {
-    const [{ data: roleRows, error }, { data: profile }] = await Promise.all([
+    const [{ data: roleRows, error }, { data: profile }, { data: permRows }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
       supabase.from("profiles").select("client_activated").eq("id", userId).maybeSingle(),
+      supabase.from("user_permissions").select("permission").eq("user_id", userId),
     ]);
     if (error) {
       console.error("Failed to fetch roles", error);
@@ -75,6 +80,7 @@ export function useAuth(): AuthState & {
     setState((s) => ({
       ...s,
       roles: (roleRows ?? []).map((r) => r.role as AppRole),
+      permissions: (permRows ?? []).map((r) => r.permission),
       clientActivated: profile?.client_activated ?? true,
       loading: false,
     }));
@@ -84,12 +90,14 @@ export function useAuth(): AuthState & {
     await supabase.auth.signOut();
   };
 
+  const isAdmin = state.roles.includes("admin");
   return {
     ...state,
-    isAdmin: state.roles.includes("admin"),
+    isAdmin,
     isStaff: state.roles.includes("staff") || state.roles.includes("admin"),
     isWorker: state.roles.includes("worker"),
     isManager: state.roles.includes("manager"),
+    can: (p: Permission) => hasPermission(isAdmin, state.permissions, p),
     signOut,
   };
 }

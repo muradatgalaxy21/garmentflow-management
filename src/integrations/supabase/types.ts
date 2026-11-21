@@ -1246,8 +1246,278 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          category: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opening_balance: number
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opening_balance?: number
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opening_balance?: number
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vendor_bills: {
+        Row: {
+          bill_date: string
+          bill_no: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          total_amount: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          bill_date?: string
+          bill_no?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          total_amount?: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          bill_date?: string
+          bill_no?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: []
+      }
+      vendor_bill_items: {
+        Row: {
+          amount: number
+          bill_id: string
+          created_at: string
+          description: string
+          id: string
+          inventory_item_id: string | null
+          quantity: number
+          unit: string | null
+          unit_price: number
+        }
+        Insert: {
+          bill_id: string
+          created_at?: string
+          description: string
+          id?: string
+          inventory_item_id?: string | null
+          quantity: number
+          unit?: string | null
+          unit_price: number
+        }
+        Update: {
+          bill_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          inventory_item_id?: string | null
+          quantity?: number
+          unit?: string | null
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      vendor_payments: {
+        Row: {
+          amount: number
+          bill_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string
+          notes: string | null
+          paid_on: string
+          reference: string | null
+          vendor_id: string
+        }
+        Insert: {
+          amount: number
+          bill_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          reference?: string | null
+          vendor_id: string
+        }
+        Update: {
+          amount?: number
+          bill_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_on?: string
+          reference?: string | null
+          vendor_id?: string
+        }
+        Relationships: []
+      }
+      client_payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string
+          notes: string | null
+          order_id: string | null
+          received_on: string
+          reference: string | null
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          order_id?: string | null
+          received_on?: string
+          reference?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          order_id?: string | null
+          received_on?: string
+          reference?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          method: string
+          notes: string | null
+          paid_to: string | null
+          spent_on: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_to?: string | null
+          spent_on?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          method?: string
+          notes?: string | null
+          paid_to?: string | null
+          spent_on?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
+      vendor_bill_balances: {
+        Row: {
+          balance: number | null
+          bill_date: string | null
+          bill_no: string | null
+          due_date: string | null
+          id: string | null
+          paid_amount: number | null
+          status: string | null
+          total_amount: number | null
+          vendor_id: string | null
+        }
+        Relationships: []
+      }
       bundle_quality_status: {
         Row: {
           alter_reason: string | null
@@ -1279,6 +1549,10 @@ export type Database = {
       }
     }
     Functions: {
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       can_worker_enter_phase: {
         Args: { _phase_id: string; _worker_id: string }
         Returns: boolean

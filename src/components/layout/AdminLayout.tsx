@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch } from "lucide-react";
+import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch, Wallet, Store, Receipt, HandCoins, BadgeDollarSign, FileBarChart } from "lucide-react";
+import type { Permission } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
@@ -16,22 +17,39 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-// Admin navigation entries — gated by has_role('admin' | 'staff')
-const adminNav = [
+interface NavItem {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+  end: boolean;
+  perm?: Permission; // undefined = everyone in the admin portal
+}
+
+// Each entry is shown only if the user holds its permission (admin holds all).
+const adminNav: NavItem[] = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, end: true },
-  { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false },
-  { title: "Inbox", url: "/admin/inbox", icon: MessagesSquare, end: false },
-  { title: "Inventory", url: "/admin/inventory", icon: Package, end: false },
-  { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false },
-  { title: "Batches", url: "/admin/batches", icon: Factory, end: false },
-  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false },
-  { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false },
-  { title: "Employees", url: "/admin/employees", icon: HardHat, end: false },
-  { title: "Clients", url: "/admin/clients", icon: Users, end: false },
+  { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false, perm: "rfqs" },
+  { title: "Inbox", url: "/admin/inbox", icon: MessagesSquare, end: false, perm: "inbox" },
+  { title: "Inventory", url: "/admin/inventory", icon: Package, end: false, perm: "inventory" },
+  { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false, perm: "orders" },
+  { title: "Batches", url: "/admin/batches", icon: Factory, end: false, perm: "batches" },
+  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "batches" },
+  { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false, perm: "dispatch" },
+  { title: "Employees", url: "/admin/employees", icon: HardHat, end: false, perm: "employees" },
+  { title: "Clients", url: "/admin/clients", icon: Users, end: false, perm: "clients" },
+];
+
+const financeNav: NavItem[] = [
+  { title: "Overview", url: "/admin/finance", icon: Wallet, end: true, perm: "finance.view" },
+  { title: "Vendors", url: "/admin/finance/vendors", icon: Store, end: false, perm: "finance.view" },
+  { title: "Purchases", url: "/admin/finance/purchases", icon: Receipt, end: false, perm: "finance.view" },
+  { title: "Receivables", url: "/admin/finance/receivables", icon: HandCoins, end: false, perm: "finance.view" },
+  { title: "Expenses", url: "/admin/finance/expenses", icon: BadgeDollarSign, end: false, perm: "finance.view" },
+  { title: "Reports", url: "/admin/finance/reports", icon: FileBarChart, end: false, perm: "finance.view" },
 ];
 
 export default function AdminLayout() {
-  const { user, isStaff, isAdmin, loading, signOut } = useAuth();
+  const { user, isStaff, isAdmin, isManager, loading, signOut, can } = useAuth();
   const navigate = useNavigate();
 
   if (loading) {
@@ -43,7 +61,7 @@ export default function AdminLayout() {
   }
 
   // Render a friendly message instead of a hard redirect for unauthorized access
-  if (!user || !isStaff) {
+  if (!user || !(isStaff || isManager)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
         <h1 className="font-heading text-2xl">Access Restricted</h1>
@@ -68,31 +86,37 @@ export default function AdminLayout() {
               <p className="font-heading font-bold text-sidebar-foreground">En En Garments</p>
               <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
             </div>
-            <SidebarGroup>
-              <SidebarGroupLabel>Manage</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {adminNav.map((item) => (
-                    <SidebarMenuItem key={item.url}>
-                      <SidebarMenuButton asChild>
-                        <NavLink
-                          to={item.url}
-                          end={item.end}
-                          className={({ isActive }) =>
-                            isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              : "hover:bg-sidebar-accent/50"
-                          }
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {([["Manage", adminNav], ["Finance", financeNav]] as const).map(([label, items]) => {
+              const visible = items.filter((i) => !i.perm || can(i.perm));
+              if (visible.length === 0) return null;
+              return (
+                <SidebarGroup key={label}>
+                  <SidebarGroupLabel>{label}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {visible.map((item) => (
+                        <SidebarMenuItem key={item.url}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={item.url}
+                              end={item.end}
+                              className={({ isActive }) =>
+                                isActive
+                                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                                  : "hover:bg-sidebar-accent/50"
+                              }
+                            >
+                              <item.icon className="w-4 h-4" />
+                              <span>{item.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              );
+            })}
           </SidebarContent>
         </Sidebar>
 
@@ -101,7 +125,7 @@ export default function AdminLayout() {
             <div className="flex items-center gap-3">
               <SidebarTrigger />
               <span className="text-sm text-muted-foreground">
-                {isAdmin ? "Admin" : "Staff"} • {user.email}
+                {isAdmin ? "Admin" : isManager ? "Manager" : "Staff"} • {user.email ?? user.phone}
               </span>
             </div>
             <div className="flex items-center gap-2">

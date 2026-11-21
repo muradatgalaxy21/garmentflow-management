@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download } from "lucide-react";
+import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePkPhone } from "@/lib/phone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,14 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getEntryPieceCount } from "@/lib/departmentEntries";
-
-// Departments where department_entries.total_cost is the worker's per-piece
-// wage — summed straight into payout. Everything else (accessories: material
-// cost; cutting/printing/embroidery/lot_bundling: cost-tracking only, workers
-// salaried) is excluded on purpose — confirmed with user 2026-08-21.
-const WAGE_BEARING_DEPARTMENTS = [
-  "sticker", "quality", "stitching", "button_ops", "clipping", "press", "quality_final", "packing",
-] as const;
+import { downloadCsv } from "@/lib/export";
+import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
+import { PERMISSIONS } from "@/lib/permissions";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
@@ -57,19 +53,6 @@ interface WorkerPayoutSummary {
   calculated_payout: number;
 }
 
-function downloadCsv(filename: string, rows: (string | number)[][]) {
-  const csv = rows
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\r\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function EmployeesPage() {
   const { isAdmin } = useAuth();
   const { toast } = useToast();
@@ -82,6 +65,31 @@ export default function EmployeesPage() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [payouts, setPayouts] = useState<WorkerPayoutSummary[]>([]);
   const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [permEdit, setPermEdit] = useState<{ profile: Profile; granted: Set<string>; original: Set<string> } | null>(null);
+
+  const openPermissions = async (p: Profile) => {
+    const { data, error } = await supabase.from("user_permissions").select("permission").eq("user_id", p.id);
+    if (error) return toast({ title: "Could not load permissions", description: error.message, variant: "destructive" });
+    const set = new Set((data ?? []).map((r) => r.permission));
+    setPermEdit({ profile: p, granted: new Set(set), original: set });
+  };
+
+  const savePermissions = async () => {
+    if (!permEdit) return;
+    const uid = permEdit.profile.id;
+    const added = [...permEdit.granted].filter((x) => !permEdit.original.has(x));
+    const removed = [...permEdit.original].filter((x) => !permEdit.granted.has(x));
+    setBusy("saving_perms");
+    const results = await Promise.all([
+      added.length ? supabase.from("user_permissions").insert(added.map((permission) => ({ user_id: uid, permission }))) : null,
+      removed.length ? supabase.from("user_permissions").delete().eq("user_id", uid).in("permission", removed) : null,
+    ]);
+    setBusy(null);
+    const err = results.find((r) => r?.error)?.error;
+    if (err) return toast({ title: "Could not save permissions", description: err.message, variant: "destructive" });
+    toast({ title: "Permissions updated", description: "Takes effect next time they open or refresh the portal." });
+    setPermEdit(null);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -317,6 +325,36 @@ export default function EmployeesPage() {
       )}
 
       {/* Edit Worker Profile Modal */}
+      {permEdit && (
+        <Dialog open onOpenChange={(o) => !o && setPermEdit(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Permissions — {permEdit.profile.full_name ?? "Unnamed"}</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">Pick which admin sections this person can open. Admins always have everything.</p>
+            <div className="grid gap-2 py-2">
+              {PERMISSIONS.map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-3 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={permEdit.granted.has(key)}
+                    onCheckedChange={(c) => {
+                      const next = new Set(permEdit.granted);
+                      if (c) next.add(key); else next.delete(key);
+                      setPermEdit({ ...permEdit, granted: next });
+                    }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPermEdit(null)}>Cancel</Button>
+              <Button onClick={savePermissions} disabled={busy === "saving_perms"}>Save permissions</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {editingProfile && (
         <Dialog open={!!editingProfile} onOpenChange={(open) => !open && setEditingProfile(null)}>
           <DialogContent className="sm:max-w-md">
@@ -533,6 +571,11 @@ export default function EmployeesPage() {
                       <Shield className="w-3.5 h-3.5 mr-1" />
                       {hasManager ? "Manager" : "+ Grant Manager"}
                     </Button>
+                    {(hasManager || hasStaff) && !hasAdmin && (
+                      <Button size="sm" variant="outline" onClick={() => openPermissions(p)}>
+                        <KeyRound className="w-3.5 h-3.5 mr-1" /> Permissions
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant={hasWorker ? "secondary" : "outline"}
