@@ -16,6 +16,7 @@ import type { Permission } from "@/lib/permissions";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 
 import TitleManager from "@/components/common/TitleManager";
+import { ConfirmProvider } from "@/components/ConfirmDialog";
 
 const HomePage = lazy(() => import("@/pages/HomePage"));
 const AboutPage = lazy(() => import("@/pages/AboutPage"));
@@ -78,6 +79,7 @@ const App = () => (
       <BrowserRouter>
         <TitleManager />
         <LanguageProvider>
+        <ConfirmProvider>
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Public marketing site */}
@@ -168,6 +170,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+        </ConfirmProvider>
         </LanguageProvider>
       </BrowserRouter>
     </TooltipProvider>

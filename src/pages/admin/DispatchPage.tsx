@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { withUndo } from "@/lib/undo";
 import { useAuth } from "@/hooks/useAuth";
 import { DEPARTMENT_LABELS, QUALITY_VERDICT_LABELS, generateBatchReport, type BatchReport } from "@/lib/departmentEntries";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
@@ -33,6 +35,7 @@ interface Dispatch {
 
 export default function DispatchPage() {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const { user, can } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
@@ -78,21 +81,26 @@ export default function DispatchPage() {
       toast({ title: "Select a batch, date, and carton count", variant: "destructive" });
       return;
     }
+    const ok = await confirm({
+      title: "Log this dispatch?",
+      description: "You can undo it for 10 minutes.",
+      details: [["Date", dispatchDate], ["Cartons", String(cartonCount)], ["Carrier", carrier.trim() || "—"]],
+    });
+    if (!ok) return;
     setSaving(true);
-    const { error } = await supabase.from("batch_dispatches").insert({
+    const error = await withUndo("Dispatch logged", async () => (await supabase.from("batch_dispatches").insert({
       batch_id: batchId,
       dispatch_date: dispatchDate,
       carrier: carrier.trim() || null,
       carton_count: cartonCount,
       dispatch_note: note.trim() || null,
       created_by: user?.id ?? null,
-    });
+    })).error, load);
     setSaving(false);
     if (error) {
       toast({ title: "Failed to log dispatch", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Dispatch logged" });
     setBatchId(""); setCarrier(""); setCartonCount(0); setNote("");
     load();
   };

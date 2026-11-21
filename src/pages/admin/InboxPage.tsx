@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { withUndo } from "@/lib/undo";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS } from "@/lib/departmentEntries";
 import {
@@ -35,6 +37,7 @@ const statusColors: Record<InboxMessage["status"], string> = {
 function WorkerInboxTab() {
   const { user, can } = useAuth();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
@@ -65,10 +68,10 @@ function WorkerInboxTab() {
 
   const act = async (fn: () => Promise<void>, id: string) => {
     if (!user) return;
+    if (!(await confirm({ title: "Apply this decision?", description: "The worker is notified. You can undo it for 10 minutes." }))) return;
     setBusyId(id);
     try {
-      await fn();
-      toast({ title: "Updated" });
+      await withUndo("Inbox decision applied", fn, load);
       await load();
     } catch (err: any) {
       toast({ title: "Action failed", description: err.message, variant: "destructive" });
@@ -232,6 +235,7 @@ const clientStatusColors: Record<ClientInboxMessage["status"], string> = {
 function ClientInboxTab() {
   const { user, can } = useAuth();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [messages, setMessages] = useState<ClientInboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"pending" | "all">("pending");
@@ -262,10 +266,10 @@ function ClientInboxTab() {
 
   const act = async (m: ClientInboxMessage) => {
     if (!user) return;
+    if (!(await confirm({ title: "Mark this query resolved?", description: "The client sees your reply. You can undo it for 10 minutes." }))) return;
     setBusyId(m.id);
     try {
-      await resolveClientQuery(m, user.id, notes[m.id]);
-      toast({ title: "Resolved" });
+      await withUndo("Client query resolved", () => resolveClientQuery(m, user.id, notes[m.id]), load);
       await load();
     } catch (err: any) {
       toast({ title: "Action failed", description: err.message, variant: "destructive" });

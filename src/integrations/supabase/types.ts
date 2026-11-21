@@ -1314,6 +1314,15 @@ export type Database = {
       }
       vendor_bills: {
         Row: {
+          status: string
+          posted_at: string | null
+          posted_by: string | null
+          self_approved: boolean
+          discarded_at: string | null
+          discarded_by: string | null
+          reverses_id: string | null
+          voided_by_id: string | null
+          void_reason: string | null
           bill_date: string
           bill_no: string | null
           created_at: string
@@ -1326,6 +1335,15 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           bill_date?: string
           bill_no?: string | null
           created_at?: string
@@ -1338,6 +1356,15 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           bill_date?: string
           bill_no?: string | null
           created_at?: string
@@ -1387,6 +1414,15 @@ export type Database = {
       }
       vendor_payments: {
         Row: {
+          status: string
+          posted_at: string | null
+          posted_by: string | null
+          self_approved: boolean
+          discarded_at: string | null
+          discarded_by: string | null
+          reverses_id: string | null
+          voided_by_id: string | null
+          void_reason: string | null
           amount: number
           bill_id: string | null
           created_at: string
@@ -1399,6 +1435,15 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount: number
           bill_id?: string | null
           created_at?: string
@@ -1411,6 +1456,15 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount?: number
           bill_id?: string | null
           created_at?: string
@@ -1426,6 +1480,15 @@ export type Database = {
       }
       client_payments: {
         Row: {
+          status: string
+          posted_at: string | null
+          posted_by: string | null
+          self_approved: boolean
+          discarded_at: string | null
+          discarded_by: string | null
+          reverses_id: string | null
+          voided_by_id: string | null
+          void_reason: string | null
           amount: number
           client_id: string
           created_at: string
@@ -1438,6 +1501,15 @@ export type Database = {
           reference: string | null
         }
         Insert: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount: number
           client_id: string
           created_at?: string
@@ -1450,6 +1522,15 @@ export type Database = {
           reference?: string | null
         }
         Update: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount?: number
           client_id?: string
           created_at?: string
@@ -1465,6 +1546,15 @@ export type Database = {
       }
       expenses: {
         Row: {
+          status: string
+          posted_at: string | null
+          posted_by: string | null
+          self_approved: boolean
+          discarded_at: string | null
+          discarded_by: string | null
+          reverses_id: string | null
+          voided_by_id: string | null
+          void_reason: string | null
           amount: number
           category: string
           created_at: string
@@ -1477,6 +1567,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount: number
           category?: string
           created_at?: string
@@ -1489,6 +1588,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          status?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          self_approved?: boolean
+          discarded_at?: string | null
+          discarded_by?: string | null
+          reverses_id?: string | null
+          voided_by_id?: string | null
+          void_reason?: string | null
           amount?: number
           category?: string
           created_at?: string
@@ -1502,10 +1610,26 @@ export type Database = {
         }
         Relationships: []
       }
+      accounting_periods: {
+        Row: { period_month: string; closed_at: string | null; closed_by: string | null }
+        Insert: { period_month: string; closed_at?: string | null; closed_by?: string | null }
+        Update: { period_month?: string; closed_at?: string | null; closed_by?: string | null }
+        Relationships: []
+      }
+      accounting_period_events: {
+        Row: { id: string; period_month: string; action: string; note: string | null; done_by: string | null; done_at: string }
+        Insert: { id?: string; period_month: string; action: string; note?: string | null; done_by?: string | null; done_at?: string }
+        Update: { id?: string; period_month?: string; action?: string; note?: string | null; done_by?: string | null; done_at?: string }
+        Relationships: []
+      }
     }
     Views: {
       vendor_bill_balances: {
         Row: {
+          doc_status: string | null
+          reverses_id: string | null
+          voided_by_id: string | null
+          created_by: string | null
           balance: number | null
           bill_date: string | null
           bill_no: string | null
@@ -1549,6 +1673,15 @@ export type Database = {
       }
     }
     Functions: {
+      post_finance_entry: { Args: { _table: string; _id: string }; Returns: undefined }
+      discard_finance_draft: { Args: { _table: string; _id: string }; Returns: undefined }
+      void_finance_entry: { Args: { _table: string; _id: string; _reason: string }; Returns: string }
+      close_period: { Args: { _month: string; _note?: string }; Returns: undefined }
+      reopen_period: { Args: { _month: string; _note: string }; Returns: undefined }
+      server_now: { Args: Record<string, never>; Returns: string }
+      tag_my_changes: { Args: { _since: string; _label: string }; Returns: string | null }
+      my_recent_actions: { Args: Record<string, never>; Returns: { action_id: string; label: string; changed_at: string; changes: number }[] }
+      undo_action: { Args: { _action_id: string }; Returns: undefined }
       finance_party_names: {
         Args: { _ids: string[] }
         Returns: { id: string; name: string }[]

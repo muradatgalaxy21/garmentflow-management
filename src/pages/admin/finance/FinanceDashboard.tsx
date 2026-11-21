@@ -7,6 +7,7 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { daysBetween, inRange, label, monthStart, pkr, today } from "@/lib/finance";
 import { ExportButtons, PageHeader, StatCard, orderDate, statusTone, useFinanceData, vendorBalance } from "./shared";
+import { AccountingPeriods, PendingApprovals } from "./ApprovalsAndPeriods";
 
 // Categorical slots 1 (blue) and 2 (orange), validated light + dark with the dataviz palette checker.
 const chartConfig = {
@@ -67,7 +68,7 @@ export default function FinanceDashboard() {
 
   return (
     <div>
-      <PageHeader title="Finance" subtitle="Payables, receivables and cash flow at a glance." />
+      <PageHeader title="Finance" subtitle="Payables, receivables and cash flow at a glance. Totals include drafts; drafts are tagged until approved." />
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-4">
         <StatCard label="We owe vendors" value={pkr(payable)} tone={payable > 0 ? "bad" : undefined} hint={`${overdue.length} bill(s) overdue · ${pkr(sum(overdue.map((b) => Number(b.balance))))}`} />
@@ -105,6 +106,8 @@ export default function FinanceDashboard() {
           </ChartContainer>
         </CardContent>
       </Card>
+
+      <PendingApprovals data={data} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -150,6 +153,7 @@ export default function FinanceDashboard() {
           </CardContent>
         </Card>
       </div>
+      <AccountingPeriods data={data} />
     </div>
   );
 }

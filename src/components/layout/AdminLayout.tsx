@@ -4,6 +4,7 @@ import type { Permission } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
+import RecentChanges from "@/components/RecentChanges";
 import {
   Sidebar,
   SidebarContent,
@@ -129,6 +130,7 @@ export default function AdminLayout() {
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <RecentChanges />
               <NotificationBell />
               <Button
                 variant="ghost"

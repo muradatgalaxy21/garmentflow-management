@@ -1,20 +1,20 @@
 import { useState } from "react";
-import { AlertTriangle, HandCoins, Loader2, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { AlertTriangle, HandCoins, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { buildLedger, fifoOutstanding, inRange, label, pkr, today, type LedgerEntry } from "@/lib/finance";
-import { DateRange, ExportButtons, OptionSelect, PageHeader, PaymentDialog, StatCard, orderDate, useFinanceData, type PaymentTarget } from "./shared";
+import {
+  DateRange, DocStatusBadge, ExportButtons, LifecycleActions, OptionSelect, PageHeader, PaymentDialog, StatCard, orderDate, useFinanceData,
+  type PaymentTarget,
+} from "./shared";
 
 export default function ReceivablesPage() {
   const data = useFinanceData();
   const { can } = useAuth();
-  const { toast } = useToast();
   const [client, setClient] = useState("");
   const [from, setFrom] = useState(today().slice(0, 4) + "-01-01");
   const [to, setTo] = useState(today());
@@ -53,19 +53,12 @@ export default function ReceivablesPage() {
     ? buildLedger(0, [
         ...priced.filter((o) => o.client_id === client).map<LedgerEntry>((o) => ({ date: orderDate(o), ref: o.order_number, description: o.product_summary, plus: Number(o.total_amount), minus: 0 })),
         ...data.clientPayments.filter((p) => p.client_id === client).map<LedgerEntry>((p) => ({
-          date: p.received_on, ref: p.reference || "—", description: `Receipt (${label(p.method)})${p.order_id ? ` — ${orderNo.get(p.order_id) ?? "order"}` : ""}`, plus: 0, minus: Number(p.amount),
+          date: p.received_on, ref: p.reference || "—", description: `${p.reverses_id ? "Receipt reversal" : "Receipt"} (${label(p.method)})${p.order_id ? ` — ${orderNo.get(p.order_id) ?? "order"}` : ""}${p.status === "draft" ? " — DRAFT" : ""}`, plus: 0, minus: Number(p.amount),
         })),
       ], from, to)
     : null;
 
   const receipts = data.clientPayments.filter((p) => inRange(p.received_on, from, to));
-
-  const deleteReceipt = async (id: string) => {
-    if (!window.confirm("Delete this receipt? The client's due goes back up.")) return;
-    const { error } = await supabase.from("client_payments").delete().eq("id", id);
-    if (error) return toast({ title: "Could not delete", description: error.message, variant: "destructive" });
-    data.reload();
-  };
 
   const summaryExport = [["Client", "Billed", "Received", "Due"], ...summary.map((r) => [r.name, r.billed, r.received, r.due]), ["Total", totals.billed, totals.received, totals.due]];
   const ledgerExport = ledger
@@ -162,16 +155,22 @@ export default function ReceivablesPage() {
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
-                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Client</TableHead><TableHead>Order</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0" /></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Client</TableHead><TableHead>Order</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0" /></TableRow></TableHeader>
                 <TableBody>
-                  {receipts.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No receipts in this range.</TableCell></TableRow>}
+                  {receipts.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No receipts in this range.</TableCell></TableRow>}
                   {receipts.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.received_on}</TableCell><TableCell className="font-medium">{name(p.client_id)}</TableCell>
                       <TableCell>{p.order_id ? orderNo.get(p.order_id) : <span className="text-muted-foreground">On account</span>}</TableCell>
                       <TableCell>{label(p.method)}</TableCell><TableCell>{p.reference || "—"}</TableCell>
+                      <TableCell><DocStatusBadge row={p} /></TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(p.amount))}</TableCell>
-                      <TableCell>{can("finance.delete") && <Button size="icon" variant="ghost" aria-label="Delete receipt" onClick={() => deleteReceipt(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <LifecycleActions table="client_payments" row={p} onChanged={data.reload}
+                            summary={[["Client", name(p.client_id)], ["Amount", pkr(Number(p.amount))], ["Date", p.received_on]]} />
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

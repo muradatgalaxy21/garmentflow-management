@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2, Eye, Wallet, Pencil } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { offerFinanceUndo } from "@/lib/undo";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { inRange, label, monthStart, pkr, today } from "@/lib/finance";
 import {
-  DateRange, ExportButtons, OptionSelect, PageHeader, PaymentDialog, statusTone, useFinanceData, type BillBalance, type PaymentTarget,
+  DateRange, DocStatusBadge, ExportButtons, LifecycleActions, OptionSelect, PageHeader, PaymentDialog, statusTone, useFinanceData,
+  type BillBalance, type PaymentTarget,
 } from "./shared";
 
 type Item = Pick<Tables<"inventory_items">, "id" | "name" | "unit" | "sku">;
@@ -31,7 +34,7 @@ export default function PurchasesPage() {
   const { toast } = useToast();
   const canCreate = can("finance.create");
   const canUpdate = can("finance.update");
-  const canDelete = can("finance.delete");
+  const confirm = useConfirm();
   const [items, setItems] = useState<Item[]>([]);
   const [vendorFilter, setVendorFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("open");
@@ -61,6 +64,8 @@ export default function PurchasesPage() {
   const payments = data.vendorPayments
     .filter((p) => vendorFilter === "all" || p.vendor_id === vendorFilter)
     .filter((p) => inRange(p.paid_on, from, to));
+  const billById = new Map(data.bills.map((x) => [x.id, x]));
+  const full = (b: BillBalance) => billById.get(b.id!);
   const billNo = new Map(data.balances.map((b) => [b.id, b.bill_no || b.bill_date]));
 
   const openDocs = (vendorId: string) =>
@@ -95,6 +100,22 @@ export default function PurchasesPage() {
     if (lines.some((l) => !(Number(l.quantity) > 0) || !(Number(l.unit_price) >= 0) || l.unit_price === ""))
       return toast({ title: "Every line needs quantity above 0 and a price", variant: "destructive" });
 
+    const total = draftTotal(draft);
+    const stockLines = lines.filter((l) => l.inventory_item_id !== "none").length;
+    const ok = await confirm({
+      title: draft.id ? "Save changes to this draft bill?" : "Save this purchase bill?",
+      description: "Saved as a draft. Someone with Finance > Approve must approve it before it is final."
+        + (stockLines ? ` ${stockLines} line(s) add stock to inventory now.` : ""),
+      details: [
+        ["Vendor", vendorName.get(draft.vendor_id) ?? ""],
+        ["Bill no.", draft.bill_no || "—"],
+        ["Date", draft.bill_date],
+        ["Lines", String(lines.length)],
+        ["Total", pkr(total)],
+      ],
+      confirmLabel: "Yes, save draft",
+    });
+    if (!ok) return;
     setSaving(true);
     const header = {
       vendor_id: draft.vendor_id, bill_no: draft.bill_no || null, bill_date: draft.bill_date, due_date: draft.due_date || null, notes: draft.notes || null,
@@ -131,23 +152,9 @@ export default function PurchasesPage() {
     );
     setSaving(false);
     if (ins.error) return toast({ title: "Bill saved but lines failed", description: ins.error.message, variant: "destructive" });
-    toast({ title: draft.id ? "Bill updated" : "Bill added", description: lines.some((l) => l.inventory_item_id !== "none") ? "Linked items added to inventory stock." : undefined });
+    if (draft.id) toast({ title: "Draft bill updated" });
+    else offerFinanceUndo(`Bill draft saved: ${pkr(total)}`, "vendor_bills", billId!, data.reload);
     setDraft(null);
-    data.reload();
-  };
-
-  const deleteBill = async (b: BillBalance) => {
-    const paid = Number(b.paid_amount) > 0;
-    if (!window.confirm(`Delete bill ${b.bill_no || ""}? Linked stock will be reversed.${paid ? " Payments against it will stay as on-account payments." : ""}`)) return;
-    const { error } = await supabase.from("vendor_bills").delete().eq("id", b.id!);
-    if (error) return toast({ title: "Could not delete", description: error.message, variant: "destructive" });
-    data.reload();
-  };
-
-  const deletePayment = async (id: string) => {
-    if (!window.confirm("Delete this payment? The vendor balance goes back up.")) return;
-    const { error } = await supabase.from("vendor_payments").delete().eq("id", id);
-    if (error) return toast({ title: "Could not delete", description: error.message, variant: "destructive" });
     data.reload();
   };
 
@@ -214,7 +221,12 @@ export default function PurchasesPage() {
                       <TableCell>{b.due_date || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">{pkr(Number(b.balance))}</TableCell>
-                      <TableCell><Badge variant="outline" className={statusTone[b.status!]}>{label(b.status!)}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {full(b) && <DocStatusBadge row={full(b)!} />}
+                          {!b.reverses_id && !b.voided_by_id && <Badge variant="outline" className={statusTone[b.status!]}>{label(b.status!)}</Badge>}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1 justify-end">
                           <Button size="icon" variant="ghost" aria-label="View bill" onClick={async () => setViewing({ bill: b, lines: await loadLines(b.id!) })}><Eye className="w-4 h-4" /></Button>
@@ -223,8 +235,11 @@ export default function PurchasesPage() {
                               <Wallet className="w-3.5 h-3.5 mr-1" /> Pay
                             </Button>
                           )}
-                          {canUpdate && <Button size="icon" variant="ghost" aria-label="Edit bill" onClick={() => openEdit(b)}><Pencil className="w-4 h-4" /></Button>}
-                          {canDelete && <Button size="icon" variant="ghost" aria-label="Delete bill" onClick={() => deleteBill(b)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                          {canUpdate && b.doc_status === "draft" && <Button size="icon" variant="ghost" aria-label="Edit bill" onClick={() => openEdit(b)}><Pencil className="w-4 h-4" /></Button>}
+                          {full(b) && (
+                            <LifecycleActions table="vendor_bills" row={full(b)!} onChanged={data.reload}
+                              summary={[["Vendor", vendorName.get(b.vendor_id!) ?? ""], ["Bill", b.bill_no || "—"], ["Total", pkr(Number(b.total_amount))]]} />
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -242,12 +257,12 @@ export default function PurchasesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead><TableHead>Vendor</TableHead><TableHead>Bill</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead>
+                    <TableHead>Date</TableHead><TableHead>Vendor</TableHead><TableHead>Bill</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead><TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead><TableHead className="w-0" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No payments in this range.</TableCell></TableRow>}
+                  {payments.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No payments in this range.</TableCell></TableRow>}
                   {payments.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{p.paid_on}</TableCell>
@@ -255,8 +270,14 @@ export default function PurchasesPage() {
                       <TableCell>{p.bill_id ? billNo.get(p.bill_id) : <span className="text-muted-foreground">On account</span>}</TableCell>
                       <TableCell>{label(p.method)}</TableCell>
                       <TableCell>{p.reference || "—"}</TableCell>
+                      <TableCell><DocStatusBadge row={p} /></TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(p.amount))}</TableCell>
-                      <TableCell>{canDelete && <Button size="icon" variant="ghost" aria-label="Delete payment" onClick={() => deletePayment(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <LifecycleActions table="vendor_payments" row={p} onChanged={data.reload}
+                            summary={[["Vendor", vendorName.get(p.vendor_id) ?? ""], ["Amount", pkr(Number(p.amount))], ["Date", p.paid_on]]} />
+                        </div>
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

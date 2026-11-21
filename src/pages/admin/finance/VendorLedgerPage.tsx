@@ -24,13 +24,13 @@ export default function VendorLedgerPage() {
   const bills = data.balances.filter((b) => b.vendor_id === id);
   const billNo = new Map(bills.map((b) => [b.id, b.bill_no || "Bill"]));
   const entries: LedgerEntry[] = [
-    ...bills.map((b) => ({ date: b.bill_date!, ref: b.bill_no || "—", description: "Purchase bill", plus: Number(b.total_amount), minus: 0 })),
+    ...bills.map((b) => ({ date: b.bill_date!, ref: b.bill_no || "—", description: (b.reverses_id ? "Credit note (void)" : "Purchase bill") + (b.doc_status === "draft" ? " — DRAFT" : ""), plus: Number(b.total_amount), minus: 0 })),
     ...data.vendorPayments
       .filter((p) => p.vendor_id === id)
       .map((p) => ({
         date: p.paid_on,
         ref: p.reference || "—",
-        description: `Payment (${label(p.method)})${p.bill_id ? ` — ${billNo.get(p.bill_id) ?? "bill"}` : " — on account"}`,
+        description: `${p.reverses_id ? "Payment reversal" : "Payment"} (${label(p.method)})${p.bill_id ? ` — ${billNo.get(p.bill_id) ?? "bill"}` : " — on account"}${p.status === "draft" ? " — DRAFT" : ""}`,
         plus: 0,
         minus: Number(p.amount),
       })),

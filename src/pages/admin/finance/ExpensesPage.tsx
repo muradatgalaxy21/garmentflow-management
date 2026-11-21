@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { EXPENSE_CATEGORIES, PAYMENT_METHODS, inRange, label, monthStart, pkr, today } from "@/lib/finance";
-import { DateRange, ExportButtons, OptionSelect, PageHeader, useFinanceData, type Expense } from "./shared";
+import { DateRange, DocStatusBadge, ExportButtons, LifecycleActions, OptionSelect, PageHeader, useFinanceData } from "./shared";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { offerFinanceUndo } from "@/lib/undo";
 
 const blank = { category: "misc", amount: "", spent_on: today(), method: "cash", paid_to: "", notes: "" };
 
@@ -20,6 +22,7 @@ export default function ExpensesPage() {
   const data = useFinanceData();
   const { can } = useAuth();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(today());
   const [cat, setCat] = useState("all");
@@ -37,16 +40,19 @@ export default function ExpensesPage() {
     const f = editing.form;
     if (!(Number(f.amount) > 0)) return toast({ title: "Enter an amount above 0", variant: "destructive" });
     const row = { category: f.category, amount: Number(f.amount), spent_on: f.spent_on, method: f.method, paid_to: f.paid_to || null, notes: f.notes || null };
-    const { error } = editing.id ? await supabase.from("expenses").update(row).eq("id", editing.id) : await supabase.from("expenses").insert(row);
-    if (error) return toast({ title: "Could not save", description: error.message, variant: "destructive" });
+    const ok = await confirm({
+      title: editing.id ? "Save changes to this draft expense?" : "Record this expense?",
+      description: "Saved as a draft. Someone with Finance > Approve must approve it before it is final.",
+      details: [["Category", label(row.category)], ["Amount", pkr(row.amount)], ["Date", row.spent_on], ["Method", label(row.method)], ["Paid to", row.paid_to ?? "—"]],
+      confirmLabel: "Yes, save draft",
+    });
+    if (!ok) return;
+    const res = editing.id
+      ? await supabase.from("expenses").update(row).eq("id", editing.id).select("id").single()
+      : await supabase.from("expenses").insert(row).select("id").single();
+    if (res.error) return toast({ title: "Could not save", description: res.error.message, variant: "destructive" });
+    if (!editing.id) offerFinanceUndo(`Expense draft saved: ${pkr(row.amount)}`, "expenses", res.data.id, data.reload);
     setEditing(null);
-    data.reload();
-  };
-
-  const remove = async (e: Expense) => {
-    if (!window.confirm(`Delete ${label(e.category)} expense of ${pkr(Number(e.amount))}?`)) return;
-    const { error } = await supabase.from("expenses").delete().eq("id", e.id);
-    if (error) return toast({ title: "Could not delete", description: error.message, variant: "destructive" });
     data.reload();
   };
 
@@ -85,22 +91,24 @@ export default function ExpensesPage() {
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
-            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Category</TableHead><TableHead>Paid to</TableHead><TableHead>Method</TableHead><TableHead>Notes</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0" /></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Category</TableHead><TableHead>Paid to</TableHead><TableHead>Method</TableHead><TableHead>Notes</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0" /></TableRow></TableHeader>
             <TableBody>
-              {rows.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">No expenses in this range.</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No expenses in this range.</TableCell></TableRow>}
               {rows.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell>{e.spent_on}</TableCell><TableCell>{label(e.category)}</TableCell><TableCell>{e.paid_to || "—"}</TableCell>
                   <TableCell>{label(e.method)}</TableCell><TableCell className="max-w-xs truncate text-muted-foreground">{e.notes}</TableCell>
+                  <TableCell><DocStatusBadge row={e} /></TableCell>
                   <TableCell className="text-right tabular-nums">{pkr(Number(e.amount))}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      {can("finance.update") && (
+                      {can("finance.update") && e.status === "draft" && (
                         <Button size="icon" variant="ghost" aria-label="Edit expense" onClick={() => setEditing({ id: e.id, form: {
                           category: e.category, amount: String(e.amount), spent_on: e.spent_on, method: e.method, paid_to: e.paid_to ?? "", notes: e.notes ?? "",
                         } })}><Pencil className="w-4 h-4" /></Button>
                       )}
-                      {can("finance.delete") && <Button size="icon" variant="ghost" aria-label="Delete expense" onClick={() => remove(e)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                      <LifecycleActions table="expenses" row={e} onChanged={data.reload}
+                        summary={[["Category", label(e.category)], ["Amount", pkr(Number(e.amount))], ["Date", e.spent_on]]} />
                     </div>
                   </TableCell>
                 </TableRow>

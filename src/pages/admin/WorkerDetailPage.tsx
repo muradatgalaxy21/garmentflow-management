@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, getEntryPieceCount, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -50,6 +51,7 @@ export default function WorkerDetailPage() {
   const navigate = useNavigate();
   const { isAdmin, user, can } = useAuth();
   const { toast } = useToast();
+  const confirm = useConfirm();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -122,7 +124,7 @@ export default function WorkerDetailPage() {
   const pastEntries = entries.filter((e) => !currentEntries.includes(e));
 
   const deleteEntry = async (entry: DepartmentEntryDetail) => {
-    if (!window.confirm("Delete this work entry? This cannot be undone. If it consumed a tracked fabric/accessory item, that quantity will be restocked.")) return;
+    if (!(await confirm({ title: "Delete this work entry?", description: "This cannot be undone. If it used a tracked fabric/accessory item, that quantity is restocked.", confirmLabel: "Delete", destructive: true }))) return;
     const full = entries.find((e) => e.id === entry.id);
     try {
       await deleteDepartmentEntryAndRestock(
@@ -146,7 +148,7 @@ export default function WorkerDetailPage() {
 
   const toggleRole = async (role: AppRole, hasIt: boolean) => {
     if (!id) return;
-    if (hasIt && !window.confirm(`Remove ${role} role from this person?`)) return;
+    if (hasIt && !(await confirm({ title: `Remove the ${role} role from this person?`, confirmLabel: "Remove", destructive: true }))) return;
     setBusy(role);
     const { error } = hasIt
       ? await supabase.from("user_roles").delete().eq("user_id", id).eq("role", role)

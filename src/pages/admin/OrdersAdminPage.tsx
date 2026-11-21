@@ -28,6 +28,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { withUndo } from "@/lib/undo";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import KanbanBoard from "@/components/KanbanBoard";
@@ -87,6 +89,7 @@ export default function OrdersAdminPage() {
   const [updateNote, setUpdateNote] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const confirm = useConfirm();
   const { can } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -206,30 +209,40 @@ export default function OrdersAdminPage() {
 
   const saveOrderUpdate = async () => {
     if (!selected) return;
+    const ok = await confirm({
+      title: `Update order ${selected.order_number}?`,
+      description: "The client sees this update. You can undo it for 10 minutes.",
+      details: [
+        ["Status", selected.status === draftStatus ? draftStatus : `${selected.status} → ${draftStatus}`],
+        ["Tracking", draftTracking || "—"],
+        ["Note to client", updateNote || "—"],
+      ],
+    });
+    if (!ok) return;
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
 
-    // Update the order itself
-    const { error: orderError } = await supabase
-      .from("orders")
-      .update({ status: draftStatus, tracking_number: draftTracking || null })
-      .eq("id", selected.id);
-
-    if (!orderError && (draftStatus !== selected.status || updateNote)) {
-      // Push a timeline entry so the client sees the update history
-      await supabase.from("order_updates").insert({
-        order_id: selected.id,
-        status: draftStatus,
-        note: updateNote || null,
-        created_by: userData.user?.id ?? null,
-      });
-    }
+    const orderError = await withUndo(`Order ${selected.order_number} updated`, async () => {
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: draftStatus, tracking_number: draftTracking || null })
+        .eq("id", selected.id);
+      if (!error && (draftStatus !== selected.status || updateNote)) {
+        // Push a timeline entry so the client sees the update history
+        await supabase.from("order_updates").insert({
+          order_id: selected.id,
+          status: draftStatus,
+          note: updateNote || null,
+          created_by: userData.user?.id ?? null,
+        });
+      }
+      return error;
+    }, load);
     setSaving(false);
     if (orderError) {
       toast({ title: "Update failed", description: orderError.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Order updated" });
     setSelected(null);
     load();
   };

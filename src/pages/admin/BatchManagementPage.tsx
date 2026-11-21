@@ -18,6 +18,8 @@ import {
 import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { withUndo } from "@/lib/undo";
 import { useAuth } from "@/hooks/useAuth";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
 import { z } from "zod";
@@ -90,6 +92,7 @@ export default function BatchManagementPage() {
   const [newRateLabel, setNewRateLabel] = useState("");
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
+  const confirm = useConfirm();
   const { isAdmin, can } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
@@ -182,18 +185,23 @@ export default function BatchManagementPage() {
   };
 
   const cancelBatch = async (batch: Batch) => {
-    if (!window.confirm(`Mark batch "${batch.style_number}" as cancelled? Its history stays intact but it stops counting as active production.`)) return;
-    const { error } = await supabase.from("production_batches").update({ status: "cancelled" }).eq("id", batch.id);
+    const ok = await confirm({
+      title: `Cancel batch "${batch.style_number}"?`,
+      description: "Its history stays intact but it stops counting as active production. You can undo for 10 minutes.",
+      confirmLabel: "Cancel batch", destructive: true,
+    });
+    if (!ok) return;
+    const error = await withUndo(`Batch ${batch.style_number} cancelled`, async () =>
+      (await supabase.from("production_batches").update({ status: "cancelled" }).eq("id", batch.id)).error, load);
     if (error) {
       toast({ title: "Cancel failed", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Batch cancelled" });
     load();
   };
 
   const deleteTrackingEntry = async (entry: TrackingEntry) => {
-    if (!window.confirm("Delete this work entry? This cannot be undone.")) return;
+    if (!(await confirm({ title: "Delete this work entry?", description: "This cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     const { error } = await supabase.from("batch_tracking").delete().eq("id", entry.id);
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });

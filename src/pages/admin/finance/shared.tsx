@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer, CheckCircle2, Undo2, Ban } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { offerFinanceUndo, type FinanceTable } from "@/lib/undo";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -19,6 +23,7 @@ export type BillBalance = Tables<"vendor_bill_balances">;
 export type VendorPayment = Tables<"vendor_payments">;
 export type ClientPayment = Tables<"client_payments">;
 export type Expense = Tables<"expenses">;
+export type Period = Tables<"accounting_periods">;
 export type Order = Pick<Tables<"orders">, "id" | "order_number" | "client_id" | "party_name" | "total_amount" | "status" | "created_at" | "product_summary">;
 
 // ponytail: loads all finance rows client-side; fine for one factory's volume, move totals to SQL views if it gets slow.
@@ -33,11 +38,12 @@ export function useFinanceData() {
     expenses: [] as Expense[],
     orders: [] as Order[],
     clientNames: new Map<string, string>(),
+    periods: [] as Period[],
   });
   const { toast } = useToast();
 
   const reload = useCallback(async () => {
-    const [v, b, bb, vp, cp, ex, o] = await Promise.all([
+    const [v, b, bb, vp, cp, ex, o, per] = await Promise.all([
       supabase.from("vendors").select("*").order("name"),
       supabase.from("vendor_bills").select("*").order("bill_date", { ascending: false }),
       supabase.from("vendor_bill_balances").select("*"),
@@ -48,6 +54,7 @@ export function useFinanceData() {
         .from("orders")
         .select("id, order_number, client_id, party_name, total_amount, status, created_at, product_summary")
         .neq("status", "cancelled"),
+      supabase.from("accounting_periods").select("*"),
     ]);
     const err = [v, b, bb, vp, cp, ex, o].find((r) => r.error)?.error;
     if (err) toast({ title: "Failed to load finance data", description: err.message, variant: "destructive" });
@@ -60,14 +67,17 @@ export function useFinanceData() {
     // Offline parties entered on the order itself win over a blank profile.
     for (const ord of orders) if (!clientNames.has(ord.client_id) && ord.party_name) clientNames.set(ord.client_id, ord.party_name);
 
+    // Discarded drafts stay in the audit trail but are never counted.
+    const live = <T extends { status: string }>(rows: T[] | null) => (rows ?? []).filter((r) => r.status !== "discarded");
     setState({
       loading: false,
       vendors: v.data ?? [],
-      bills: b.data ?? [],
+      bills: live(b.data),
       balances: bb.data ?? [],
-      vendorPayments: vp.data ?? [],
-      clientPayments: cp.data ?? [],
-      expenses: ex.data ?? [],
+      vendorPayments: live(vp.data),
+      clientPayments: live(cp.data),
+      expenses: live(ex.data),
+      periods: per.data ?? [],
       orders,
       clientNames,
     });
@@ -170,6 +180,7 @@ export interface PaymentTarget {
 
 export function PaymentDialog({ target, onClose, onSaved }: { target: PaymentTarget | null; onClose: () => void; onSaved: () => void }) {
   const { toast } = useToast();
+  const confirm = useConfirm();
   const [form, setForm] = useState({ docId: "none", amount: "", date: today(), method: "cash", reference: "", notes: "" });
   const [saving, setSaving] = useState(false);
 
@@ -185,15 +196,34 @@ export function PaymentDialog({ target, onClose, onSaved }: { target: PaymentTar
   const save = async () => {
     const amount = Number(form.amount);
     if (!(amount > 0)) return toast({ title: "Enter an amount above 0", variant: "destructive" });
+    const doc = target.docs.find((d) => d.id === form.docId);
+    const ok = await confirm({
+      title: isVendor ? "Record this payment?" : "Record this receipt?",
+      description: "It is saved as a draft. Someone with Finance > Approve must approve it before it is final.",
+      details: [
+        [isVendor ? "Vendor" : "Client", target.partyName],
+        ["Amount", pkr(amount)],
+        [isVendor ? "Against bill" : "Against order", doc ? doc.label : "On account"],
+        ["Date", form.date],
+        ["Method", label(form.method)],
+      ],
+      confirmLabel: "Yes, save draft",
+    });
+    if (!ok) return;
     setSaving(true);
     const docId = form.docId === "none" ? null : form.docId;
     const common = { amount, method: form.method, reference: form.reference || null, notes: form.notes || null };
-    const { error } = isVendor
-      ? await supabase.from("vendor_payments").insert({ ...common, vendor_id: target.partyId, bill_id: docId, paid_on: form.date })
-      : await supabase.from("client_payments").insert({ ...common, client_id: target.partyId, order_id: docId, received_on: form.date });
+    const res = isVendor
+      ? await supabase.from("vendor_payments").insert({ ...common, vendor_id: target.partyId, bill_id: docId, paid_on: form.date }).select("id").single()
+      : await supabase.from("client_payments").insert({ ...common, client_id: target.partyId, order_id: docId, received_on: form.date }).select("id").single();
     setSaving(false);
-    if (error) return toast({ title: "Could not save", description: error.message, variant: "destructive" });
-    toast({ title: isVendor ? "Payment recorded" : "Receipt recorded" });
+    if (res.error) return toast({ title: "Could not save", description: res.error.message, variant: "destructive" });
+    offerFinanceUndo(
+      `${isVendor ? "Payment" : "Receipt"} draft saved: ${pkr(amount)}`,
+      isVendor ? "vendor_payments" : "client_payments",
+      res.data.id,
+      onSaved,
+    );
     onSaved();
     onClose();
   };
@@ -256,4 +286,91 @@ export const statusTone: Record<string, string> = {
   partial: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   unpaid: "bg-muted text-muted-foreground",
   overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  void: "text-muted-foreground line-through",
+  credit_note: "border-violet-500/30 text-violet-600 dark:text-violet-400",
 };
+
+// ---------- Lifecycle (plans/02 part A) ----------
+
+export interface LifecycleRow {
+  id: string;
+  status: string; // draft | posted
+  created_by: string | null;
+  created_at?: string | null;
+  reverses_id: string | null;
+  voided_by_id: string | null;
+  self_approved?: boolean;
+}
+
+export function DocStatusBadge({ row }: { row: LifecycleRow }) {
+  if (row.reverses_id) return <Badge variant="outline" className="border-violet-500/30 text-violet-600 dark:text-violet-400">Reversal</Badge>;
+  if (row.voided_by_id) return <Badge variant="outline" className="line-through text-muted-foreground">Voided</Badge>;
+  if (row.status === "draft") return <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">Draft</Badge>;
+  return <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">Posted{row.self_approved ? " (self)" : ""}</Badge>;
+}
+
+const TEN_MIN = 10 * 60 * 1000;
+
+// Approve (maker-checker) / Undo (draft) / Void (posted) with confirmations.
+export function LifecycleActions({ table, row, summary, onChanged }: {
+  table: FinanceTable;
+  row: LifecycleRow;
+  summary: [string, string][];
+  onChanged: () => void;
+}) {
+  const { user, isAdmin, can } = useAuth();
+  const confirm = useConfirm();
+  const { toast } = useToast();
+  const mine = row.created_by === user?.id;
+  const fresh = row.created_at ? Date.now() - new Date(row.created_at).getTime() < TEN_MIN : false;
+
+  const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
+    const { error } = await fn();
+    if (error) return toast({ title: "Could not complete", description: error.message, variant: "destructive" });
+    toast({ title: done });
+    onChanged();
+  };
+
+  if (row.status === "draft") {
+    const canApprove = can("finance.approve") && (!mine || isAdmin);
+    const canUndo = (mine && fresh) || can("finance.delete");
+    return (
+      <>
+        {canApprove && (
+          <Button size="sm" variant="outline" className="border-emerald-500/40" onClick={async () => {
+            const ok = await confirm({
+              title: "Approve and post this entry?",
+              description: mine
+                ? "You created this entry. As admin your self-approval is recorded."
+                : "Once posted it cannot be edited. Mistakes need a Void (offsetting entry).",
+              details: summary,
+              confirmLabel: "Approve & post",
+            });
+            if (ok) run(() => supabase.rpc("post_finance_entry", { _table: table, _id: row.id }), "Posted");
+          }}><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve</Button>
+        )}
+        {canUndo && (
+          <Button size="sm" variant="ghost" onClick={async () => {
+            const ok = await confirm({
+              title: "Undo this draft?",
+              description: "The draft is removed from all totals (it stays in the audit trail).",
+              details: summary, confirmLabel: "Undo draft", destructive: true,
+            });
+            if (ok) run(() => supabase.rpc("discard_finance_draft", { _table: table, _id: row.id }), "Draft undone");
+          }}><Undo2 className="w-3.5 h-3.5 mr-1" /> Undo</Button>
+        )}
+      </>
+    );
+  }
+  if (row.reverses_id || row.voided_by_id || !can("finance.delete")) return null;
+  return (
+    <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+      const ok = await confirm({
+        title: "Void this posted entry?",
+        description: "A reversal entry with the opposite amount is posted today. Both stay in the ledger.",
+        details: summary, requireReason: "Reason (required)", confirmLabel: "Void", destructive: true,
+      });
+      if (ok) run(() => supabase.rpc("void_finance_entry", { _table: table, _id: row.id, _reason: ok.reason! }), "Voided");
+    }}><Ban className="w-3.5 h-3.5 mr-1" /> Void</Button>
+  );
+}

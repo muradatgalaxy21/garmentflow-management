@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { getEntryPieceCount } from "@/lib/departmentEntries";
 import { downloadCsv } from "@/lib/export";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
@@ -56,6 +57,7 @@ interface WorkerPayoutSummary {
 export default function EmployeesPage() {
   const { isAdmin, can } = useAuth();
   const { toast } = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
@@ -203,7 +205,7 @@ export default function EmployeesPage() {
   };
 
   const toggleRole = async (userId: string, role: AppRole, hasIt: boolean) => {
-    if (hasIt && !window.confirm(`Remove ${role} role from this person?`)) return;
+    if (hasIt && !(await confirm({ title: `Remove the ${role} role from this person?`, confirmLabel: "Remove", destructive: true }))) return;
     setBusy(userId + role);
     const { error } = hasIt
       ? await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role)

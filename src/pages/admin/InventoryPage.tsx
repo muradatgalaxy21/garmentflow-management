@@ -26,6 +26,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UNITS, UNIT_LABELS } from "@/lib/units";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 
@@ -83,6 +84,7 @@ export default function InventoryPage() {
   const [skuDraft, setSkuDraft] = useState("");
   const [stickerAttrs, setStickerAttrs] = useState({ size: "", type: "", color: "", design: "" });
   const { toast } = useToast();
+  const confirm = useConfirm();
   const { can } = useAuth();
 
   const nextSku = () => {
@@ -201,7 +203,7 @@ export default function InventoryPage() {
   };
 
   const deleteItem = async (item: InventoryItem) => {
-    if (!window.confirm(`Delete "${item.name}" (${item.sku})? This removes its movement history and cannot be undone.`)) return;
+    if (!(await confirm({ title: `Delete "${item.name}" (${item.sku})?`, description: "This removes its movement history and cannot be undone.", confirmLabel: "Delete", destructive: true }))) return;
     const { error } = await supabase.from("inventory_items").delete().eq("id", item.id);
     if (error) {
       toast({ title: "Delete failed", description: error.message, variant: "destructive" });
@@ -222,6 +224,16 @@ export default function InventoryPage() {
       toast({ title: "Invalid input", description: parsed.error.issues[0].message, variant: "destructive" });
       return;
     }
+    const ok = await confirm({
+      title: `Record stock ${movement.type === "in" ? "IN" : movement.type === "out" ? "OUT" : "adjustment"}?`,
+      details: [
+        ["Item", `${movement.item.name} (${movement.item.sku})`],
+        ["Quantity", `${parsed.data.quantity} ${movement.item.unit}`],
+        ["On hand now", `${movement.item.quantity_on_hand} ${movement.item.unit}`],
+        ["Reason", parsed.data.reason ?? "—"],
+      ],
+    });
+    if (!ok) return;
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.from("inventory_movements").insert({
       item_id: movement.item.id,

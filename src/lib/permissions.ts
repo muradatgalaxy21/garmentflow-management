@@ -1,8 +1,9 @@
 // Mirrors the CHECK list on public.user_permissions
 // (migration 20261121010000_granular_permissions.sql, plans/01-finance-and-permissions.md).
-export const ACTIONS = ["view", "create", "update", "delete"] as const;
+export const ACTIONS = ["view", "create", "update", "delete", "approve"] as const;
 export type Action = (typeof ACTIONS)[number];
-export const ACTION_LABELS: Record<Action, string> = { view: "View", create: "Add", update: "Edit", delete: "Delete" };
+// Finance never hard-deletes: its "delete" permission discards drafts and voids posted entries.
+export const ACTION_LABELS: Record<Action, string> = { view: "View", create: "Add", update: "Edit", delete: "Delete / Void", approve: "Approve" };
 
 // Only the actions that mean something for a section are offered.
 export const SECTIONS = [
@@ -14,7 +15,7 @@ export const SECTIONS = [
   { key: "dispatch", label: "Dispatch", actions: ["view", "create", "update", "delete"] },
   { key: "employees", label: "Employees", actions: ["view", "create", "update", "delete"] },
   { key: "clients", label: "Clients", actions: ["view", "create", "update"] },
-  { key: "finance", label: "Finance", actions: ["view", "create", "update", "delete"] },
+  { key: "finance", label: "Finance (approve = maker-checker)", actions: ["view", "create", "update", "delete", "approve"] },
 ] as const satisfies readonly { key: string; label: string; actions: readonly Action[] }[];
 
 type Section = (typeof SECTIONS)[number];
