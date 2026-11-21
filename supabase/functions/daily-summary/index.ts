@@ -48,12 +48,14 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    // Admin passes; others need Batches > View (plans/01).
-    const { data: allowed } = await supabase.rpc("has_any_permission", {
-      _user_id: caller.id,
-      _permissions: ["batches.view"],
-    });
-    if (!allowed) {
+    // Factory-wide totals: needs Batches > View AND access to every batch
+    // (admin/staff). Managers only see assigned batches, so they're excluded.
+    const [{ data: allowed }, { data: callerRoles }] = await Promise.all([
+      supabase.rpc("has_any_permission", { _user_id: caller.id, _permissions: ["batches.view"] }),
+      supabase.from("user_roles").select("role").eq("user_id", caller.id),
+    ]);
+    const roles = (callerRoles ?? []).map((r) => r.role);
+    if (!allowed || !(roles.includes("admin") || roles.includes("staff"))) {
       return new Response(JSON.stringify({ error: "Not authorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
