@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/NotificationBell";
 import RecentChanges from "@/components/RecentChanges";
+import StaffAssistant from "@/components/StaffAssistant";
 import {
   Sidebar,
   SidebarContent,
@@ -147,6 +148,7 @@ export default function AdminLayout() {
           <main className="flex-1 overflow-auto p-6">
             <Outlet />
           </main>
+          <StaffAssistant />
         </div>
       </div>
     </SidebarProvider>

@@ -14,3 +14,7 @@ verify_jwt = false
 # Supabase Auth Send SMS hook — called by Auth with a signed webhook, not a user JWT
 [functions.send-sms-hook]
 verify_jwt = false
+
+# Internal staff help assistant: logged-in staff/workers only (never the public site)
+[functions.staff-assistant]
+verify_jwt = true

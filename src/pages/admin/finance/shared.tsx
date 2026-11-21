@@ -297,6 +297,8 @@ export interface LifecycleRow {
   status: string; // draft | posted
   created_by: string | null;
   created_at?: string | null;
+  modified_at?: string | null;
+  modified_by?: string | null;
   reverses_id: string | null;
   voided_by_id: string | null;
   self_approved?: boolean;
@@ -322,6 +324,7 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
   const confirm = useConfirm();
   const { toast } = useToast();
   const mine = row.created_by === user?.id;
+  const touched = mine || row.modified_by === user?.id; // created or last edited
   const fresh = row.created_at ? Date.now() - new Date(row.created_at).getTime() < TEN_MIN : false;
 
   const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
@@ -332,7 +335,7 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
   };
 
   if (row.status === "draft") {
-    const canApprove = can("finance.approve") && (!mine || isAdmin);
+    const canApprove = can("finance.approve") && (!touched || isAdmin);
     const canUndo = (mine && fresh) || can("finance.delete");
     return (
       <>
@@ -340,13 +343,13 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
           <Button size="sm" variant="outline" className="border-emerald-500/40" onClick={async () => {
             const ok = await confirm({
               title: "Approve and post this entry?",
-              description: mine
-                ? "You created this entry. As admin your self-approval is recorded."
+              description: touched
+                ? "You created or edited this entry. As admin your self-approval is recorded."
                 : "Once posted it cannot be edited. Mistakes need a Void (offsetting entry).",
               details: summary,
               confirmLabel: "Approve & post",
             });
-            if (ok) run(() => supabase.rpc("post_finance_entry", { _table: table, _id: row.id }), "Posted");
+            if (ok) run(() => supabase.rpc("post_finance_entry", { _table: table, _id: row.id, _expected_modified_at: row.modified_at ?? "" }), "Posted");
           }}><CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve</Button>
         )}
         {canUndo && (

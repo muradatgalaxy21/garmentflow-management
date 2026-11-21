@@ -8,6 +8,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPendingCount, registerSyncListeners } from "@/lib/offlineSync";
 import FactoryLanguageSwitcher from "@/components/i18n/FactoryLanguageSwitcher";
+import StaffAssistant from "@/components/StaffAssistant";
 import { GarmentLogo } from "@/components/ui/GarmentLogo";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -226,6 +227,8 @@ export default function FactoryLayout() {
           ))}
         </div>
       </nav>
+      {/* Sits above the bottom nav */}
+      <StaffAssistant bottomOffset="5.5rem" />
     </div>
   );
 }

@@ -1314,6 +1314,8 @@ export type Database = {
       }
       vendor_bills: {
         Row: {
+          modified_at: string
+          modified_by: string | null
           status: string
           posted_at: string | null
           posted_by: string | null
@@ -1335,6 +1337,8 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1356,6 +1360,8 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1414,6 +1420,8 @@ export type Database = {
       }
       vendor_payments: {
         Row: {
+          modified_at: string
+          modified_by: string | null
           status: string
           posted_at: string | null
           posted_by: string | null
@@ -1435,6 +1443,8 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1456,6 +1466,8 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1480,6 +1492,8 @@ export type Database = {
       }
       client_payments: {
         Row: {
+          modified_at: string
+          modified_by: string | null
           status: string
           posted_at: string | null
           posted_by: string | null
@@ -1501,6 +1515,8 @@ export type Database = {
           reference: string | null
         }
         Insert: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1522,6 +1538,8 @@ export type Database = {
           reference?: string | null
         }
         Update: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1546,6 +1564,8 @@ export type Database = {
       }
       expenses: {
         Row: {
+          modified_at: string
+          modified_by: string | null
           status: string
           posted_at: string | null
           posted_by: string | null
@@ -1567,6 +1587,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1588,6 +1610,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          modified_at?: string
+          modified_by?: string | null
           status?: string
           posted_at?: string | null
           posted_by?: string | null
@@ -1673,7 +1697,7 @@ export type Database = {
       }
     }
     Functions: {
-      post_finance_entry: { Args: { _table: string; _id: string }; Returns: undefined }
+      post_finance_entry: { Args: { _table: string; _id: string; _expected_modified_at: string }; Returns: undefined }
       discard_finance_draft: { Args: { _table: string; _id: string }; Returns: undefined }
       void_finance_entry: { Args: { _table: string; _id: string; _reason: string }; Returns: string }
       close_period: { Args: { _month: string; _note?: string }; Returns: undefined }
