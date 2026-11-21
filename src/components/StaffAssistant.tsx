@@ -70,7 +70,10 @@ export default function StaffAssistant({ bottomOffset = "1.5rem" }: { bottomOffs
             )}
             {messages.map((m, i) => (
               <div key={i} className={m.role === "user" ? "ml-8 rounded-lg bg-primary text-primary-foreground px-3 py-2" : "mr-4 rounded-lg bg-muted px-3 py-2 prose prose-sm dark:prose-invert max-w-none"}>
-                {m.role === "user" ? m.content : <ReactMarkdown>{m.content}</ReactMarkdown>}
+                {m.role === "user" ? m.content : (
+                  // No images or live links: a reply can't load remote URLs (prompt-injection exfiltration).
+                  <ReactMarkdown disallowedElements={["img"]} components={{ a: ({ children }) => <span>{children}</span> }}>{m.content}</ReactMarkdown>
+                )}
               </div>
             ))}
             {busy && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}

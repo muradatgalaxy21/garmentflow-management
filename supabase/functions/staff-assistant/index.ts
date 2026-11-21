@@ -78,14 +78,17 @@ Deno.serve(async (req) => {
     // Rate limit (service role; table has RLS with no policies).
     const admin = createClient(url, service);
     const now = Date.now();
-    const [{ count: perMin }, { count: perDay }] = await Promise.all([
+    const [minRes, dayRes] = await Promise.all([
       admin.from("assistant_usage").select("*", { count: "exact", head: true }).eq("user_id", user.id).gte("at", new Date(now - 60_000).toISOString()),
       admin.from("assistant_usage").select("*", { count: "exact", head: true }).eq("user_id", user.id).gte("at", new Date(now - 86_400_000).toISOString()),
     ]);
-    if ((perMin ?? 0) >= PER_MINUTE || (perDay ?? 0) >= PER_DAY) {
+    // Fail closed: if the limiter can't be checked or recorded, don't answer.
+    if (minRes.error || dayRes.error) return json({ error: "Helper is busy. Try again shortly." }, 503);
+    if ((minRes.count ?? 0) >= PER_MINUTE || (dayRes.count ?? 0) >= PER_DAY) {
       return json({ error: "Too many questions. Please wait a little and try again." }, 429);
     }
-    await admin.from("assistant_usage").insert({ user_id: user.id });
+    const { error: usageErr } = await admin.from("assistant_usage").insert({ user_id: user.id });
+    if (usageErr) return json({ error: "Helper is busy. Try again shortly." }, 503);
 
     const body = await req.json().catch(() => null);
     const raw: Msg[] = Array.isArray(body?.messages) ? body.messages : [];
@@ -101,9 +104,10 @@ Deno.serve(async (req) => {
     const contents: unknown[] = messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
 
     for (let step = 0; step < 4; step++) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      // Key goes in a header, never the URL (URLs end up in logs).
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM(who) }] },
           contents,
@@ -131,7 +135,7 @@ Deno.serve(async (req) => {
     }
     return json({ reply: "That needed too many lookups. Please ask a narrower question." });
   } catch (e) {
-    console.error("staff-assistant", e);
+    console.error("staff-assistant failed:", e instanceof Error ? e.name : "unknown");
     return json({ error: "Something went wrong." }, 500);
   }
 });

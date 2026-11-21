@@ -72,3 +72,6 @@ Enterprise Portal Redesign-handoff/
 seed-test-users.out.json
 test-data.txt
 migration-guide.md
+
+# Mock data seed output (test project logins)
+mock-users.out.md
