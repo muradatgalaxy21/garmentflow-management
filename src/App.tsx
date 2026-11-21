@@ -26,6 +26,7 @@ const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const AuthPage = lazy(() => import("@/pages/AuthPage"));
 const AdminAuthPage = lazy(() => import("@/pages/AdminAuthPage"));
 const ActivateAccountPage = lazy(() => import("@/pages/ActivateAccountPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -93,6 +94,7 @@ const App = () => (
 
             {/* Auth (no chrome) */}
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route
               path="/activate-account"
               element={

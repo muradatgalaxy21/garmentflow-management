@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useSearchParams, Link } from "react-router-do
 import { z } from "zod";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ForgotPasswordLink from "@/components/auth/ForgotPasswordLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -456,6 +457,7 @@ export default function AuthPage() {
                     >
                       {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
                     </Button>
+                    <div className="text-center"><ForgotPasswordLink className="text-[#1E293B]/70 hover:text-[#1E293B]" /></div>
                   </form>
                 </TabsContent>
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ForgotPasswordLink from "@/components/auth/ForgotPasswordLink";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -148,6 +149,7 @@ export default function AdminAuthPage() {
               <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
+              <div className="text-center"><ForgotPasswordLink className="text-zinc-400 hover:text-zinc-200" /></div>
             </form>
           </TabsContent>
 
