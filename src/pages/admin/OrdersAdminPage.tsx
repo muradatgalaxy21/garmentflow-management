@@ -87,7 +87,7 @@ export default function OrdersAdminPage() {
   const [updateNote, setUpdateNote] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [issuingCode, setIssuingCode] = useState(false);
@@ -278,9 +278,11 @@ export default function OrdersAdminPage() {
           >
             <Kanban className="w-4 h-4 mr-1" /> Kanban
           </Button>
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="w-4 h-4 mr-2" /> New Order
-          </Button>
+          {can("orders.create") && (
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="w-4 h-4 mr-2" /> New Order
+            </Button>
+          )}
         </div>
       </div>
 
@@ -421,13 +423,17 @@ export default function OrdersAdminPage() {
                     className="mt-1"
                   />
                 </div>
-                <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
-                  {saving ? "Saving..." : "Save Update"}
-                </Button>
-                <Button variant="outline" className="w-full" onClick={issueAccessCode} disabled={issuingCode}>
-                  {issuingCode ? "Issuing..." : "Issue Client Access Code"}
-                </Button>
-                {isAdmin && (
+                {can("orders.update") && (
+                  <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
+                    {saving ? "Saving..." : "Save Update"}
+                  </Button>
+                )}
+                {(can("clients.create") || can("orders.create")) && (
+                  <Button variant="outline" className="w-full" onClick={issueAccessCode} disabled={issuingCode}>
+                    {issuingCode ? "Issuing..." : "Issue Client Access Code"}
+                  </Button>
+                )}
+                {can("orders.delete") && (
                   <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={requestDeleteOrder}>
                     <Trash2 className="w-4 h-4 mr-2" /> Delete Order
                   </Button>

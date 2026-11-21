@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 type RfqStatus = "new" | "contacted" | "quoted" | "won" | "lost";
 
@@ -46,6 +47,7 @@ const statusColors: Record<RfqStatus, string> = {
 };
 
 export default function RfqInbox() {
+  const { can } = useAuth();
   const [rfqs, setRfqs] = useState<Rfq[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<RfqStatus | "all">("all");
@@ -207,11 +209,13 @@ export default function RfqInbox() {
                   />
                 </div>
 
-                <Button className="w-full" onClick={saveChanges} disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
+                {can("rfqs.update") && (
+                  <Button className="w-full" onClick={saveChanges} disabled={saving}>
+                    {saving ? "Saving..." : "Save Changes"}
+                  </Button>
+                )}
 
-                {draftStatus === "won" && (
+                {draftStatus === "won" && can("orders.create") && can("batches.create") && (
                   <Button
                     variant="secondary"
                     className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"

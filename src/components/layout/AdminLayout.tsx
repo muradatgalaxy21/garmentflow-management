@@ -28,15 +28,15 @@ interface NavItem {
 // Each entry is shown only if the user holds its permission (admin holds all).
 const adminNav: NavItem[] = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard, end: true },
-  { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false, perm: "rfqs" },
-  { title: "Inbox", url: "/admin/inbox", icon: MessagesSquare, end: false, perm: "inbox" },
-  { title: "Inventory", url: "/admin/inventory", icon: Package, end: false, perm: "inventory" },
-  { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false, perm: "orders" },
-  { title: "Batches", url: "/admin/batches", icon: Factory, end: false, perm: "batches" },
-  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "batches" },
-  { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false, perm: "dispatch" },
-  { title: "Employees", url: "/admin/employees", icon: HardHat, end: false, perm: "employees" },
-  { title: "Clients", url: "/admin/clients", icon: Users, end: false, perm: "clients" },
+  { title: "RFQ Inbox", url: "/admin/rfqs", icon: Inbox, end: false, perm: "rfqs.view" },
+  { title: "Inbox", url: "/admin/inbox", icon: MessagesSquare, end: false, perm: "inbox.view" },
+  { title: "Inventory", url: "/admin/inventory", icon: Package, end: false, perm: "inventory.view" },
+  { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false, perm: "orders.view" },
+  { title: "Batches", url: "/admin/batches", icon: Factory, end: false, perm: "batches.view" },
+  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "batches.view" },
+  { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false, perm: "dispatch.view" },
+  { title: "Employees", url: "/admin/employees", icon: HardHat, end: false, perm: "employees.view" },
+  { title: "Clients", url: "/admin/clients", icon: Users, end: false, perm: "clients.view" },
 ];
 
 const financeNav: NavItem[] = [

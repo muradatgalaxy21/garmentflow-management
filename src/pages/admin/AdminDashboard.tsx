@@ -3,6 +3,8 @@ import { Inbox, Package, ClipboardList, AlertTriangle, Factory, Loader2 } from "
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import AnalyticsWidget from "@/components/AnalyticsWidget";
+import { useAuth } from "@/hooks/useAuth";
+import type { Permission } from "@/lib/permissions";
 
 interface Stats {
   openRfqs: number;
@@ -13,6 +15,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  const { can } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,13 +62,14 @@ export default function AdminDashboard() {
     );
   }
 
-  const cards = [
-    { title: "Open RFQs", value: stats?.openRfqs ?? 0, icon: Inbox, color: "text-accent" },
-    { title: "Active Orders", value: stats?.inProductionOrders ?? 0, icon: ClipboardList, color: "text-accent" },
-    { title: "Inventory Items", value: stats?.totalInventoryItems ?? 0, icon: Package, color: "text-accent" },
-    { title: "Low Stock Alerts", value: stats?.lowStockItems ?? 0, icon: AlertTriangle, color: "text-destructive" },
-    { title: "Active Batches", value: stats?.activeBatches ?? 0, icon: Factory, color: "text-accent" },
-  ];
+  // Each card only shows to people who can open that section (RLS would return 0 anyway).
+  const cards = ([
+    { title: "Open RFQs", value: stats?.openRfqs ?? 0, icon: Inbox, color: "text-accent", perm: "rfqs.view" },
+    { title: "Active Orders", value: stats?.inProductionOrders ?? 0, icon: ClipboardList, color: "text-accent", perm: "orders.view" },
+    { title: "Inventory Items", value: stats?.totalInventoryItems ?? 0, icon: Package, color: "text-accent", perm: "inventory.view" },
+    { title: "Low Stock Alerts", value: stats?.lowStockItems ?? 0, icon: AlertTriangle, color: "text-destructive", perm: "inventory.view" },
+    { title: "Active Batches", value: stats?.activeBatches ?? 0, icon: Factory, color: "text-accent", perm: "batches.view" },
+  ] as { title: string; value: number; icon: typeof Inbox; color: string; perm: Permission }[]).filter((c) => can(c.perm));
 
   return (
     <div className="space-y-6">
@@ -99,11 +103,17 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
+      {cards.length === 0 && (
+        <p className="text-sm text-muted-foreground">Use the sidebar to open the sections you have access to.</p>
+      )}
+
       {/* Production Analytics */}
-      <div>
-        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Production Analytics</h2>
-        <AnalyticsWidget />
-      </div>
+      {can("batches.view") && (
+        <div>
+          <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Production Analytics</h2>
+          <AnalyticsWidget />
+        </div>
+      )}
     </div>
   );
 }

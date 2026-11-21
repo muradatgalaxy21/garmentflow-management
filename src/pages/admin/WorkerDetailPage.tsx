@@ -48,7 +48,7 @@ interface WorkEntry {
 export default function WorkerDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, can } = useAuth();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -243,9 +243,9 @@ export default function WorkerDetailPage() {
             </div>
           </div>
 
-          {isAdmin && (
+          {(isAdmin || can("employees.update")) && (
             <div className="flex flex-wrap gap-2 items-center">
-              {!hasAdmin && (
+              {!hasAdmin && can("employees.update") && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -254,6 +254,7 @@ export default function WorkerDetailPage() {
                   <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
                 </Button>
               )}
+              {isAdmin && (<>
               <Button
                 size="sm"
                 variant={hasManager ? "default" : "outline"}
@@ -273,6 +274,7 @@ export default function WorkerDetailPage() {
                 <HardHat className="w-3.5 h-3.5 mr-1" />
                 {hasWorker ? "Worker Role" : "+ Worker Role"}
               </Button>
+              </>)}
             </div>
           )}
         </CardContent>
@@ -304,7 +306,7 @@ export default function WorkerDetailPage() {
         </CardContent>
       </Card>
 
-      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} onDelete={deleteEntry} />
+      <DepartmentEntryDetailDialog entry={detailEntry} onClose={() => setDetailEntry(null)} onDelete={can("employees.delete") ? deleteEntry : undefined} />
 
       {editing && (
         <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>

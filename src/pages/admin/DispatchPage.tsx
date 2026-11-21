@@ -33,7 +33,7 @@ interface Dispatch {
 
 export default function DispatchPage() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,7 +146,7 @@ export default function DispatchPage() {
             <Label className="text-xs">Dispatch Note</Label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="mt-1" />
           </div>
-          <Button onClick={handleCreate} disabled={saving} className="bg-accent text-accent-foreground">
+          <Button onClick={handleCreate} disabled={saving || !can("dispatch.create")} className="bg-accent text-accent-foreground">
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Truck className="w-4 h-4 mr-2" />} Log Dispatch
           </Button>
         </CardContent>

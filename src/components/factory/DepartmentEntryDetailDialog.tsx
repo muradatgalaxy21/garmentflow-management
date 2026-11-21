@@ -29,7 +29,7 @@ export default function DepartmentEntryDetailDialog({
   onClose: () => void;
   onDelete?: (entry: DepartmentEntryDetail) => void;
 }) {
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
   const { t } = useTranslation();
   return (
     <Dialog open={!!entry} onOpenChange={(open) => !open && onClose()}>
@@ -70,7 +70,7 @@ export default function DepartmentEntryDetailDialog({
               </div>
               <p className="text-[11px] text-slate-400 pt-1">{t("factory.detailDialog.readOnlyNote")}</p>
             </div>
-            {isAdmin && onDelete && (
+            {can("employees.delete") && onDelete && (
               <DialogFooter>
                 <Button
                   variant="outline"

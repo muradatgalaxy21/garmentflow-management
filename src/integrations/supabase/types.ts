@@ -1557,6 +1557,10 @@ export type Database = {
         Args: { _from: string; _to: string }
         Returns: { monthly_salaries: number; piece_rate: number }[]
       }
+      has_any_permission: {
+        Args: { _permissions: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean

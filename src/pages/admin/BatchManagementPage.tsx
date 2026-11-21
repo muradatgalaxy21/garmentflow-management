@@ -90,7 +90,7 @@ export default function BatchManagementPage() {
   const [newRateLabel, setNewRateLabel] = useState("");
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { isAdmin, can } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
 
@@ -452,12 +452,16 @@ export default function BatchManagementPage() {
           <p className="text-sm text-muted-foreground">Manage production runs, manager batch rights, and print QR labels.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={openDeptRates}>
-            <Coins className="w-4 h-4 mr-2" /> Department Rates
-          </Button>
-          <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
-            <Plus className="w-4 h-4 mr-2" /> New Batch
-          </Button>
+          {can("batches.update") && (
+            <Button variant="outline" onClick={openDeptRates}>
+              <Coins className="w-4 h-4 mr-2" /> Department Rates
+            </Button>
+          )}
+          {can("batches.create") && (
+            <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
+              <Plus className="w-4 h-4 mr-2" /> New Batch
+            </Button>
+          )}
         </div>
       </div>
 
@@ -494,30 +498,36 @@ export default function BatchManagementPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 items-center flex-wrap">
-                  <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" onClick={() => setMultiWorkerBatch(b)}>
-                    <Users className="w-4 h-4 mr-1 text-emerald-500" /> Multi-Worker Log
-                  </Button>
+                  {can("batches.update") && (
+                    <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" onClick={() => setMultiWorkerBatch(b)}>
+                      <Users className="w-4 h-4 mr-1 text-emerald-500" /> Multi-Worker Log
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => showQr(b)}>
                     <QrCode className="w-4 h-4 mr-1 text-emerald-500" /> QR Labels
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => openAssignModal(b)}>
-                    <UserCheck className="w-4 h-4 mr-1 text-blue-500" /> Manager Rights
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => openRateDialog(b)}>
-                    <Settings className="w-4 h-4 mr-1" /> Piece Rates
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => openPackRatio(b)}>
-                    <Boxes className="w-4 h-4 mr-1 text-purple-500" /> Pack Ratio
-                  </Button>
+                  {isAdmin && (
+                    <Button size="sm" variant="outline" onClick={() => openAssignModal(b)}>
+                      <UserCheck className="w-4 h-4 mr-1 text-blue-500" /> Manager Rights
+                    </Button>
+                  )}
+                  {can("batches.update") && (<>
+                    <Button size="sm" variant="outline" onClick={() => openRateDialog(b)}>
+                      <Settings className="w-4 h-4 mr-1" /> Piece Rates
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => openPackRatio(b)}>
+                      <Boxes className="w-4 h-4 mr-1 text-purple-500" /> Pack Ratio
+                    </Button>
+                  </>)}
                   <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
                     <Eye className="w-4 h-4" />
                   </Button>
-                  {isAdmin && b.status !== "cancelled" && b.status !== "completed" && (
+                  {can("batches.update") && b.status !== "cancelled" && b.status !== "completed" && (
                     <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-600" onClick={() => cancelBatch(b)}>
                       <Ban className="w-4 h-4" />
                     </Button>
                   )}
-                  {isAdmin && (
+                  {can("batches.delete") && (
                     <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => requestDeleteBatch(b)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -859,7 +869,7 @@ export default function BatchManagementPage() {
                                   Waste: {e.quantity_wasted}
                                 </Badge>
                               )}
-                              {isAdmin && (
+                              {can("batches.delete") && (
                                 <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:text-red-600" onClick={() => deleteTrackingEntry(e)}>
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>

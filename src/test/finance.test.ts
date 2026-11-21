@@ -48,10 +48,11 @@ describe("finance helpers", () => {
   });
 
   it("permission rules match SQL has_permission", () => {
-    expect(hasPermission(true, [], "finance.edit")).toBe(true);
-    expect(hasPermission(false, ["finance.edit"], "finance.view")).toBe(true);
-    expect(hasPermission(false, ["finance.view"], "finance.edit")).toBe(false);
-    expect(hasPermission(false, ["orders"], "inventory")).toBe(false);
+    expect(hasPermission(true, [], "finance.delete")).toBe(true);
+    expect(hasPermission(false, ["finance.delete"], "finance.view")).toBe(true);
+    expect(hasPermission(false, ["finance.view"], "finance.create")).toBe(false);
+    expect(hasPermission(false, ["orders.update"], "orders.delete")).toBe(false);
+    expect(hasPermission(false, ["orders.view"], "inventory.view")).toBe(false);
   });
 
   it("csv neutralises formula-looking text but keeps numbers", () => {

@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------
 // Admin Create Worker Edge Function
 //
-// Lets a logged-in admin/staff user create an employee account
+// Lets an admin, or a user with the employees.create permission, create an employee account
 // directly from the admin dashboard (no self-signup needed).
-// Verifies the caller's JWT actually carries the admin/staff role
+// Verifies the caller holds that permission
 // before touching the service-role client.
 // ---------------------------------------------------------------
 
@@ -40,12 +40,12 @@ serve(async (req: Request) => {
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
-    const { data: callerRoles } = await admin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-    const roles = (callerRoles ?? []).map((r) => r.role);
-    if (!roles.includes("admin") && !roles.includes("staff")) {
+    // Admin passes; others need the Employees > Add permission (plans/01).
+    const { data: allowed } = await admin.rpc("has_any_permission", {
+      _user_id: caller.id,
+      _permissions: ["employees.create"],
+    });
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Not authorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

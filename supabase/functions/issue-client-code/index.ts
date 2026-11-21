@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------
 // Issue Client Code Edge Function
 //
-// Admin/staff-only: generates a one-time client portal access code
+// Admin, or clients.create / orders.create permission: generates a one-time client portal access code
 // tied to an order (plan.md §7). Email delivery now goes through the
 // shared `_shared/email.ts` sender (plan.md §9.2) — still returns the
 // code in the response either way, so the admin dialog can show/relay
@@ -56,9 +56,12 @@ serve(async (req: Request) => {
     }
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
-    const { data: callerRoles } = await admin.from("user_roles").select("role").eq("user_id", caller.id);
-    const roles = (callerRoles ?? []).map((r) => r.role);
-    if (!roles.includes("admin") && !roles.includes("staff")) {
+    // Admin passes; others need Clients > Add or Orders > Add (plans/01).
+    const { data: allowed } = await admin.rpc("has_any_permission", {
+      _user_id: caller.id,
+      _permissions: ["clients.create", "orders.create"],
+    });
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Not authorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

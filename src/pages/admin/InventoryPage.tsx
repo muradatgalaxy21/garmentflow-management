@@ -83,7 +83,7 @@ export default function InventoryPage() {
   const [skuDraft, setSkuDraft] = useState("");
   const [stickerAttrs, setStickerAttrs] = useState({ size: "", type: "", color: "", design: "" });
   const { toast } = useToast();
-  const { isAdmin } = useAuth();
+  const { can } = useAuth();
 
   const nextSku = () => {
     const numeric = items
@@ -246,9 +246,11 @@ export default function InventoryPage() {
           <h1 className="font-heading text-2xl font-bold text-foreground">Inventory</h1>
           <p className="text-sm text-muted-foreground">Track raw materials and finished goods.</p>
         </div>
-        <Button onClick={() => setAdding(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Add Item
-        </Button>
+        {can("inventory.create") && (
+          <Button onClick={() => setAdding(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Add Item
+          </Button>
+        )}
       </div>
 
       <Input
@@ -292,6 +294,7 @@ export default function InventoryPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
+                    {can("inventory.update") && (<>
                     <Button size="sm" variant="outline" onClick={() => setMovement({ item, type: "in" })}>
                       <ArrowDownToLine className="w-4 h-4 mr-1" /> In
                     </Button>
@@ -301,7 +304,8 @@ export default function InventoryPage() {
                     <Button size="sm" variant="ghost" onClick={() => setEditing(item)}>
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    {isAdmin && (
+                    </>)}
+                    {can("inventory.delete") && (
                       <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => deleteItem(item)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>

@@ -34,7 +34,7 @@ serve(async (req: Request) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller JWT carries admin/staff role before returning production data.
+    // Verify the caller may see batch data before returning production data.
     const authHeader = req.headers.get("Authorization") ?? "";
     const callerClient = createClient(supabaseUrl, serviceRoleKey, {
       global: { headers: { Authorization: authHeader } },
@@ -48,12 +48,12 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { data: callerRoles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id);
-    const roles = (callerRoles ?? []).map((r) => r.role);
-    if (!roles.includes("admin") && !roles.includes("staff")) {
+    // Admin passes; others need Batches > View (plans/01).
+    const { data: allowed } = await supabase.rpc("has_any_permission", {
+      _user_id: caller.id,
+      _permissions: ["batches.view"],
+    });
+    if (!allowed) {
       return new Response(JSON.stringify({ error: "Not authorized" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

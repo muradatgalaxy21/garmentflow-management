@@ -18,7 +18,7 @@ const blank = { category: "misc", amount: "", spent_on: today(), method: "cash",
 
 export default function ExpensesPage() {
   const data = useFinanceData();
-  const { can, isAdmin } = useAuth();
+  const { can } = useAuth();
   const { toast } = useToast();
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(today());
@@ -63,7 +63,7 @@ export default function ExpensesPage() {
     <div>
       <PageHeader title="Expenses" subtitle="Rent, bijli, gas, transport, repairs and other running costs. Worker wages come from logged work, not here.">
         <ExportButtons title="Expenses" subtitle={`${from} to ${to}`} rows={exportRows} />
-        {can("finance.edit") && <Button size="sm" onClick={() => setEditing({ form: { ...blank } })}><Plus className="w-4 h-4 mr-1" /> Add expense</Button>}
+        {can("finance.create") && <Button size="sm" onClick={() => setEditing({ form: { ...blank } })}><Plus className="w-4 h-4 mr-1" /> Add expense</Button>}
       </PageHeader>
 
       <div className="flex flex-wrap items-end gap-3 mb-4">
@@ -95,12 +95,12 @@ export default function ExpensesPage() {
                   <TableCell className="text-right tabular-nums">{pkr(Number(e.amount))}</TableCell>
                   <TableCell>
                     <div className="flex gap-1 justify-end">
-                      {can("finance.edit") && (
+                      {can("finance.update") && (
                         <Button size="icon" variant="ghost" aria-label="Edit expense" onClick={() => setEditing({ id: e.id, form: {
                           category: e.category, amount: String(e.amount), spent_on: e.spent_on, method: e.method, paid_to: e.paid_to ?? "", notes: e.notes ?? "",
                         } })}><Pencil className="w-4 h-4" /></Button>
                       )}
-                      {isAdmin && <Button size="icon" variant="ghost" aria-label="Delete expense" onClick={() => remove(e)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                      {can("finance.delete") && <Button size="icon" variant="ghost" aria-label="Delete expense" onClick={() => remove(e)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
                     </div>
                   </TableCell>
                 </TableRow>

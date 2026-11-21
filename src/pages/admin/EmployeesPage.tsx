@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getEntryPieceCount } from "@/lib/departmentEntries";
 import { downloadCsv } from "@/lib/export";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
-import { PERMISSIONS } from "@/lib/permissions";
+import { ACTIONS, ACTION_LABELS, SECTIONS, type Action } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
@@ -54,7 +54,7 @@ interface WorkerPayoutSummary {
 }
 
 export default function EmployeesPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, can } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -280,7 +280,7 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {isAdmin && (
+      {can("employees.create") && (
         <Card className="border-accent/20 bg-accent/5">
           <CardContent className="py-4">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
@@ -327,25 +327,55 @@ export default function EmployeesPage() {
       {/* Edit Worker Profile Modal */}
       {permEdit && (
         <Dialog open onOpenChange={(o) => !o && setPermEdit(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Permissions — {permEdit.profile.full_name ?? "Unnamed"}</DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-muted-foreground">Pick which admin sections this person can open. Admins always have everything.</p>
-            <div className="grid gap-2 py-2">
-              {PERMISSIONS.map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 text-sm cursor-pointer">
-                  <Checkbox
-                    checked={permEdit.granted.has(key)}
-                    onCheckedChange={(c) => {
-                      const next = new Set(permEdit.granted);
-                      if (c) next.add(key); else next.delete(key);
-                      setPermEdit({ ...permEdit, granted: next });
-                    }}
-                  />
-                  {label}
-                </label>
-              ))}
+            <p className="text-sm text-muted-foreground">
+              Tick what this person can do in each section. Add, Edit or Delete also turns on View. Admins always have everything.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="py-2 pr-2 font-medium">Section</th>
+                    {ACTIONS.map((a) => <th key={a} className="py-2 px-2 font-medium text-center">{ACTION_LABELS[a]}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {SECTIONS.map((sec) => (
+                    <tr key={sec.key} className="border-t border-border">
+                      <td className="py-2 pr-2">{sec.label}</td>
+                      {ACTIONS.map((a) => {
+                        const key = `${sec.key}.${a}`;
+                        if (!(sec.actions as readonly Action[]).includes(a)) {
+                          return <td key={a} className="text-center text-muted-foreground/50">—</td>;
+                        }
+                        return (
+                          <td key={a} className="text-center">
+                            <Checkbox
+                              aria-label={`${sec.label} ${ACTION_LABELS[a]}`}
+                              checked={permEdit.granted.has(key)}
+                              onCheckedChange={(c) => {
+                                const next = new Set(permEdit.granted);
+                                if (c) {
+                                  next.add(key);
+                                  next.add(`${sec.key}.view`); // any action needs view
+                                } else if (a === "view") {
+                                  for (const x of sec.actions) next.delete(`${sec.key}.${x}`); // no view = nothing
+                                } else {
+                                  next.delete(key);
+                                }
+                                setPermEdit({ ...permEdit, granted: next });
+                              }}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPermEdit(null)}>Cancel</Button>
@@ -554,13 +584,14 @@ export default function EmployeesPage() {
                   </div>
                 </div>
 
-                {isAdmin && (
+                {(isAdmin || can("employees.update")) && (
                   <div className="flex flex-wrap gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                    {!hasAdmin && (
+                    {!hasAdmin && can("employees.update") && (
                       <Button size="sm" variant="outline" onClick={() => openEditProfile(p)}>
                         <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
                       </Button>
                     )}
+                    {isAdmin && (<>
                     <Button
                       size="sm"
                       variant={hasManager ? "default" : "outline"}
@@ -585,6 +616,7 @@ export default function EmployeesPage() {
                       <HardHat className="w-3.5 h-3.5 mr-1" />
                       {hasWorker ? "Worker Role" : "+ Worker Role"}
                     </Button>
+                    </>)}
                   </div>
                 )}
               </CardContent>

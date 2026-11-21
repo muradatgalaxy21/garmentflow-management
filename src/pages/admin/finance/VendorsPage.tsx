@@ -30,7 +30,8 @@ export default function VendorsPage() {
   const [pay, setPay] = useState<PaymentTarget | null>(null);
   const [q, setQ] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const canEdit = can("finance.edit");
+  const canCreate = can("finance.create");
+  const canUpdate = can("finance.update");
 
   if (data.loading) return <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mt-24" />;
 
@@ -79,7 +80,7 @@ export default function VendorsPage() {
     <div>
       <PageHeader title="Vendors" subtitle="Suppliers of fabric, accessories and services, with what we owe each.">
         <ExportButtons title="Vendor Balances" subtitle={`As of ${new Date().toLocaleDateString()}`} rows={exportRows} />
-        {canEdit && <Button size="sm" onClick={() => setEditing({ form: { ...blank } })}><Plus className="w-4 h-4 mr-1" /> Add vendor</Button>}
+        {canCreate && <Button size="sm" onClick={() => setEditing({ form: { ...blank } })}><Plus className="w-4 h-4 mr-1" /> Add vendor</Button>}
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-4 mb-4">
@@ -118,14 +119,14 @@ export default function VendorsPage() {
                   <TableCell className="text-sm text-muted-foreground">{[v.contact_person, v.phone].filter(Boolean).join(" · ") || "—"}</TableCell>
                   <TableCell className={`text-right tabular-nums font-semibold ${balance > 0 ? "text-destructive" : ""}`}>{pkr(balance)}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    {canEdit && (
-                      <div className="flex gap-1 justify-end">
+                    <div className="flex gap-1 justify-end">
+                      {canCreate && (
                         <Button size="sm" variant="outline" onClick={() => setPay({ kind: "vendor", partyId: v.id, partyName: v.name, docs: openBills(v.id) })}>
                           <Wallet className="w-3.5 h-3.5 mr-1" /> Pay
                         </Button>
-                        <Button size="icon" variant="ghost" aria-label="Edit vendor" onClick={() => edit(v)}><Pencil className="w-4 h-4" /></Button>
-                      </div>
-                    )}
+                      )}
+                      {canUpdate && <Button size="icon" variant="ghost" aria-label="Edit vendor" onClick={() => edit(v)}><Pencil className="w-4 h-4" /></Button>}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

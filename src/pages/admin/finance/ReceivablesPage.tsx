@@ -13,7 +13,7 @@ import { DateRange, ExportButtons, OptionSelect, PageHeader, PaymentDialog, Stat
 
 export default function ReceivablesPage() {
   const data = useFinanceData();
-  const { can, isAdmin } = useAuth();
+  const { can } = useAuth();
   const { toast } = useToast();
   const [client, setClient] = useState("");
   const [from, setFrom] = useState(today().slice(0, 4) + "-01-01");
@@ -114,7 +114,7 @@ export default function ReceivablesPage() {
                       <TableCell>
                         <div className="flex gap-1 justify-end">
                           <Button size="sm" variant="ghost" onClick={() => setClient(r.id)}>Ledger</Button>
-                          {can("finance.edit") && <Button size="sm" variant="outline" onClick={() => startReceive(r.id)}><HandCoins className="w-3.5 h-3.5 mr-1" /> Receive</Button>}
+                          {can("finance.create") && <Button size="sm" variant="outline" onClick={() => startReceive(r.id)}><HandCoins className="w-3.5 h-3.5 mr-1" /> Receive</Button>}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -171,7 +171,7 @@ export default function ReceivablesPage() {
                       <TableCell>{p.order_id ? orderNo.get(p.order_id) : <span className="text-muted-foreground">On account</span>}</TableCell>
                       <TableCell>{label(p.method)}</TableCell><TableCell>{p.reference || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(p.amount))}</TableCell>
-                      <TableCell>{isAdmin && <Button size="icon" variant="ghost" aria-label="Delete receipt" onClick={() => deleteReceipt(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
+                      <TableCell>{can("finance.delete") && <Button size="icon" variant="ghost" aria-label="Delete receipt" onClick={() => deleteReceipt(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

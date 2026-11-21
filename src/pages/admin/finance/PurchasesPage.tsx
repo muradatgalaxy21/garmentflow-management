@@ -27,9 +27,11 @@ const blankLine: LineDraft = { description: "", inventory_item_id: "none", quant
 
 export default function PurchasesPage() {
   const data = useFinanceData();
-  const { can, isAdmin } = useAuth();
+  const { can } = useAuth();
   const { toast } = useToast();
-  const canEdit = can("finance.edit");
+  const canCreate = can("finance.create");
+  const canUpdate = can("finance.update");
+  const canDelete = can("finance.delete");
   const [items, setItems] = useState<Item[]>([]);
   const [vendorFilter, setVendorFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("open");
@@ -164,7 +166,7 @@ export default function PurchasesPage() {
   return (
     <div>
       <PageHeader title="Purchases" subtitle="Vendor bills (kapra, accessories, services) and payments made against them.">
-        {canEdit && (
+        {canCreate && (
           <Button size="sm" onClick={() => setDraft({ vendor_id: vendorFilter === "all" ? "" : vendorFilter, bill_no: "", bill_date: today(), due_date: "", notes: "", lines: [{ ...blankLine }] })}>
             <Plus className="w-4 h-4 mr-1" /> New bill
           </Button>
@@ -216,13 +218,13 @@ export default function PurchasesPage() {
                       <TableCell>
                         <div className="flex gap-1 justify-end">
                           <Button size="icon" variant="ghost" aria-label="View bill" onClick={async () => setViewing({ bill: b, lines: await loadLines(b.id!) })}><Eye className="w-4 h-4" /></Button>
-                          {canEdit && Number(b.balance) > 0 && (
+                          {canCreate && Number(b.balance) > 0 && (
                             <Button size="sm" variant="outline" onClick={() => setPay({ kind: "vendor", partyId: b.vendor_id!, partyName: vendorName.get(b.vendor_id!) ?? "", docs: openDocs(b.vendor_id!), docId: b.id! })}>
                               <Wallet className="w-3.5 h-3.5 mr-1" /> Pay
                             </Button>
                           )}
-                          {canEdit && <Button size="icon" variant="ghost" aria-label="Edit bill" onClick={() => openEdit(b)}><Pencil className="w-4 h-4" /></Button>}
-                          {isAdmin && <Button size="icon" variant="ghost" aria-label="Delete bill" onClick={() => deleteBill(b)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
+                          {canUpdate && <Button size="icon" variant="ghost" aria-label="Edit bill" onClick={() => openEdit(b)}><Pencil className="w-4 h-4" /></Button>}
+                          {canDelete && <Button size="icon" variant="ghost" aria-label="Delete bill" onClick={() => deleteBill(b)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -254,7 +256,7 @@ export default function PurchasesPage() {
                       <TableCell>{label(p.method)}</TableCell>
                       <TableCell>{p.reference || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(p.amount))}</TableCell>
-                      <TableCell>{isAdmin && <Button size="icon" variant="ghost" aria-label="Delete payment" onClick={() => deletePayment(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
+                      <TableCell>{canDelete && <Button size="icon" variant="ghost" aria-label="Delete payment" onClick={() => deletePayment(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

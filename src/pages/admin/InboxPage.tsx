@@ -33,7 +33,7 @@ const statusColors: Record<InboxMessage["status"], string> = {
 };
 
 function WorkerInboxTab() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,7 +142,7 @@ function WorkerInboxTab() {
                     </div>
                   </div>
 
-                  {isPending && (
+                  {isPending && can("inbox.update") && (
                     <div className="space-y-2 border-t pt-3">
                       <Textarea
                         placeholder="Optional note..."
@@ -230,7 +230,7 @@ const clientStatusColors: Record<ClientInboxMessage["status"], string> = {
 };
 
 function ClientInboxTab() {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<ClientInboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -330,7 +330,7 @@ function ClientInboxTab() {
                     </div>
                   </div>
 
-                  {isPending && (
+                  {isPending && can("inbox.update") && (
                     <div className="space-y-2 border-t pt-3">
                       <Textarea
                         placeholder="Reply (optional)..."

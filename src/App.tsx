@@ -113,16 +113,16 @@ const App = () => (
               }
             >
               <Route index element={<AdminDashboard />} />
-              <Route path="rfqs" element={gate("rfqs", <RfqInbox />)} />
-              <Route path="inbox" element={gate("inbox", <AdminInboxPage />)} />
-              <Route path="inventory" element={gate("inventory", <InventoryPage />)} />
-              <Route path="orders" element={gate("orders", <OrdersAdminPage />)} />
-              <Route path="batches" element={gate("batches", <BatchManagementPage />)} />
-              <Route path="pipeline-status" element={gate("batches", <BatchPipelineStatusPage />)} />
-              <Route path="dispatch" element={gate("dispatch", <DispatchPage />)} />
-              <Route path="clients" element={gate("clients", <ClientsPage />)} />
-              <Route path="employees" element={gate("employees", <EmployeesPage />)} />
-              <Route path="employees/:id" element={gate("employees", <WorkerDetailPage />)} />
+              <Route path="rfqs" element={gate("rfqs.view", <RfqInbox />)} />
+              <Route path="inbox" element={gate("inbox.view", <AdminInboxPage />)} />
+              <Route path="inventory" element={gate("inventory.view", <InventoryPage />)} />
+              <Route path="orders" element={gate("orders.view", <OrdersAdminPage />)} />
+              <Route path="batches" element={gate("batches.view", <BatchManagementPage />)} />
+              <Route path="pipeline-status" element={gate("batches.view", <BatchPipelineStatusPage />)} />
+              <Route path="dispatch" element={gate("dispatch.view", <DispatchPage />)} />
+              <Route path="clients" element={gate("clients.view", <ClientsPage />)} />
+              <Route path="employees" element={gate("employees.view", <EmployeesPage />)} />
+              <Route path="employees/:id" element={gate("employees.view", <WorkerDetailPage />)} />
               <Route path="finance" element={gate("finance.view", <FinanceDashboard />)} />
               <Route path="finance/vendors" element={gate("finance.view", <VendorsPage />)} />
               <Route path="finance/vendors/:id" element={gate("finance.view", <VendorLedgerPage />)} />
