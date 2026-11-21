@@ -1549,6 +1549,14 @@ export type Database = {
       }
     }
     Functions: {
+      finance_party_names: {
+        Args: { _ids: string[] }
+        Returns: { id: string; name: string }[]
+      }
+      finance_wage_totals: {
+        Args: { _from: string; _to: string }
+        Returns: { monthly_salaries: number; piece_rate: number }[]
+      }
       has_permission: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean

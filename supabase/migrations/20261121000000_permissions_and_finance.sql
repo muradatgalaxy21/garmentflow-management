@@ -251,11 +251,39 @@ CREATE POLICY "Finance edit delete bill items" ON public.vendor_bill_items
   USING (public.has_permission(auth.uid(), 'finance.edit'));
 
 -- Read access finance users need on existing tables (policies are OR'd with existing ones).
+-- Profiles and department_entries are NOT opened up: finance gets only the
+-- fields it needs through the gated functions below.
 CREATE POLICY "Finance view orders" ON public.orders
-  FOR SELECT TO authenticated USING (public.has_permission(auth.uid(), 'finance.view'));
-CREATE POLICY "Finance view profiles" ON public.profiles
-  FOR SELECT TO authenticated USING (public.has_permission(auth.uid(), 'finance.view'));
-CREATE POLICY "Finance view department entries" ON public.department_entries
   FOR SELECT TO authenticated USING (public.has_permission(auth.uid(), 'finance.view'));
 CREATE POLICY "Finance view inventory items" ON public.inventory_items
   FOR SELECT TO authenticated USING (public.has_permission(auth.uid(), 'finance.view'));
+
+-- Client display names for receivables (only for given ids, only name fields).
+CREATE OR REPLACE FUNCTION public.finance_party_names(_ids UUID[])
+RETURNS TABLE (id UUID, name TEXT)
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT p.id, COALESCE(NULLIF(p.company, ''), NULLIF(p.full_name, ''), 'Unnamed client')
+  FROM public.profiles p
+  WHERE p.id = ANY(_ids) AND public.has_permission(auth.uid(), 'finance.view')
+$$;
+
+-- Wage totals for the P&L: piece-rate cost logged in [_from, _to] in
+-- wage-bearing departments, plus the sum of monthly salaries (caller pro-rates).
+CREATE OR REPLACE FUNCTION public.finance_wage_totals(_from DATE, _to DATE)
+RETURNS TABLE (piece_rate NUMERIC, monthly_salaries NUMERIC)
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    (SELECT COALESCE(sum(total_cost), 0) FROM public.department_entries
+      WHERE department IN ('sticker', 'quality', 'stitching', 'button_ops', 'clipping', 'press', 'quality_final', 'packing')
+        AND created_at >= _from AND created_at < _to + 1),
+    (SELECT COALESCE(sum(base_salary), 0) FROM public.profiles WHERE wage_type = 'monthly_salary')
+  WHERE public.has_permission(auth.uid(), 'finance.view')
+$$;

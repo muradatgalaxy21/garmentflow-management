@@ -54,11 +54,9 @@ export function useFinanceData() {
 
     const orders = (o.data ?? []) as Order[];
     const clientIds = [...new Set([...orders.map((x) => x.client_id), ...(cp.data ?? []).map((x) => x.client_id)])];
-    const { data: profs } = clientIds.length
-      ? await supabase.from("profiles").select("id, full_name, company").in("id", clientIds)
-      : { data: [] };
+    const { data: names } = clientIds.length ? await supabase.rpc("finance_party_names", { _ids: clientIds }) : { data: [] };
     const clientNames = new Map<string, string>();
-    for (const p of profs ?? []) clientNames.set(p.id, p.company || p.full_name || "Unnamed client");
+    for (const n of names ?? []) clientNames.set(n.id, n.name);
     // Offline parties entered on the order itself win over a blank profile.
     for (const ord of orders) if (!clientNames.has(ord.client_id) && ord.party_name) clientNames.set(ord.client_id, ord.party_name);
 

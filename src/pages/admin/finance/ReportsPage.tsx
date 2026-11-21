@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Cell } from "@/lib/export";
 import {
-  AGING_BUCKETS, PAYMENT_METHODS, WAGE_BEARING_DEPARTMENTS, agingSummary, inRange, label, monthStart, pkr, proratedSalary, today,
+  AGING_BUCKETS, PAYMENT_METHODS, agingSummary, inRange, label, monthStart, pkr, proratedSalary, today,
 } from "@/lib/finance";
 import { DateRange, ExportButtons, PageHeader, orderDate, useFinanceData } from "./shared";
 
@@ -33,17 +33,13 @@ export default function ReportsPage() {
   useEffect(() => {
     if (!from || !to) return;
     setWages(null);
-    (async () => {
-      const [entries, salaried] = await Promise.all([
-        supabase.from("department_entries").select("total_cost").in("department", WAGE_BEARING_DEPARTMENTS)
-          .gte("created_at", from).lt("created_at", nextDay(to)),
-        supabase.from("profiles").select("base_salary").eq("wage_type", "monthly_salary"),
-      ]);
+    supabase.rpc("finance_wage_totals", { _from: from, _to: to }).then(({ data: rows }) => {
+      const w = rows?.[0];
       setWages({
-        piece: sum((entries.data ?? []).map((e) => Number(e.total_cost) || 0)),
-        salary: sum((salaried.data ?? []).map((p) => proratedSalary(Number(p.base_salary) || 0, from, to))),
+        piece: Number(w?.piece_rate) || 0,
+        salary: proratedSalary(Number(w?.monthly_salaries) || 0, from, to),
       });
-    })();
+    });
   }, [from, to]);
 
   if (data.loading) return <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mt-24" />;
@@ -192,12 +188,6 @@ export default function ReportsPage() {
       )}
     </div>
   );
-}
-
-function nextDay(d: string) {
-  const x = new Date(d + "T00:00:00Z");
-  x.setUTCDate(x.getUTCDate() + 1);
-  return x.toISOString().slice(0, 10);
 }
 
 // Sums every numeric column from `start` onward.

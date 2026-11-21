@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { agingBucket, agingSummary, buildLedger, fifoOutstanding, proratedSalary } from "@/lib/finance";
 import { hasPermission } from "@/lib/permissions";
+import { csvCell } from "@/lib/export";
 
 describe("finance helpers", () => {
   it("ledger rolls pre-range entries into opening and keeps running balance", () => {
@@ -51,5 +52,12 @@ describe("finance helpers", () => {
     expect(hasPermission(false, ["finance.edit"], "finance.view")).toBe(true);
     expect(hasPermission(false, ["finance.view"], "finance.edit")).toBe(false);
     expect(hasPermission(false, ["orders"], "inventory")).toBe(false);
+  });
+
+  it("csv neutralises formula-looking text but keeps numbers", () => {
+    expect(csvCell("=HYPERLINK(1)")).toBe(`"'=HYPERLINK(1)"`);
+    expect(csvCell("@cmd")).toBe(`"'@cmd"`);
+    expect(csvCell(-500)).toBe(`"-500"`);
+    expect(csvCell('Ali "Kapra"')).toBe(`"Ali ""Kapra"""`);
   });
 });

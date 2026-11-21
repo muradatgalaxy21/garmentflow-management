@@ -3,9 +3,15 @@
 
 export type Cell = string | number;
 
+// Text starting with = + - @ tab/CR runs as a formula in Excel; prefix ' to keep it text.
+export const csvCell = (cell: Cell) => {
+  const s = typeof cell === "string" && /^[=+\-@\t\r]/.test(cell) ? "'" + cell : String(cell);
+  return `"${s.replace(/"/g, '""')}"`;
+};
+
 export function downloadCsv(filename: string, rows: Cell[][]) {
   const csv = rows
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .map((row) => row.map(csvCell).join(","))
     .join("\r\n");
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
