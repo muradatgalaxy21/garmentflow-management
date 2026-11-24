@@ -67,6 +67,7 @@ export default function EmployeesPage() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [payouts, setPayouts] = useState<WorkerPayoutSummary[]>([]);
   const [loadingPayouts, setLoadingPayouts] = useState(false);
+  const [search, setSearch] = useState("");
   const [permEdit, setPermEdit] = useState<{ profile: Profile; granted: Set<string>; original: Set<string> } | null>(null);
 
   const openPermissions = async (p: Profile) => {
@@ -191,6 +192,15 @@ export default function EmployeesPage() {
   const rolesFor = (id: string) => roles.filter((r) => r.user_id === id).map((r) => r.role);
 
   const workerProfiles = profiles.filter((p) => !rolesFor(p.id).includes("client"));
+  // IMP-12: match name / phone / department / sub-department / role / employee ID.
+  const q = search.trim().toLowerCase();
+  const qDigits = q.replace(/\D/g, "");
+  const shownWorkers = !q ? workerProfiles : workerProfiles.filter((p) =>
+    [p.full_name, p.email, p.employee_id, p.department?.replace("_", " "), p.sub_department?.replace("_", " "), ...rolesFor(p.id)]
+      .some((v) => v?.toLowerCase().includes(q))
+    // Phone: digits only, so "0300 123" finds +92300123... too.
+    || (qDigits.length >= 3 && !!p.phone && (p.phone.replace(/\D/g, "").includes(qDigits) || p.phone.replace(/\D/g, "").includes(qDigits.replace(/^0/, "92")))),
+  );
 
   const nextEmployeeId = () => {
     const maxNum = profiles.reduce((max, p) => {
@@ -316,8 +326,16 @@ export default function EmployeesPage() {
             <TabsTrigger value="payouts">Dihaari Payout Ledger</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="workers" className="mt-4">
-            {renderWorkerList(workerProfiles)}
+          <TabsContent value="workers" className="mt-4 space-y-3">
+            <Input
+              type="search"
+              placeholder="Search name, phone, department, role…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-md"
+              aria-label="Search employees"
+            />
+            {renderWorkerList(shownWorkers)}
           </TabsContent>
 
           <TabsContent value="payouts" className="mt-4">

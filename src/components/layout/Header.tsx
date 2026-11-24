@@ -2,15 +2,16 @@ import { useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, User, HardHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, portalPathFor } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, isWorker, isStaff } = useAuth();
+  const { user, roles } = useAuth();
   const { t } = useTranslation();
-  const portalPath = isWorker ? "/factory" : isStaff ? "/admin" : "/client-portal";
+  const portalPath = portalPathFor(roles);
+  const isClientPortal = portalPath === "/client-portal";
   const location = useLocation();
   const navigate = useNavigate();
   const logoClicks = useRef(0);
@@ -105,7 +106,7 @@ export default function Header() {
                 {t("nav.myPortal")}
               </Link>
               <Button asChild variant="outline" size="icon" className="w-8 h-8 rounded-full border-[#E4DDC9]" title={user.email}>
-                <Link to={isWorker || isStaff ? portalPath : "/client-portal/profile"}>
+                <Link to={isClientPortal ? "/client-portal/profile" : portalPath}>
                   <User className="w-4 h-4 text-[#1B2A4A]" />
                 </Link>
               </Button>

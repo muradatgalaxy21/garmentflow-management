@@ -6,6 +6,13 @@ import { hasPermission, type Permission } from "@/lib/permissions";
 // Application-level role values mirror the `app_role` enum in the database
 export type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
+// Where each role lands after sign-in / "My portal". Single source of truth.
+export function portalPathFor(roles: string[]): string {
+  if (roles.includes("worker")) return "/factory";
+  if (roles.some((r) => r === "admin" || r === "staff" || r === "manager")) return "/admin";
+  return "/client-portal";
+}
+
 interface AuthState {
   user: User | null;
   session: Session | null;

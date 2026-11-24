@@ -11,18 +11,20 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePkPhone } from "@/lib/phone";
 import { useTranslation } from "@/i18n/useTranslation";
+import { portalPathFor } from "@/hooks/useAuth";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 
 type PortalRole = "client" | "worker";
 
-// Land the user on the area their role actually uses instead of always /client-portal.
-async function resolveRoleTarget(userId: string, fallback: string): Promise<string> {
+async function fetchRoles(userId: string): Promise<string[]> {
   const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-  const userRoles = (roleRows ?? []).map((r) => r.role);
-  if (userRoles.includes("worker")) return "/factory";
-  if (userRoles.includes("admin") || userRoles.includes("staff")) return "/admin";
-  return fallback;
+  return (roleRows ?? []).map((r) => r.role);
+}
+
+// Land the user on the area their role actually uses instead of always /client-portal.
+async function resolveRoleTarget(userId: string): Promise<string> {
+  return portalPathFor(await fetchRoles(userId));
 }
 
 // Validation schemas for sign-in and sign-up forms.
@@ -239,6 +241,8 @@ export default function AuthPage() {
 
   const initialRole = searchParams.get("role") === "worker" ? "worker" : searchParams.get("role") === "client" ? "client" : null;
   const [role, setRole] = useState<PortalRole | null>(initialRole);
+  // Worker page: phone + OTP by default; staff/managers/finance/admin switch to email & password.
+  const [staffEmail, setStaffEmail] = useState(false);
 
   const from = (location.state as { from?: string } | null)?.from ?? "/client-portal";
 
@@ -248,7 +252,7 @@ export default function AuthPage() {
       if (!session) return;
       let target = from;
       if (!cameFromProtectedRoute) {
-        target = await resolveRoleTarget(session.user.id, from);
+        target = await resolveRoleTarget(session.user.id);
       }
       navigate(target, { replace: true });
     });
@@ -276,11 +280,24 @@ export default function AuthPage() {
       return;
     }
 
-    const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
-    let target = from;
-    if (!cameFromProtectedRoute && data.user) {
-      target = await resolveRoleTarget(data.user.id, from);
+    // Client portal is for clients only; everyone else signs in from the worker page.
+    const userRoles = await fetchRoles(data.user.id);
+    const isClient = userRoles.includes("client");
+    if (role === "client" ? !isClient : isClient) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast({
+        title: "Wrong sign-in page",
+        description: role === "client"
+          ? "This sign-in is for clients. Staff and managers: choose \"Factory Employee / Worker\", then \"Use email & password\"."
+          : "Client accounts sign in from the Client option.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
+    const target = cameFromProtectedRoute ? from : portalPathFor(userRoles);
 
     setLoading(false);
     toast({ title: "Welcome back" });
@@ -289,7 +306,7 @@ export default function AuthPage() {
 
   const handleWorkerSignedIn = async (userId: string) => {
     const cameFromProtectedRoute = Boolean((location.state as { from?: string } | null)?.from);
-    const target = cameFromProtectedRoute ? from : await resolveRoleTarget(userId, "/factory");
+    const target = cameFromProtectedRoute ? from : await resolveRoleTarget(userId);
     toast({ title: "Welcome" });
     navigate(target, { replace: true });
   };
@@ -339,6 +356,48 @@ export default function AuthPage() {
       description: "Please check your email to confirm your account, then sign in.",
     });
   };
+
+  const emailSignInForm = (
+  <form onSubmit={handleSignIn} className="space-y-4 text-left" noValidate autoComplete="on">
+    <div>
+      <Label htmlFor="signin-email" className="text-xs font-semibold text-[#1E293B]">
+        {t("auth.email")}
+      </Label>
+      <Input
+        id="signin-email"
+        name="email"
+        type="email"
+        autoComplete="email"
+        required
+        maxLength={255}
+        className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
+      />
+    </div>
+    <div>
+      <Label htmlFor="signin-password" className="text-xs font-semibold text-[#1E293B]">
+        {t("auth.password")}
+      </Label>
+      <div className="mt-1">
+        <PasswordField
+          id="signin-password"
+          name="password"
+          autoComplete="current-password"
+          required
+          minLength={6}
+          maxLength={72}
+        />
+      </div>
+    </div>
+    <Button
+      type="submit"
+      disabled={loading}
+      className="w-full bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-2.5"
+    >
+      {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
+    </Button>
+    <div className="text-center"><ForgotPasswordLink className="text-[#1E293B]/70 hover:text-[#1E293B]" /></div>
+  </form>
+  );
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#F5F2EA]">
@@ -398,7 +457,15 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {role === "worker" ? (
+              {role === "worker" && staffEmail ? (
+                <>
+                  {emailSignInForm}
+                  <button type="button" onClick={() => setStaffEmail(false)} className="mt-4 text-xs text-[#B88E28] hover:underline">
+                    Use phone number instead
+                  </button>
+                </>
+              ) : role === "worker" ? (
+                <>
                 <Tabs defaultValue="signin" className="w-full">
                   <TabsList className="grid grid-cols-2 w-full mb-4">
                     <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
@@ -411,6 +478,10 @@ export default function AuthPage() {
                     <WorkerPhoneAuth mode="signup" onSignedIn={handleWorkerSignedIn} />
                   </TabsContent>
                 </Tabs>
+                <button type="button" onClick={() => setStaffEmail(true)} className="mt-4 text-xs text-[#B88E28] hover:underline">
+                  Staff, managers, finance, admin: use email &amp; password
+                </button>
+                </>
               ) : (
               <Tabs defaultValue="signin" className="w-full">
                 <TabsList className="grid grid-cols-2 w-full mb-4">
@@ -420,45 +491,7 @@ export default function AuthPage() {
 
                 {/* Sign In tab */}
                 <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4 text-left" noValidate autoComplete="on">
-                    <div>
-                      <Label htmlFor="signin-email" className="text-xs font-semibold text-[#1E293B]">
-                        {t("auth.email")}
-                      </Label>
-                      <Input
-                        id="signin-email"
-                        name="email"
-                        type="email"
-                        autoComplete="email"
-                        required
-                        maxLength={255}
-                        className="mt-1 bg-[#FAF8F3] border-[#E5DFD3]"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="signin-password" className="text-xs font-semibold text-[#1E293B]">
-                        {t("auth.password")}
-                      </Label>
-                      <div className="mt-1">
-                        <PasswordField
-                          id="signin-password"
-                          name="password"
-                          autoComplete="current-password"
-                          required
-                          minLength={6}
-                          maxLength={72}
-                        />
-                      </div>
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-[#1B2A4A] text-white hover:bg-[#121B33] font-semibold py-2.5"
-                    >
-                      {loading ? t("factory.common.loading") : t("auth.submitSignIn")}
-                    </Button>
-                    <div className="text-center"><ForgotPasswordLink className="text-[#1E293B]/70 hover:text-[#1E293B]" /></div>
-                  </form>
+                  {emailSignInForm}
                 </TabsContent>
 
                 {/* Sign Up tab */}

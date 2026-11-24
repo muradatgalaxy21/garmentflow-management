@@ -839,7 +839,7 @@ export type Database = {
           currency?: string | null
           expected_delivery?: string | null
           id?: string
-          order_number: string
+          order_number?: string
           party_name?: string | null
           product_summary: string
           quantity: number

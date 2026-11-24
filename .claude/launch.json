@@ -4,8 +4,25 @@
     {
       "name": "dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 8080
+    },
+    {
+      "name": "dev-test",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--mode",
+        "staging",
+        "--port",
+        "8081"
+      ],
+      "port": 8081
     }
   ]
 }

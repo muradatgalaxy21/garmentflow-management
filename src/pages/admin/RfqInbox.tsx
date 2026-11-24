@@ -222,13 +222,11 @@ export default function RfqInbox() {
                     onClick={async () => {
                       setSaving(true);
                       try {
-                        const orderNum = `ORD-${Date.now().toString().slice(-6)}`;
                         // 1. Create Order
                         const { data: newOrder, error: oErr } = await supabase
                           .from("orders")
                           .insert({
                             client_id: selected.id, // linked or fallback
-                            order_number: orderNum,
                             product_summary: `${selected.product_type || "Garments"} - ${selected.name}`,
                             quantity: parseInt(selected.quantity || "100") || 100,
                             status: "in_production",
@@ -250,7 +248,7 @@ export default function RfqInbox() {
 
                         if (bErr) throw bErr;
 
-                        toast({ title: "Order & Batch Created!", description: `Created Order #${orderNum} & Batch #${styleNum}` });
+                        toast({ title: "Order & Batch Created!", description: `Created Order #${newOrder.order_number} & Batch #${styleNum}` });
                         setSelected(null);
                         load();
                       } catch (err: any) {

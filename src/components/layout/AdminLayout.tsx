@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch, Wallet, Store, Receipt, HandCoins, BadgeDollarSign, FileBarChart } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,6 +53,7 @@ const financeNav: NavItem[] = [
 export default function AdminLayout() {
   const { user, isStaff, isAdmin, isManager, loading, signOut, can } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   if (loading) {
     return (
@@ -98,16 +99,14 @@ export default function AdminLayout() {
                     <SidebarMenu>
                       {visible.map((item) => (
                         <SidebarMenuItem key={item.url}>
-                          <SidebarMenuButton asChild>
-                            <NavLink
-                              to={item.url}
-                              end={item.end}
-                              className={({ isActive }) =>
-                                isActive
-                                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                                  : "hover:bg-sidebar-accent/50"
-                              }
-                            >
+                          {/* Slot (asChild) can't merge NavLink's className function, so the
+                              active state goes through SidebarMenuButton's isActive instead. */}
+                          <SidebarMenuButton
+                            asChild
+                            isActive={!!matchPath({ path: item.url, end: item.end }, pathname)}
+                            className="data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground data-[active=true]:font-semibold"
+                          >
+                            <NavLink to={item.url} end={item.end}>
                               <item.icon className="w-4 h-4" />
                               <span>{item.title}</span>
                             </NavLink>

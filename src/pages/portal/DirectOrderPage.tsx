@@ -66,7 +66,6 @@ export default function DirectOrderPage() {
     }
 
     setSubmitting(true);
-    const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
 
     try {
       const { data: profile } = await supabase
@@ -79,7 +78,6 @@ export default function DirectOrderPage() {
         .from("orders")
         .insert({
           client_id: user.id,
-          order_number: orderNumber,
           product_summary: productSummary.trim(),
           quantity: Number(quantity),
           currency,
@@ -93,15 +91,18 @@ export default function DirectOrderPage() {
 
       if (error) throw error;
 
-      // Add initial order update log
-      await supabase.from("order_updates").insert({
+      // Initial timeline entry carries the client's notes; surface failure instead of losing them.
+      const { error: noteErr } = await supabase.from("order_updates").insert({
         order_id: newOrder.id,
         status: "pending",
         note: `Direct Order created by client. Notes: ${notes || "None"}`,
         created_by: user.id,
       });
-
-      toast({ title: "Order Submitted Successfully!", description: `Order #${orderNumber} is pending review.` });
+      if (noteErr) {
+        toast({ title: "Order placed, but notes were not saved", description: noteErr.message, variant: "destructive" });
+      } else {
+        toast({ title: "Order Submitted Successfully!", description: `Order #${newOrder.order_number} is pending review.` });
+      }
       navigate(`/client-portal/orders/${newOrder.id}`);
     } catch (err: any) {
       toast({ title: "Failed to create order", description: err.message, variant: "destructive" });
