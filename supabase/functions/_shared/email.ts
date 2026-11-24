@@ -21,14 +21,22 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     return { sent: false };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
-  });
+  // Resend rate-limits per team (429). One alert fans out to every staff
+  // user at once, so retry with jittered backoff instead of dropping mail.
+  // ponytail: in-request retry only; a queue if staff count outgrows it.
+  let res: Response;
+  for (let attempt = 0; ; attempt++) {
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+    });
+    if (res.status !== 429 || attempt >= 4) break;
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1) + Math.random() * 500));
+  }
 
   if (!res.ok) {
     console.error(`[send-email] Resend API error ${res.status}: ${await res.text()}`);
