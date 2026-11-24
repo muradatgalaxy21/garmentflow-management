@@ -1,5 +1,9 @@
-import { useEffect, useState, useRef } from "react";
-import { Plus, Loader2, QrCode, Printer, Settings, Eye, Users, Coins, Trash2, Ban, Boxes, X } from "lucide-react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  Plus, Loader2, QrCode, Printer, Settings, Eye, Users, Coins, Trash2, Ban, Boxes, X, Layers,
+  CheckCircle2, Circle, CircleDot, Truck,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,15 +17,29 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { StatusBadge, type Tone } from "@/components/admin/StatusBadge";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { TableToolbar } from "@/components/admin/TableToolbar";
+import { MoreMenu } from "@/components/admin/MoreMenu";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { withUndo } from "@/lib/undo";
 import { useAuth } from "@/hooks/useAuth";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
+import type { Permission } from "@/lib/permissions";
+import { fmtDate, fmtDateTime } from "@/lib/format";
+import { stallCutoff } from "@/lib/dashboardMetrics";
+import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
+import {
+  STAGES, STATE_LABELS, batchProgress, batchState, isoDay, matchesDue,
+  type BatchStateKey, type BlockReason, type DeptRow, type DueFilter,
+} from "@/lib/batchState";
 import { z } from "zod";
 
 const batchSchema = z.object({
@@ -42,9 +60,10 @@ interface Batch {
   created_at: string;
 }
 
-interface Order { id: string; order_number: string; product_summary: string; party_name: string | null; }
-interface InventoryItem { id: string; name: string; sku: string; }
+interface Order { id: string; order_number: string; product_summary: string; party_name: string | null; expected_delivery: string | null; }
+interface InventoryItem { id: string; name: string; sku: string; quantity_on_hand: number; reorder_level: number; }
 interface Phase { id: string; name: string; sequence_order: number; }
+interface Dispatch { batch_id: string; dispatch_date: string; carton_count: number; carrier: string | null; }
 type RateDept = "printing" | "embroidery" | "clipping" | "sticker" | "quality" | "stitching" | "button_ops" | "press" | "quality_final" | "packing";
 interface DeptRate { id: string; department: RateDept; label: string; rate: number; }
 // Label hint per department — what value each factory-floor form looks up.
@@ -59,13 +78,39 @@ interface TrackingEntry {
   quantity_completed: number; quantity_wasted: number;
   notes: string | null; created_at: string;
 }
+interface DeptLog { id: string; department: string; stage: string; worker_name: string; created_at: string; }
+
+const STATE_TONE: Record<BatchStateKey, Tone> = {
+  not_started: "neutral", in_progress: "info", blocked: "warning", ready: "success", completed: "success", cancelled: "neutral",
+};
+const REASON_TEXT: Record<BlockReason, string> = {
+  approval: "Scan waiting for approval",
+  shortfall: "Material at or below reorder level",
+  stalled: "No work logged in 24 working hours",
+};
+type StatusFilter = "all" | "active" | BatchStateKey;
+const STATUS_FILTERS: StatusFilter[] = ["all", "active", "not_started", "in_progress", "blocked", "ready", "completed", "cancelled"];
 
 export default function BatchManagementPage() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [phases, setPhases] = useState<Phase[]>([]);
+  const [deptRows, setDeptRows] = useState<Map<string, DeptRow[]>>(new Map());
+  const [shortfall, setShortfall] = useState<Set<string>>(new Set());
+  const [stalled, setStalled] = useState<Set<string>>(new Set());
+  const [dispatches, setDispatches] = useState<Dispatch[]>([]);
   const [multiWorkerBatch, setMultiWorkerBatch] = useState<Batch | null>(null);
+
+  const [searchParams] = useSearchParams();
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    const s = searchParams.get("status") as StatusFilter | null;
+    return s && STATUS_FILTERS.includes(s) ? s : "all";
+  });
+  const [stageFilter, setStageFilter] = useState("all");
+  const [orderFilter, setOrderFilter] = useState("all");
+  const [dueFilter, setDueFilter] = useState<DueFilter>("all");
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -73,6 +118,8 @@ export default function BatchManagementPage() {
   const [rateDialogBatch, setRateDialogBatch] = useState<Batch | null>(null);
   const [qrBatch, setQrBatch] = useState<Batch | null>(null);
   const [timeline, setTimeline] = useState<TrackingEntry[]>([]);
+  const [deptLogs, setDeptLogs] = useState<DeptLog[]>([]);
+  const [detailRatio, setDetailRatio] = useState<Record<string, number> | null>(null);
   const [rates, setRates] = useState<Record<string, string>>({});
   const [panelRates, setPanelRates] = useState<{ id?: string; label: string; rate: string }[]>([]);
   const [deptRatesOpen, setDeptRatesOpen] = useState(false);
@@ -91,17 +138,41 @@ export default function BatchManagementPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [batchRes, orderRes, itemRes, phaseRes] = await Promise.all([
+      const since = stallCutoff().toISOString();
+      const [batchRes, orderRes, itemRes, phaseRes, statusRes, usedRes, trkRes, deptRes, dispatchRes] = await Promise.all([
         supabase.from("production_batches").select("*").order("created_at", { ascending: false }),
-        supabase.from("orders").select("id, order_number, product_summary, party_name"),
-        supabase.from("inventory_items").select("id, name, sku"),
+        supabase.from("orders").select("id, order_number, product_summary, party_name, expected_delivery"),
+        supabase.from("inventory_items").select("id, name, sku, quantity_on_hand, reorder_level"),
         supabase.from("production_phases").select("id, name, sequence_order").order("sequence_order"),
+        supabase.from("batch_department_status").select("batch_id, department, status, start_verification_status, end_verification_status"),
+        supabase.from("department_entries").select("batch_id, inventory_item_id").not("inventory_item_id", "is", null),
+        supabase.from("batch_tracking").select("batch_id").gte("created_at", since),
+        supabase.from("department_entries").select("batch_id").gte("created_at", since),
+        supabase.from("batch_dispatches").select("batch_id, dispatch_date, carton_count, carrier").order("dispatch_date", { ascending: false }),
       ]);
-      if (batchRes.data) setBatches(batchRes.data as Batch[]);
+      const batchList = (batchRes.data as Batch[]) ?? [];
+      const itemList = (itemRes.data as InventoryItem[]) ?? [];
+      setBatches(batchList);
       if (orderRes.data) setOrders(orderRes.data as Order[]);
-      if (itemRes.data) setItems(itemRes.data as InventoryItem[]);
+      setItems(itemList);
       if (phaseRes.data) setPhases(phaseRes.data as Phase[]);
+      setDispatches((dispatchRes.data as Dispatch[]) ?? []);
 
+      const rowMap = new Map<string, DeptRow[]>();
+      for (const r of statusRes.data ?? []) rowMap.set(r.batch_id, [...(rowMap.get(r.batch_id) ?? []), r]);
+      setDeptRows(rowMap);
+
+      // Shortfall: a material this batch uses (its fabric or worker-logged items) is at/below reorder level.
+      // Same rule as Pipeline Status.
+      const low = new Set(itemList.filter((i) => Number(i.quantity_on_hand) <= Number(i.reorder_level)).map((i) => i.id));
+      const short = new Set<string>();
+      for (const b of batchList) if (b.material_item_id && low.has(b.material_item_id)) short.add(b.id);
+      for (const r of usedRes.data ?? []) if (r.inventory_item_id && low.has(r.inventory_item_id)) short.add(r.batch_id);
+      setShortfall(short);
+
+      // Stalled: same rule as the Dashboard — in progress, older than the window, nothing logged since.
+      const recent = new Set([...(trkRes.data ?? []), ...(deptRes.data ?? [])].map((r) => r.batch_id));
+      setStalled(new Set(batchList.filter((b) => b.status === "in_progress" && b.created_at < since && !recent.has(b.id)).map((b) => b.id)));
     } catch (err) {
       console.error("Load failed:", err);
     } finally {
@@ -149,6 +220,18 @@ export default function BatchManagementPage() {
     load();
   };
 
+  const setBatchStatus = async (batch: Batch, status: "cancelled" | "completed") => {
+    const verb = status === "cancelled" ? "cancelled" : "marked completed";
+    const error = await withUndo(`Batch ${batch.style_number} ${verb}`, async () =>
+      (await supabase.from("production_batches").update({ status }).eq("id", batch.id)).error, load);
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (selectedBatch?.id === batch.id) setSelectedBatch({ ...batch, status });
+    load();
+  };
+
   // Deleting a batch cascades to its tracking/department entries - block once workers
   // have logged anything (fabric/inventory already deducted against it too), since that
   // history would be lost silently. Use Cancelled status instead to keep the record.
@@ -159,11 +242,14 @@ export default function BatchManagementPage() {
     ]);
     const workCount = (trackingRes.count ?? 0) + (deptRes.count ?? 0);
     if (workCount > 0) {
-      toast({
-        title: "Can't delete — work already logged",
-        description: `This batch has ${workCount} worker log ${workCount === 1 ? "entry" : "entries"}. Set its status to "Cancelled" instead to keep the history intact.`,
-        variant: "destructive",
+      const canCancel = can("batches.update") && batch.status === "in_progress";
+      const ok = await confirm({
+        title: `Can't delete batch "${batch.style_number}"`,
+        description: `Workers have logged ${workCount} ${workCount === 1 ? "entry" : "entries"} against it. Deleting would erase that history and their pay records.${canCancel ? " Cancel the batch instead: its history stays and it stops counting as active production." : ""}`,
+        confirmLabel: canCancel ? "Cancel batch instead" : "OK",
+        destructive: canCancel,
       });
+      if (ok && canCancel) setBatchStatus(batch, "cancelled");
       return;
     }
     setDeletingBatch(batch);
@@ -175,14 +261,16 @@ export default function BatchManagementPage() {
       description: "Its history stays intact but it stops counting as active production. You can undo for 10 minutes.",
       confirmLabel: "Cancel batch", destructive: true,
     });
-    if (!ok) return;
-    const error = await withUndo(`Batch ${batch.style_number} cancelled`, async () =>
-      (await supabase.from("production_batches").update({ status: "cancelled" }).eq("id", batch.id)).error, load);
-    if (error) {
-      toast({ title: "Cancel failed", description: error.message, variant: "destructive" });
-      return;
-    }
-    load();
+    if (ok) setBatchStatus(batch, "cancelled");
+  };
+
+  const completeBatch = async (batch: Batch) => {
+    const ok = await confirm({
+      title: `Mark batch "${batch.style_number}" completed?`,
+      description: "Packing is done. The batch stops counting as active production and moves on to dispatch. You can undo for 10 minutes.",
+      confirmLabel: "Mark completed",
+    });
+    if (ok) setBatchStatus(batch, "completed");
   };
 
   const deleteTrackingEntry = async (entry: TrackingEntry) => {
@@ -251,35 +339,51 @@ export default function BatchManagementPage() {
 
   const openDetail = async (batch: Batch) => {
     setSelectedBatch(batch);
-    const { data: tracking } = await supabase
-      .from("batch_tracking")
-      .select("id, phase_id, worker_id, quantity_completed, quantity_wasted, notes, created_at")
-      .eq("batch_id", batch.id)
-      .order("created_at", { ascending: false });
+    setTimeline([]);
+    setDeptLogs([]);
+    setDetailRatio(null);
+    const [{ data: tracking }, { data: entries }, { data: ratio }] = await Promise.all([
+      supabase
+        .from("batch_tracking")
+        .select("id, phase_id, worker_id, quantity_completed, quantity_wasted, notes, created_at")
+        .eq("batch_id", batch.id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("department_entries")
+        .select("id, department, stage, worker_id, created_at")
+        .eq("batch_id", batch.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("batch_pack_ratios").select("ratio").eq("batch_id", batch.id).maybeSingle(),
+    ]);
+    setDetailRatio((ratio?.ratio as Record<string, number>) ?? null);
 
-    if (tracking && tracking.length > 0) {
-      const workerIds = [...new Set(tracking.map((t) => t.worker_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", workerIds);
-      const workerMap = new Map((profiles ?? []).map((p) => [p.id, p.full_name ?? "Worker"]));
-      const phaseMap = new Map(phases.map((p) => [p.id, p.name]));
-
-      setTimeline(
-        tracking.map((t) => ({
-          id: t.id,
-          phase_name: phaseMap.get(t.phase_id) ?? "—",
-          worker_name: workerMap.get(t.worker_id) ?? "—",
-          quantity_completed: t.quantity_completed,
-          quantity_wasted: t.quantity_wasted,
-          notes: t.notes,
-          created_at: t.created_at,
-        }))
-      );
-    } else {
-      setTimeline([]);
+    const workerIds = [...new Set([...(tracking ?? []), ...(entries ?? [])].map((t) => t.worker_id))];
+    const workerMap = new Map<string, string>();
+    if (workerIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", workerIds);
+      for (const p of profiles ?? []) workerMap.set(p.id, p.full_name ?? "Worker");
     }
+    const phaseMap = new Map(phases.map((p) => [p.id, p.name]));
+    setTimeline(
+      (tracking ?? []).map((t) => ({
+        id: t.id,
+        phase_name: phaseMap.get(t.phase_id) ?? "—",
+        worker_name: workerMap.get(t.worker_id) ?? "—",
+        quantity_completed: t.quantity_completed,
+        quantity_wasted: t.quantity_wasted,
+        notes: t.notes,
+        created_at: t.created_at,
+      }))
+    );
+    setDeptLogs(
+      (entries ?? []).map((e) => ({
+        id: e.id,
+        department: DEPARTMENT_LABELS[e.department as Department] ?? e.department,
+        stage: e.stage,
+        worker_name: workerMap.get(e.worker_id) ?? "—",
+        created_at: e.created_at,
+      }))
+    );
   };
 
   const cuttingPhase = phases.find((p) => p.name === "Cutting");
@@ -372,6 +476,7 @@ export default function BatchManagementPage() {
       return;
     }
     toast({ title: "Pack ratio saved" });
+    if (selectedBatch?.id === packRatioBatch.id) setDetailRatio(ratio);
     setPackRatioBatch(null);
   };
 
@@ -406,108 +511,247 @@ export default function BatchManagementPage() {
     openDeptRates();
   };
 
-  const orderLabel = (id: string) => {
-    const o = orders.find((x) => x.id === id);
-    return o ? `#${o.order_number}` : id.slice(0, 8);
-  };
+  const orderOf = (b: Batch) => orders.find((x) => x.id === b.order_id);
 
   const batchIdentity = (b: Batch) => {
-    const o = orders.find((x) => x.id === b.order_id);
+    const o = orderOf(b);
     return formatBatchIdentity(o?.order_number, b.style_number, o?.party_name);
   };
 
+  const today = isoDay(new Date());
+
+  // Everything the list, filters and detail view need per batch, worked out once.
+  const rows = useMemo(() => batches.map((b) => {
+    const o = orders.find((x) => x.id === b.order_id);
+    const dept = deptRows.get(b.id) ?? [];
+    const progress = batchProgress(dept);
+    const { state, reasons } = batchState({ status: b.status, rows: dept, shortfall: shortfall.has(b.id), stalled: stalled.has(b.id) });
+    const due = o?.expected_delivery ?? null;
+    const done = state === "completed" || state === "cancelled";
+    return {
+      b, o, progress, state, reasons, due,
+      overdue: !!due && !done && due < today,
+      dispatch: dispatches.find((d) => d.batch_id === b.id) ?? null,
+    };
+  }), [batches, orders, deptRows, shortfall, stalled, dispatches, today]);
+
+  const needle = q.trim().toLowerCase();
+  const visible = rows.filter((r) =>
+    (!needle || [r.b.style_number, r.o?.order_number, r.o?.party_name].some((s) => s?.toLowerCase().includes(needle))) &&
+    (statusFilter === "all" || (statusFilter === "active" ? r.state !== "completed" && r.state !== "cancelled" : r.state === statusFilter)) &&
+    (stageFilter === "all" || (stageFilter === "none" ? !r.progress.current : r.progress.current?.key === stageFilter)) &&
+    (orderFilter === "all" || r.b.order_id === orderFilter) &&
+    matchesDue(r.due, dueFilter, today, r.state === "completed" || r.state === "cancelled"));
+  const filtersActive = statusFilter !== "all" || stageFilter !== "all" || orderFilter !== "all" || dueFilter !== "all";
+  const batchOrders = orders.filter((o) => batches.some((b) => b.order_id === o.id));
+  const selectedRow = selectedBatch ? rows.find((r) => r.b.id === selectedBatch.id) : undefined;
+
+  // "What happens next" for a batch: short reason + one action (link or button).
+  const nextStep = (r: (typeof rows)[number]) => {
+    const linkBtn = (to: string, label: string, perm: Permission) =>
+      can(perm) ? <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to={to}>{label}</Link></Button> : null;
+    switch (r.state) {
+      case "blocked":
+        return {
+          text: r.reasons.map((x) => REASON_TEXT[x]).join(" · "),
+          action: r.reasons[0] === "approval" ? linkBtn("/admin/inbox", "Review in Inbox", "inbox.view")
+            : r.reasons[0] === "shortfall" ? linkBtn("/admin/inventory", "Open Inventory", "inventory.view")
+            : can("batches.update") ? <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setMultiWorkerBatch(r.b)}>Log work</Button> : null,
+        };
+      case "not_started":
+        return { text: "No stage started yet", action: <Button variant="link" size="sm" className="h-auto p-0" onClick={() => showQr(r.b)}>Print QR labels</Button> };
+      case "ready":
+        return {
+          text: "Packing done",
+          action: can("batches.update") ? <Button size="sm" variant="outline" className="h-7" onClick={() => completeBatch(r.b)}>Mark completed</Button> : null,
+        };
+      case "completed":
+        return r.dispatch
+          ? { text: `Dispatched ${fmtDate(r.dispatch.dispatch_date)}`, action: null }
+          : { text: "Not dispatched yet", action: linkBtn("/admin/dispatch", "Record dispatch", "dispatch.view") };
+      default:
+        return null;
+    }
+  };
+
+  const stageText = (r: (typeof rows)[number]) => {
+    const c = r.progress.current;
+    if (!c) return "Not started";
+    return c.status === "open" ? `${c.label} · in progress` : `${c.label} · done`;
+  };
+
+  const ProgressBar = ({ done, total }: { done: number; total: number }) => (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted" aria-hidden>
+        <div className="h-full rounded-full bg-success" style={{ width: `${(done / total) * 100}%` }} />
+      </div>
+      <span className="admin-meta text-xs text-muted-foreground tabular-nums">{done}/{total} stages</span>
+    </div>
+  );
+
+  const ROW_GRID = "md:grid-cols-[minmax(0,1.6fr)_5.5rem_minmax(0,1.3fr)_minmax(0,1.7fr)_7.5rem_auto]";
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Production Batches</h1>
-          <p className="text-sm text-muted-foreground">Manage production runs and print QR labels.</p>
-        </div>
-        <div className="flex gap-2">
-          {can("rates.manage") && (
-            <Button variant="outline" onClick={openDeptRates}>
-              <Coins className="w-4 h-4 mr-2" /> Department Rates
-            </Button>
-          )}
-          {can("batches.create") && (
-            <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
-              <Plus className="w-4 h-4 mr-2" /> New Batch
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader title="Production Batches" description="Track where each batch is, what's blocking it, and print QR labels.">
+        {can("rates.manage") && (
+          <Button variant="outline" onClick={openDeptRates}>
+            <Coins className="w-4 h-4 mr-2" /> Department Rates
+          </Button>
+        )}
+        {can("batches.create") && (
+          <Button onClick={() => setCreating(true)} className="bg-accent text-accent-foreground">
+            <Plus className="w-4 h-4 mr-2" /> New Batch
+          </Button>
+        )}
+      </PageHeader>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-accent" />
         </div>
       ) : batches.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No batches yet. Create one to start tracking production.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Layers}
+          title="No batches yet"
+          description="A batch is one production run of an order. Create one, then print its QR labels so workers can scan it at each stage."
+          action={can("batches.create") && (
+            <Button onClick={() => setCreating(true)}><Plus className="w-4 h-4 mr-2" /> New Batch</Button>
+          )}
+        />
       ) : (
-        <div className="space-y-2">
-          {batches.map((b) => (
-            <Card key={b.id} className="hover:border-accent transition-colors">
-              <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-center">
-                <div className="cursor-pointer" onClick={() => openDetail(b)}>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-foreground">{b.style_number}</h3>
-                    <Badge variant="outline">{orderLabel(b.order_id)}</Badge>
-                    <Badge variant="outline" className={
-                      b.status === "completed"
-                        ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
-                        : "bg-blue-500/15 text-blue-600 border-blue-500/30"
-                    }>
-                      {b.status}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{batchIdentity(b)}</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {b.total_quantity} pcs • Created {new Date(b.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex gap-2 items-center flex-wrap">
-                  {can("batches.update") && (
-                    <Button size="sm" variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" onClick={() => setMultiWorkerBatch(b)}>
-                      <Users className="w-4 h-4 mr-1 text-emerald-500" /> Multi-Worker Log
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => showQr(b)}>
-                    <QrCode className="w-4 h-4 mr-1 text-emerald-500" /> QR Labels
-                  </Button>
-                  {can("rates.manage") && (
-                    <Button size="sm" variant="outline" onClick={() => openRateDialog(b)}>
-                      <Settings className="w-4 h-4 mr-1" /> Piece Rates
-                    </Button>
-                  )}
-                  {can("batches.update") && (
-                    <Button size="sm" variant="outline" onClick={() => openPackRatio(b)}>
-                      <Boxes className="w-4 h-4 mr-1 text-purple-500" /> Pack Ratio
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  {can("batches.update") && b.status !== "cancelled" && b.status !== "completed" && (
-                    <Button size="sm" variant="ghost" className="text-amber-500 hover:text-amber-600" onClick={() => cancelBatch(b)}>
-                      <Ban className="w-4 h-4" />
-                    </Button>
-                  )}
-                  {can("batches.delete") && (
-                    <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600" onClick={() => requestDeleteBatch(b)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div>
+          <TableToolbar
+            search={q} onSearch={setQ} placeholder="Search batch, order or client…"
+            count={visible.length} noun="batch"
+            filtersActive={filtersActive}
+            onClear={() => { setQ(""); setStatusFilter("all"); setStageFilter("all"); setOrderFilter("all"); setDueFilter("all"); }}
+          >
+            <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+              <SelectTrigger className="w-full sm:w-44" aria-label="Status"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="active">Active (not finished)</SelectItem>
+                {(Object.keys(STATE_LABELS) as BatchStateKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>{STATE_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={stageFilter} onValueChange={setStageFilter}>
+              <SelectTrigger className="w-full sm:w-44" aria-label="Current stage"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All stages</SelectItem>
+                <SelectItem value="none">Not started</SelectItem>
+                {STAGES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={orderFilter} onValueChange={setOrderFilter}>
+              <SelectTrigger className="w-full sm:w-44" aria-label="Order"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All orders</SelectItem>
+                {batchOrders.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>#{o.order_number}{o.party_name ? ` · ${o.party_name}` : ""}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={dueFilter} onValueChange={(v) => setDueFilter(v as DueFilter)}>
+              <SelectTrigger className="w-full sm:w-40" aria-label="Due date"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any due date</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="week">Due in 7 days</SelectItem>
+                <SelectItem value="none">No due date</SelectItem>
+              </SelectContent>
+            </Select>
+          </TableToolbar>
+
+          {visible.length === 0 ? (
+            <EmptyState
+              title="No batches match"
+              description="Try a different search or clear the filters."
+              action={<Button variant="outline" onClick={() => { setQ(""); setStatusFilter("all"); setStageFilter("all"); setOrderFilter("all"); setDueFilter("all"); }}>Clear filters</Button>}
+            />
+          ) : (
+            <div className="rounded-lg border border-border bg-card">
+              <div className={`hidden md:grid ${ROW_GRID} gap-4 border-b border-border px-4 py-2 admin-label text-xs font-medium text-muted-foreground`}>
+                <span>Batch / order</span><span className="text-right">Qty</span><span>Current stage</span><span>Status / next step</span><span>Due</span><span className="sr-only">Actions</span>
+              </div>
+              <ul className="divide-y divide-border">
+                {visible.map((r) => {
+                  const next = nextStep(r);
+                  const { b, o } = r;
+                  const finished = r.state === "completed" || r.state === "cancelled";
+                  return (
+                    <li key={b.id} className={`grid grid-cols-1 gap-2 px-4 py-3 md:items-center md:gap-4 ${ROW_GRID}`}>
+                      <div className="min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => openDetail(b)}
+                          className="font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm text-left"
+                        >
+                          {b.style_number}
+                        </button>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {o ? `Order #${o.order_number}` : "Order —"}{o?.party_name ? ` · ${o.party_name}` : ""}
+                          <span className="md:hidden"> · {b.total_quantity.toLocaleString()} pcs</span>
+                        </p>
+                      </div>
+                      <div className="hidden md:block text-right text-sm tabular-nums">{b.total_quantity.toLocaleString()} pcs</div>
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm text-foreground truncate">{stageText(r)}</p>
+                        <ProgressBar done={r.progress.done} total={r.progress.total} />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <StatusBadge tone={STATE_TONE[r.state]}>{STATE_LABELS[r.state]}</StatusBadge>
+                        {next && (
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                            <span>{next.text}</span>
+                            {next.action}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm">
+                        <span className="md:hidden text-muted-foreground">Due </span>
+                        {r.due ? fmtDate(r.due) : <span className="text-muted-foreground">—</span>}
+                        {r.overdue && <StatusBadge tone="danger" className="ml-1 md:ml-0 md:mt-1 md:flex md:w-fit">Overdue</StatusBadge>}
+                      </div>
+                      <div className="flex items-center gap-1 md:justify-end">
+                        {!finished && can("batches.update") ? (
+                          <Button size="sm" variant="outline" onClick={() => setMultiWorkerBatch(b)}>
+                            <Users className="w-4 h-4 mr-1" /> Multi-Worker Log
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => openDetail(b)}>
+                            <Eye className="w-4 h-4 mr-1" /> View
+                          </Button>
+                        )}
+                        <MoreMenu label={`More actions for ${b.style_number}`}>
+                          <DropdownMenuItem onSelect={() => openDetail(b)}><Eye /> View details</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => showQr(b)}><QrCode /> QR labels</DropdownMenuItem>
+                          {can("rates.manage") && <DropdownMenuItem onSelect={() => openRateDialog(b)}><Settings /> Piece rates</DropdownMenuItem>}
+                          {can("batches.update") && <DropdownMenuItem onSelect={() => openPackRatio(b)}><Boxes /> Pack ratio</DropdownMenuItem>}
+                          {can("batches.update") && r.state === "ready" && (
+                            <DropdownMenuItem onSelect={() => completeBatch(b)}><CheckCircle2 /> Mark completed</DropdownMenuItem>
+                          )}
+                          {(can("batches.update") && !finished || can("batches.delete")) && <DropdownMenuSeparator />}
+                          {can("batches.update") && !finished && (
+                            <DropdownMenuItem onSelect={() => cancelBatch(b)}><Ban /> Cancel batch</DropdownMenuItem>
+                          )}
+                          {can("batches.delete") && (
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => requestDeleteBatch(b)}>
+                              <Trash2 /> Delete batch…
+                            </DropdownMenuItem>
+                          )}
+                        </MoreMenu>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       )}
-
 
       {/* Dual QR Cards Dialog */}
       <Dialog open={!!qrBatch} onOpenChange={(o) => !o && setQrBatch(null)}>
@@ -760,58 +1004,173 @@ export default function BatchManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Batch Detail Sheet */}
+      {/* Batch Detail Sheet — every tool for one batch in one place */}
       <Sheet open={!!selectedBatch} onOpenChange={(o) => !o && setSelectedBatch(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          {selectedBatch && (
-            <>
-              <SheetHeader>
-                <SheetTitle>{selectedBatch.style_number}</SheetTitle>
-              </SheetHeader>
-              <div className="space-y-4 mt-6 text-sm">
-                <p className="text-xs text-muted-foreground">{batchIdentity(selectedBatch)}</p>
-                <p className="text-muted-foreground">
-                  {selectedBatch.total_quantity} pcs • {selectedBatch.status}
-                </p>
-                <h3 className="font-semibold text-foreground">Tracking Timeline</h3>
-                {timeline.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-6">No entries yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {timeline.map((e) => (
-                      <Card key={e.id}>
-                        <CardContent className="py-3 px-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium text-foreground">{e.phase_name}</p>
-                              <p className="text-xs text-muted-foreground">{e.worker_name}</p>
-                            </div>
-                            <div className="flex items-center gap-1 text-right">
-                              <Badge variant="outline" className="text-xs">Done: {e.quantity_completed}</Badge>
-                              {e.quantity_wasted > 0 && (
-                                <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 ml-1">
-                                  Waste: {e.quantity_wasted}
-                                </Badge>
-                              )}
-                              {can("batches.delete") && (
-                                <Button size="icon" variant="ghost" className="h-6 w-6 text-red-500 hover:text-red-600" onClick={() => deleteTrackingEntry(e)}>
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                          {e.notes && <p className="text-xs text-muted-foreground mt-2 italic">{e.notes}</p>}
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {new Date(e.created_at).toLocaleString()}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {selectedBatch && selectedRow && (() => {
+            const r = selectedRow;
+            const next = nextStep(r);
+            const finished = r.state === "completed" || r.state === "cancelled";
+            const batchDispatches = dispatches.filter((d) => d.batch_id === selectedBatch.id);
+            return (
+              <>
+                <SheetHeader className="text-left">
+                  <SheetTitle>{selectedBatch.style_number}</SheetTitle>
+                  <SheetDescription>{batchIdentity(selectedBatch)}</SheetDescription>
+                </SheetHeader>
+                <div className="space-y-6 mt-4 text-sm">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge tone={STATE_TONE[r.state]}>{STATE_LABELS[r.state]}</StatusBadge>
+                      <span className="text-muted-foreground">{selectedBatch.total_quantity.toLocaleString()} pcs</span>
+                      <span className="text-muted-foreground">· Due {fmtDate(r.due)}</span>
+                      {r.overdue && <StatusBadge tone="danger">Overdue</StatusBadge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Created {fmtDate(selectedBatch.created_at)}</p>
+                    {next && (
+                      <div className="rounded-md border border-border bg-muted/40 p-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="font-medium text-foreground">Next:</span>
+                        <span className="text-muted-foreground">{next.text}</span>
+                        {next.action}
+                      </div>
+                    )}
+                    {!finished && can("batches.update") && (
+                      <Button size="sm" variant="outline" onClick={() => setMultiWorkerBatch(selectedBatch)}>
+                        <Users className="w-4 h-4 mr-1" /> Multi-Worker Log
+                      </Button>
+                    )}
                   </div>
-                )}
-              </div>
-            </>
-          )}
+
+                  <section className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="admin-section-title font-semibold text-foreground">Stage progress</h3>
+                      <ProgressBar done={r.progress.done} total={r.progress.total} />
+                    </div>
+                    <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                      {r.progress.stages.map((s, i) => (
+                        <li key={s.key} className="flex items-center gap-2">
+                          {s.status === "done" ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" aria-hidden />
+                            : s.status === "open" ? <CircleDot className="h-4 w-4 text-info shrink-0" aria-hidden />
+                            : <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" aria-hidden />}
+                          <span className={s.status === "none" ? "text-muted-foreground" : "text-foreground"}>{i + 1}. {s.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {s.status === "done" ? "Done" : s.status === "open" ? "In progress" : ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="admin-section-title font-semibold text-foreground">Worker logs</h3>
+                    {deptLogs.length === 0 && timeline.length === 0 ? (
+                      <p className="text-muted-foreground">No work logged yet.</p>
+                    ) : (
+                      <>
+                        {deptLogs.length > 0 && (
+                          <ul className="divide-y divide-border rounded-md border border-border">
+                            {deptLogs.map((e) => (
+                              <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-3 px-3 py-2">
+                                <span className="text-foreground">{e.department} <span className="text-muted-foreground">· {e.stage === "end" ? "End" : "Start"} · {e.worker_name}</span></span>
+                                <span className="text-xs text-muted-foreground">{fmtDateTime(e.created_at)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {timeline.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground">Piece-rate phase logs</p>
+                            {timeline.map((e) => (
+                              <Card key={e.id}>
+                                <CardContent className="py-3 px-4">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium text-foreground">{e.phase_name}</p>
+                                      <p className="text-xs text-muted-foreground">{e.worker_name}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-right">
+                                      <Badge variant="outline" className="text-xs">Done: {e.quantity_completed}</Badge>
+                                      {e.quantity_wasted > 0 && (
+                                        <Badge variant="outline" className="text-xs bg-red-500/10 text-red-500 ml-1">
+                                          Waste: {e.quantity_wasted}
+                                        </Badge>
+                                      )}
+                                      {can("batches.delete") && (
+                                        <Button size="icon" variant="ghost" aria-label="Delete work entry" className="h-6 w-6 text-red-500 hover:text-red-600" onClick={() => deleteTrackingEntry(e)}>
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {e.notes && <p className="text-xs text-muted-foreground mt-2 italic">{e.notes}</p>}
+                                  <p className="text-[10px] text-muted-foreground mt-1">{fmtDateTime(e.created_at)}</p>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="admin-section-title font-semibold text-foreground">Setup</h3>
+                    <div className="divide-y divide-border rounded-md border border-border">
+                      <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div>
+                          <p className="text-foreground">QR labels</p>
+                          <p className="text-xs text-muted-foreground">Start and end cards workers scan at each stage</p>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => showQr(selectedBatch)}><QrCode className="w-4 h-4 mr-1" /> Print</Button>
+                      </div>
+                      {can("rates.manage") && (
+                        <div className="flex items-center justify-between gap-3 px-3 py-2">
+                          <div>
+                            <p className="text-foreground">Piece rates</p>
+                            <p className="text-xs text-muted-foreground">Rs per piece for each phase of this batch</p>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => openRateDialog(selectedBatch)}><Settings className="w-4 h-4 mr-1" /> Edit</Button>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div>
+                          <p className="text-foreground">Pack ratio</p>
+                          <p className="text-xs text-muted-foreground">
+                            {detailRatio && Object.keys(detailRatio).length > 0
+                              ? Object.entries(detailRatio).map(([s, n]) => `${s}: ${n}`).join(" · ") + " per carton"
+                              : "Not set"}
+                          </p>
+                        </div>
+                        {can("batches.update") && (
+                          <Button size="sm" variant="outline" onClick={() => openPackRatio(selectedBatch)}><Boxes className="w-4 h-4 mr-1" /> Edit</Button>
+                        )}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="admin-section-title font-semibold text-foreground">Dispatch</h3>
+                    {batchDispatches.length === 0 ? (
+                      <p className="text-muted-foreground">
+                        Not dispatched yet.{" "}
+                        {can("dispatch.view") && <Link to="/admin/dispatch" className="text-primary underline-offset-4 hover:underline">Open Dispatch</Link>}
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-border rounded-md border border-border">
+                        {batchDispatches.map((d, i) => (
+                          <li key={i} className="flex items-center gap-2 px-3 py-2">
+                            <Truck className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden />
+                            <span className="text-foreground">{fmtDate(d.dispatch_date)}</span>
+                            <span className="text-muted-foreground">· {d.carton_count} cartons{d.carrier ? ` · ${d.carrier}` : ""}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+                </div>
+              </>
+            );
+          })()}
         </SheetContent>
       </Sheet>
 
@@ -836,7 +1195,7 @@ export default function BatchManagementPage() {
           title={`Delete Batch "${deletingBatch.style_number}"`}
           confirmValue={deletingBatch.style_number}
           fieldLabel="Style Number"
-          warning="This removes all its tracking history and rates."
+          warning="No worker work is logged against it yet. Deleting removes the batch with its piece rates, pack ratio and QR labels; the order itself stays. This cannot be undone."
           onConfirm={() => deleteBatch(deletingBatch)}
         />
       )}

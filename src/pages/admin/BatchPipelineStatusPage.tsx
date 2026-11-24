@@ -3,24 +3,11 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
+import type { Department } from "@/lib/departmentEntries";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
+import { STAGES } from "@/lib/batchState";
 
-// department_sequence order_index groups — sticker/printing/embroidery share
-// order_index 3 as alternatives, so they're collapsed into one column.
-const STAGE_COLUMNS: { key: string; label: string; departments: Department[] }[] = [
-  { key: "accessories", label: "Accessories", departments: ["accessories"] },
-  { key: "cutting", label: "Cutting", departments: ["cutting"] },
-  { key: "decoration", label: "Sticker/Print/Embroidery", departments: ["sticker", "printing", "embroidery"] },
-  { key: "quality", label: "Quality", departments: ["quality"] },
-  { key: "lot_bundling", label: "Lot Bundling", departments: ["lot_bundling"] },
-  { key: "stitching", label: "Stitching Hall", departments: ["stitching"] },
-  { key: "button_ops", label: "Button Ops", departments: ["button_ops"] },
-  { key: "clipping", label: "Clipping", departments: ["clipping"] },
-  { key: "press", label: "Press", departments: ["press"] },
-  { key: "quality_final", label: "Quality (Final)", departments: ["quality_final"] },
-  { key: "packing", label: "Packing", departments: ["packing"] },
-];
+const STAGE_COLUMNS = STAGES;
 
 interface BatchRow {
   id: string;
