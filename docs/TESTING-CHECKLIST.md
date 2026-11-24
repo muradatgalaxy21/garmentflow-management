@@ -14,12 +14,12 @@ Use this on the **separate test project** with mock data, never on live. Work to
 
 | # | Step | Expected | Result |
 |---|---|---|---|
-| 0.1 | Create a new Supabase project (test). Link it temporarily: `npx supabase link --project-ref <test-ref>` then `npx supabase db push`. **Re-link to live afterwards.** | All migrations applied without errors | |
-| 0.2 | In the test project: Auth → Providers → Phone → enable; add test numbers `+923000000010` … `+923000000021` with a fixed OTP | Saved | |
-| 0.3 | Set `GEMINI_API_KEY` secret and deploy functions to the test project (`npx supabase functions deploy staff-assistant admin-create-worker issue-client-code daily-summary`) | Deployed | |
-| 0.4 | Create `.env.staging` (see top of `scripts/seed-mock-data.ts`) and run `npx tsx --env-file=.env.staging scripts/seed-mock-data.ts` | "✔ Done", `mock-users.out.md` created | |
-| 0.5 | Run the seed again | No duplicates (same counts), no errors | |
-| 0.6 | Point the app at the test project (a `.env.local` with the test URL/anon key) and run `npm run dev` | App loads | |
+| 0.1 | Create a new Supabase project (test). Link it temporarily: `npx supabase link --project-ref <test-ref>` then `npx supabase db push`. **Re-link to live afterwards.** | All migrations applied without errors | ✅ |
+| 0.2 | In the test project: Auth → Providers → Phone → enable; add test numbers `+923000000010` … `+923000000021` with a fixed OTP | Saved | ✅ |
+| 0.3 | Set `GEMINI_API_KEY` secret and deploy functions to the test project (`npx supabase functions deploy staff-assistant admin-create-worker issue-client-code daily-summary`) | Deployed | ✅ |
+| 0.4 | Create `.env.staging` (see top of `scripts/seed-mock-data.ts`) and run `npx tsx --env-file=.env.staging scripts/seed-mock-data.ts` | "✔ Done", `mock-users.out.md` created | ✅ |
+| 0.5 | Run the seed again | No duplicates (same counts), no errors | ✅ |
+| 0.6 | Point the app at the test project (a `.env.local` with the test URL/anon key) and run `npm run dev` | App loads | ✅ |
 
 ## 1. Access control (role & permission matrix)
 
@@ -27,22 +27,22 @@ Log in as each user and check what they can and can't see/do.
 
 | # | User | Check | Expected | Result |
 |---|---|---|---|---|
-| 1.1 | admin | Sidebar | Every section incl. Finance; Recent changes + Help buttons visible | |
-| 1.2 | staff (ops) | Sidebar | RFQ, Inbox, Inventory, Orders, Batches, Pipeline, Dispatch, Employees, Clients. **No Finance** | |
-| 1.3 | staff | Orders: open an order | Can edit status; **no Delete button** | |
-| 1.4 | staff | Type `/admin/finance` in the URL | "No access" page | |
-| 1.5 | manager | Batches | Sees **only MOCK-B1-TEE** (assigned), not B2/B3 | |
-| 1.6 | manager | Pipeline Status / Dispatch | Only B1-related data | |
-| 1.7 | manager | Batches → New Batch button | Not shown (no batches.create) | |
-| 1.8 | finance_maker | Sidebar | Finance only (+ Dashboard) | |
-| 1.9 | finance_checker | Finance | Sees Approve / Void buttons, **no** Add buttons | |
-| 1.10 | viewer (no perms) | Sidebar | Only Dashboard; dashboard says use the sidebar; no cards | |
-| 1.11 | viewer | Try `/admin/orders` | "No access" | |
-| 1.12 | worker (any) | Open `/admin` | Blocked | |
-| 1.13 | client | Open `/admin` and `/factory` | Blocked | |
-| 1.14 | admin | Employees → Permissions on *staff*: untick Orders → Edit, save; log in as staff | Order status can no longer be saved | |
-| 1.15 | admin | Permissions dialog: tick Inventory → Delete only | View auto-ticks too | |
-| 1.16 | admin | Untick a section's View | All its actions untick | |
+| 1.1 | admin | Sidebar | Every section incl. Finance; Recent changes + Help buttons visible | ✅ |
+| 1.2 | staff (ops) | Sidebar | RFQ, Inbox, Inventory, Orders, Batches, Pipeline, Dispatch, Employees, Clients. **No Finance** | ⚠️ IMP-1, BUG-1 |
+| 1.3 | staff | Orders: open an order | Can edit status; **no Delete button** | ✅ |
+| 1.4 | staff | Type `/admin/finance` in the URL | "No access" page | ✅ |
+| 1.5 | manager | Batches | Sees **only MOCK-B1-TEE** (assigned), not B2/B3 | ✅ (model changes: IMP-4) |
+| 1.6 | manager | Pipeline Status / Dispatch | Only B1-related data | ✅ (IMP-4) |
+| 1.7 | manager | Batches → New Batch button | Not shown (no batches.create) | ✅ |
+| 1.8 | finance_maker | Sidebar | Finance only (+ Dashboard) | ✅ (BUG-2) |
+| 1.9 | finance_checker | Finance | Sees Approve / Void buttons, **no** Add buttons | ✅ (BUG-2) |
+| 1.10 | viewer (no perms) | Sidebar | Only Dashboard; dashboard says use the sidebar; no cards | ✅ |
+| 1.11 | viewer | Try `/admin/orders` | "No access" | ✅ |
+| 1.12 | worker (any) | Open `/admin` | Blocked | ✅ |
+| 1.13 | client | Open `/admin` and `/factory` | Blocked | ❌ BUG-3, BUG-4, BUG-5 |
+| 1.14 | admin | Employees → Permissions on *staff*: untick Orders → Edit, save; log in as staff | Order status can no longer be saved | ✅ |
+| 1.15 | admin | Permissions dialog: tick Inventory → Delete only | View auto-ticks too | ✅ |
+| 1.16 | admin | Untick a section's View | All its actions untick | ✅ |
 
 ## 2. Worker floor (phone login, entries)
 
@@ -185,10 +185,26 @@ Log in as each user and check what they can and can't see/do.
 
 | ID | Date | Area / page | Steps to reproduce | Expected | Actual | Severity (blocker/high/med/low) | Status |
 |---|---|---|---|---|---|---|---|
-| BUG-1 | | | | | | | open |
+| BUG-1 | 24-Nov-2026 | Auth / client portal login | Log in as staff user via client portal sign-in | Client portal auth accepts client accounts only; staff/managers log in via worker auth page | Staff can sign in through client portal | high | open — fix after section 1 |
+| BUG-2 | 24-Nov-2026 | Post-login redirect (manager, finance_checker) | Log in as manager or finance_checker | Lands on own portal; "My portal" opens it | Stuck on website home; "My portal" does nothing; only manual URL works (staff redirect OK) | high | open — fix after section 1 |
+| BUG-3 | 24-Nov-2026 | Client portal → Direct order ([DirectOrderPage.tsx](../src/pages/portal/DirectOrderPage.tsx)) | Client places direct order with notes, then open order timeline | Notes saved in order timeline | `order_updates` insert refused by RLS (needs orders.create/update, client has neither); error not checked so client sees success, notes lost | high | open |
+| BUG-4 | 24-Nov-2026 | Client portal → Direct order | Client places direct order | Staff notified (Inbox/alert) | No notification; order only sits in Admin → Orders as pending, easy to miss | high | open |
+| BUG-5 | 24-Nov-2026 | Client portal → Direct order | Two orders placed ~16.7 min apart (or same ms window) | Unique order number | Number = `ORD-` + last 6 digits of Date.now(), wraps every ~16.7 min → collision possible | med | open |
 
 ## Improvement log
 
 | ID | Date | Area / page | Idea / problem | Why it matters | Priority | Status |
 |---|---|---|---|---|---|---|
-| IMP-1 | | | | | | | open |
+| IMP-1 | 24-Nov-2026 | Admin sidebar (all roles) | Current section not highlighted in left sidebar | Hard to tell which page you're on | med | open — after section 1 |
+| IMP-2 | 24-Nov-2026 | Worker auth page | Default phone + OTP; add "use email & password" option for staff/managers (pairs with BUG-1) | One staff login entry point, separate from client portal | high | open — after section 1 |
+| IMP-3 | 24-Nov-2026 | Manager role | Remove department rates + piece rate settings from manager | Managers must not set pay rates | high | open — after section 1 |
+| IMP-4 | 24-Nov-2026 | Access control / manager | Manager = department overseer, not batch/order owner. Drop hard-coded batch-assignment scoping; admin picks each manager's pages/functions. Expand permission list: many granular, each real and useful, no filler | Admin controls exactly what each manager does | high | open — after section 1 |
+| IMP-5 | 24-Nov-2026 | Manager / finance portals | Non-admin roles reuse admin pages with permissions. OK for MVP; revisit dedicated portal later | Cleaner separation | low | deferred (post-MVP) |
+| IMP-6 | 24-Nov-2026 | Finance → Bills table | Show Paid column: Total / Paid / Balance | Hard to see how much was paid | med | open — with IMP-7 |
+| IMP-7 | 24-Nov-2026 | Whole app UI/UX | Full UI/UX pass: layout, positioning, clarity, fewer wrong clicks (e.g. wrong payment drafts). Must be fast to use for first-timers and daily users | Most crucial: UX speed and errors | **top** | open — after ALL sections done |
+| IMP-8 | 24-Nov-2026 | Worker START/END QR + approval flow | Flow works but feels dragged and mixed: QR approve/decline requests land in admin Inbox alongside real messages → clutter when all workers send. Separate QR per session/batch/order/department; worker handling multiple batches/day keeps fetching QRs, admin keeps approving. Explore better option than QR | Floor speed + admin inbox noise | high | **ON HOLD — discuss later, no changes** |
+| IMP-9 | 24-Nov-2026 | Worker dashboard → Haaliya kaam | Start entry always shows "Jaari Hai" even after END done; worker thinks work still pending. Label start as "Shuru kiya", or merge start+end into one batch card showing "Mukammal" ([FactoryDashboard.tsx:327](../src/pages/factory/FactoryDashboard.tsx)) | Workers misread status, may re-submit or ask around | med | open — with IMP-7 |
+| IMP-10 | 24-Nov-2026 | New client RFQ / direct order alerts | On new client RFQ (and direct order, see BUG-4), notify by several channels: in-app Inbox message, email, and red announcement banner on admin/manager/staff dashboards shown regardless of permissions. Email to all admin + manager + staff users. Banner stays until RFQ/order is handled (status changed from new/pending). Same 3 alerts for direct orders (covers BUG-4). | New requests must never be missed | high | open |
+| IMP-11 | 24-Nov-2026 | RFQ / direct order escalation call | If new RFQ/direct order not seen within 12 working hours (Mon–Fri only, Sat/Sun excluded), auto phone call to staff. Extends IMP-10 | Last-resort alert so no request goes unanswered | med | **DEFERRED — needs call service provider integration first** |
+| IMP-12 | 24-Nov-2026 | Employees page | Add search bar (name / phone / department / role) | Hard to find people as staff list grows | med | open — after section 1 |
+| IMP-13 | 24-Nov-2026 | Permissions changes | On EVERY permission change (grant or removal), notify every admin (incl. the one who made it) + the affected member: email + in-app notification on their portal + permanent permission-change history (who changed what, when, old → new) | Accountability; employee knows what access they have | high | open — after section 1 |
