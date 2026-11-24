@@ -182,6 +182,14 @@ export default function BatchManagementPage() {
 
   useEffect(() => { load(); }, []);
 
+  // Deep link from Pipeline Status etc.: /admin/batches?batch=<id> opens that batch's detail view once.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (loading || deepLinked.current) return;
+    const b = batches.find((x) => x.id === searchParams.get("batch"));
+    if (b) { deepLinked.current = true; openDetail(b); }
+  }, [loading, batches, searchParams]);
+
   const handleCreate = async (form: HTMLFormElement) => {
     const fd = new FormData(form);
     const parsed = batchSchema.safeParse({
