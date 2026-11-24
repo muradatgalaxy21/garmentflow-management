@@ -26,7 +26,7 @@ Requested 2026-11-24. Decisions confirmed with user:
 | # | Session | Main files | Status |
 |---|---|---|---|
 | 0 | Shared foundation | `index.css`, `AdminLayout.tsx`, `RequestAlertBanner.tsx`, `StaffAssistant.tsx`, new `components/admin/*` | ☑ 24-Nov-2026 |
-| 1 | Dashboard | `AdminDashboard.tsx`, `AnalyticsWidget.tsx` | ☐ |
+| 1 | Dashboard | `AdminDashboard.tsx`, `AnalyticsWidget.tsx`, `lib/dashboardMetrics.ts` | ☑ 24-Nov-2026 |
 | 2 | RFQ Inbox | `RfqInbox.tsx` | ☐ |
 | 3 | Orders | `OrdersAdminPage.tsx`, `KanbanBoard.tsx` | ☐ |
 | 4 | Production Batches | `BatchManagementPage.tsx` | ☐ |
@@ -90,7 +90,9 @@ Do:
 - "Current Bottleneck: None" → wording that reads as a result, with period + rule.
 - Major (UI-only): exception-led layout; period selector if metrics are time-based; label counts vs snapshots vs period totals.
 
-Deferred: none expected.
+Deferred: none.
+
+**Built (24-Nov-2026):** "Needs attention" rows link to plain pages because RFQ Inbox, Orders, Inventory and Batches have no URL filters yet. When sessions 2, 3, 4 and 6 add filters, consider reading `?status=` (RFQs `new`, Orders `pending`, Inventory low stock) and updating the dashboard links. Overdue orders use `expected_delivery` (exists). Stalled batch rule: no `batch_tracking` / `department_entries` log in 24 working hours, Sunday not counted (`stallCutoff`).
 
 ## Session 2 — RFQ Inbox (`RfqInbox.tsx`)
 

@@ -1,110 +1,119 @@
-import { useEffect, useState } from "react";
-import { Loader2, BarChart3, AlertTriangle, Clock, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { Loader2, AlertTriangle, Clock, Trash2, BarChart3, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/admin/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
+import { bottleneckOf, phaseQueues } from "@/lib/dashboardMetrics";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 
 // ---------------------------------------------------------------
-// AnalyticsWidget
-//
-// Displays production analytics on the admin dashboard:
-//   - Average time per phase (bar chart)
-//   - Current bottleneck phase (highlight card)
-//   - Wasted pieces per phase (bar chart)
+// AnalyticsWidget — production analytics on the admin dashboard.
+//   - Current bottleneck: SNAPSHOT of in-progress batches (ignores the period)
+//   - Avg time per phase, wasted pieces per phase: PERIOD totals for `days`
 // ---------------------------------------------------------------
 
 interface PhaseStats {
   name: string;
   avgMinutes: number;
   totalWasted: number;
-  backlogCount: number;
+  entries: number;
 }
 
 const CHART_COLORS = ["#f59e0b", "#3b82f6", "#a855f7", "#10b981", "#ef4444", "#6366f1"];
 
-export default function AnalyticsWidget() {
+const summary = (stats: PhaseStats[], key: "avgMinutes" | "totalWasted") =>
+  stats.map((s) => `${s.name} ${s[key]}`).join(", ");
+
+export default function AnalyticsWidget({ days, periodLabel, canLogWork }: {
+  /** null = all time */
+  days: number | null;
+  /** e.g. "Last 30 days" — shown on each chart */
+  periodLabel: string;
+  canLogWork?: boolean;
+}) {
   const [stats, setStats] = useState<PhaseStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [bottleneck, setBottleneck] = useState<string | null>(null);
+  const [bottleneck, setBottleneck] = useState<{ name: string; waiting: number } | null>(null);
+  const [inProgressBatches, setInProgressBatches] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
+      setLoading(true);
       try {
-        // 1. Fetch all phases
         const { data: phases } = await supabase
           .from("production_phases")
           .select("id, name, sequence_order")
           .order("sequence_order");
+        if (!phases || phases.length === 0) return;
 
-        if (!phases || phases.length === 0) { setLoading(false); return; }
-
-        // 2. Fetch all tracking entries for analysis
-        const { data: tracking } = await supabase
+        // Period totals (charts)
+        let q = supabase
           .from("batch_tracking")
           .select("batch_id, phase_id, quantity_wasted, created_at")
           .order("created_at");
+        if (days !== null) q = q.gte("created_at", new Date(Date.now() - days * 86_400_000).toISOString());
+        const { data: tracking } = await q;
 
-        if (!tracking) { setLoading(false); return; }
-
-        // 3. Calculate per-phase statistics
         const phaseStats: PhaseStats[] = phases.map((phase) => {
-          const phaseEntries = tracking.filter((t) => t.phase_id === phase.id);
-
-          // Calculate average time between entries for each batch at this phase
-          // Group entries by batch
-          const batchGroups = new Map<string, string[]>();
-          for (const entry of phaseEntries) {
-            const existing = batchGroups.get(entry.batch_id) ?? [];
-            existing.push(entry.created_at);
-            batchGroups.set(entry.batch_id, existing);
+          const entries = (tracking ?? []).filter((t) => t.phase_id === phase.id);
+          // Processing time per batch = first to last entry at this phase
+          const byBatch = new Map<string, number[]>();
+          for (const e of entries) {
+            const list = byBatch.get(e.batch_id) ?? [];
+            list.push(new Date(e.created_at).getTime());
+            byBatch.set(e.batch_id, list);
           }
-
           let totalMinutes = 0;
-          let batchCount = 0;
-          for (const [, timestamps] of batchGroups) {
-            if (timestamps.length > 0) {
-              // Use time from first to last entry as processing time
-              const sorted = timestamps.sort();
-              const first = new Date(sorted[0]).getTime();
-              const last = new Date(sorted[sorted.length - 1]).getTime();
-              const diffMinutes = Math.max((last - first) / 60000, 1);
-              totalMinutes += diffMinutes;
-              batchCount++;
-            }
+          for (const times of byBatch.values()) {
+            totalMinutes += Math.max((Math.max(...times) - Math.min(...times)) / 60000, 1);
           }
-
-          const totalWasted = phaseEntries.reduce(
-            (sum, e) => sum + (e.quantity_wasted ?? 0), 0
-          );
-
           return {
             name: phase.name,
-            avgMinutes: batchCount > 0 ? Math.round(totalMinutes / batchCount) : 0,
-            totalWasted,
-            backlogCount: phaseEntries.length,
+            avgMinutes: byBatch.size > 0 ? Math.round(totalMinutes / byBatch.size) : 0,
+            totalWasted: entries.reduce((sum, e) => sum + (e.quantity_wasted ?? 0), 0),
+            entries: entries.length,
           };
         });
 
-        setStats(phaseStats);
+        // Bottleneck snapshot: in-progress batches, all their work to date
+        const { data: batches } = await supabase
+          .from("production_batches")
+          .select("id, total_quantity")
+          .eq("status", "in_progress");
+        let current: { name: string; waiting: number } | null = null;
+        if (batches && batches.length > 0) {
+          const { data: all } = await supabase
+            .from("batch_tracking")
+            .select("batch_id, phase_id, quantity_completed, quantity_wasted")
+            .in("batch_id", batches.map((b) => b.id));
+          current = bottleneckOf(phaseQueues(phases, batches, all ?? []));
+        }
 
-        // 4. Identify the bottleneck (phase with most backlog entries)
-        const maxBacklog = phaseStats.reduce(
-          (prev, curr) => (curr.backlogCount > prev.backlogCount ? curr : prev),
-          phaseStats[0]
-        );
-        if (maxBacklog && maxBacklog.backlogCount > 0) {
-          setBottleneck(maxBacklog.name);
+        if (!cancelled) {
+          setStats(phaseStats);
+          setInProgressBatches(batches?.length ?? 0);
+          setBottleneck(current);
         }
       } catch (err) {
         console.error("Analytics load failed:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     load();
-  }, []);
+    return () => { cancelled = true; };
+  }, [days]);
+
+  const hasActivity = useMemo(() => stats.some((s) => s.entries > 0), [stats]);
+  const hasWaste = useMemo(() => stats.some((s) => s.totalWasted > 0), [stats]);
+  const nextStep = canLogWork ? (
+    <Button asChild variant="outline" size="sm"><Link to="/admin/batches">Open production batches</Link></Button>
+  ) : undefined;
 
   if (loading) {
     return (
@@ -116,81 +125,119 @@ export default function AnalyticsWidget() {
 
   if (stats.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-8 text-center text-muted-foreground text-sm">
-          No production data available yet. Create batches and start tracking.
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={BarChart3}
+        title="No production phases set up"
+        description="Production phases (Cutting, Stitching, QC…) have not been configured yet."
+      />
     );
   }
 
+  const chartTitle = (icon: React.ReactNode, title: string) => (
+    <CardHeader className="pb-2">
+      <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+        {icon}
+        {title}
+      </CardTitle>
+      <p className="admin-meta">{periodLabel} · period total</p>
+    </CardHeader>
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      {/* Bottleneck Indicator */}
+      {/* Bottleneck: a snapshot, so it ignores the period selector */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            Current Bottleneck
+            <AlertTriangle className="w-4 h-4 text-warning" aria-hidden />
+            Current bottleneck
           </CardTitle>
+          <p className="admin-meta">Right now · in-progress batches</p>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold font-heading">
-            {bottleneck ?? "None"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Phase with the highest activity volume
+          {bottleneck ? (
+            <>
+              <p className="text-2xl font-bold">{bottleneck.name}</p>
+              <p className="text-sm text-foreground mt-1">{bottleneck.waiting.toLocaleString()} pcs waiting</p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-success" aria-hidden />
+                {inProgressBatches === 0 ? "No batches in progress" : "No bottleneck"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {inProgressBatches === 0
+                  ? "There are no in-progress batches to assess."
+                  : "No pieces are waiting between phases in the in-progress batches."}
+              </p>
+            </>
+          )}
+          <p className="admin-meta mt-3">
+            Rule: the phase with the most pieces waiting, meaning pieces finished at the previous phase
+            but not yet finished here. The first phase and phases a batch skips are not counted.
           </p>
         </CardContent>
       </Card>
 
       {/* Average Time Per Phase */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <Clock className="w-4 h-4 text-blue-500" />
-            Avg. Time Per Phase (min)
-          </CardTitle>
-        </CardHeader>
+        {chartTitle(<Clock className="w-4 h-4 text-info" aria-hidden />, "Avg. time per phase (min)")}
         <CardContent>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={stats} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip />
-              <Bar dataKey="avgMinutes" radius={[4, 4, 0, 0]}>
-                {stats.map((_, i) => (
-                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {hasActivity ? (
+            <div role="img" aria-label={`Average minutes per phase, ${periodLabel}: ${summary(stats, "avgMinutes")}`}>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={stats} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="avgMinutes" radius={[4, 4, 0, 0]}>
+                    {stats.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyState
+              icon={BarChart3}
+              title="No production activity recorded in this period"
+              description={`Nothing was logged in the ${periodLabel.toLowerCase()}.`}
+              action={nextStep}
+            />
+          )}
         </CardContent>
       </Card>
 
       {/* Wasted Pieces Per Phase */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-            <Trash2 className="w-4 h-4 text-red-500" />
-            Wasted Pieces Per Phase
-          </CardTitle>
-        </CardHeader>
+        {chartTitle(<Trash2 className="w-4 h-4 text-muted-foreground" aria-hidden />, "Wasted pieces per phase")}
         <CardContent>
-          <ResponsiveContainer width="100%" height={140}>
-            <BarChart data={stats} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <Tooltip />
-              <Bar dataKey="totalWasted" radius={[4, 4, 0, 0]}>
-                {stats.map((_, i) => (
-                  <Cell key={i} fill="#ef4444" fillOpacity={0.6 + i * 0.1} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {hasWaste ? (
+            <div role="img" aria-label={`Wasted pieces per phase, ${periodLabel}: ${summary(stats, "totalWasted")}`}>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={stats} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="totalWasted" radius={[4, 4, 0, 0]}>
+                    {stats.map((_, i) => (
+                      <Cell key={i} fill="#ef4444" fillOpacity={0.6 + i * 0.05} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyState
+              icon={hasActivity ? CheckCircle2 : BarChart3}
+              title={hasActivity ? "No wasted pieces recorded in this period" : "No production activity recorded in this period"}
+              description={`Checked the ${periodLabel.toLowerCase()}.`}
+            />
+          )}
         </CardContent>
       </Card>
     </div>
