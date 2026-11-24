@@ -565,9 +565,9 @@ export default function EmployeesPage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <UserIcon className="w-4 h-4 text-muted-foreground" />
-                    <h3 className="font-semibold text-foreground">{p.full_name ?? "Unnamed Worker"}</h3>
+                    <h3 className="font-semibold text-foreground">{p.full_name ?? (hasAdmin ? "Admin" : "Unnamed Worker")}</h3>
                     {p.employee_id && <Badge variant="secondary" className="font-mono text-xs">{p.employee_id}</Badge>}
-                    {isDihaari ? (
+                    {hasAdmin ? null : isDihaari ? (
                       <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Dihaari (Per-Piece)</Badge>
                     ) : (
                       <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">Permanent Monthly</Badge>
@@ -579,14 +579,14 @@ export default function EmployeesPage() {
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
                     <span>{p.email || p.phone || "No direct contact"}</span>
-                    <span>• Wage: {isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`}</span>
+                    {!hasAdmin && <span>• Wage: {isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`}</span>}
                     {p.skills && p.skills.length > 0 && (
                       <span className="flex items-center gap-1"><Wrench className="w-3 h-3 text-accent" /> {p.skills.join(", ")}</span>
                     )}
                   </div>
                 </div>
 
-                {(isAdmin || can("employees.update")) && (
+                {!hasAdmin && (isAdmin || can("employees.update")) && (
                   <div className="flex flex-wrap gap-2 items-center" onClick={(e) => e.stopPropagation()}>
                     {!hasAdmin && can("employees.update") && (
                       <Button size="sm" variant="outline" onClick={() => openEditProfile(p)}>
