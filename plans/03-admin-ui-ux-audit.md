@@ -273,7 +273,7 @@ Deferred: true conversation threads (multi-message history), assignment, escalat
 Collected from page sessions; each item gets its own session later.
 
 - RFQ internal notes + history.
-- Order due dates + overdue filters.
+- ~~Order due dates + overdue filters.~~ Not needed: orders already have `expected_delivery`; Session 3 built the Overdue quick filter from it.
 - Dispatch tracking refs + correction/cancel flow.
 - Vendor payment terms.
 - Expense receipt attachments.
