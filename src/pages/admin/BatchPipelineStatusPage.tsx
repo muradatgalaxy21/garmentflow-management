@@ -348,7 +348,7 @@ export default function BatchPipelineStatusPage() {
               {/* Wider screens: stage matrix, batch column frozen */}
               <div className="hidden md:block">
                 <div className="relative">
-                <div ref={scroller} onScroll={checkScroll} className="overflow-x-auto rounded-lg border border-border bg-card">
+                <div ref={scroller} onScroll={checkScroll} className="relative overflow-x-auto rounded-lg border border-border bg-card">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted">

@@ -42,7 +42,7 @@ export function TableToolbar({ search, onSearch, placeholder = "Search…", coun
       )}
       {count !== undefined && (
         <span className="ml-auto text-sm text-muted-foreground" aria-live="polite">
-          {count.toLocaleString()} {noun}{count === 1 ? "" : "s"}
+          {count.toLocaleString()} {noun}{count === 1 ? "" : /(s|sh|ch|x|z)$/.test(noun) ? "es" : "s"}
         </span>
       )}
     </div>
