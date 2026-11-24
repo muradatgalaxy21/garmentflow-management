@@ -208,11 +208,11 @@ export default function PurchasesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Bill</TableHead><TableHead>Vendor</TableHead><TableHead>Date</TableHead><TableHead>Due</TableHead>
-                    <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Balance</TableHead><TableHead>Status</TableHead><TableHead className="w-0" />
+                    <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Paid</TableHead><TableHead className="text-right">Balance</TableHead><TableHead>Status</TableHead><TableHead className="w-0" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bills.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-10">No bills match.</TableCell></TableRow>}
+                  {bills.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-10">No bills match.</TableCell></TableRow>}
                   {bills.map((b) => (
                     <TableRow key={b.id}>
                       <TableCell>{b.bill_no || "—"}</TableCell>
@@ -220,6 +220,7 @@ export default function PurchasesPage() {
                       <TableCell>{b.bill_date}</TableCell>
                       <TableCell>{b.due_date || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{pkr(Number(b.paid_amount))}</TableCell>
                       <TableCell className="text-right tabular-nums font-semibold">{pkr(Number(b.balance))}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
