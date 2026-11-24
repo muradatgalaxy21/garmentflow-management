@@ -589,7 +589,7 @@ export default function BatchManagementPage() {
     </div>
   );
 
-  const ROW_GRID = "md:grid-cols-[minmax(0,1.6fr)_5.5rem_minmax(0,1.3fr)_minmax(0,1.7fr)_7.5rem_auto]";
+  const ROW_GRID = "md:grid-cols-[minmax(0,1.6fr)_5.5rem_minmax(0,1.3fr)_minmax(0,1.7fr)_7.5rem_12.5rem]";
 
   return (
     <div className="space-y-6">
@@ -628,7 +628,7 @@ export default function BatchManagementPage() {
             onClear={() => { setQ(""); setStatusFilter("all"); setStageFilter("all"); setOrderFilter("all"); setDueFilter("all"); }}
           >
             <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-              <SelectTrigger className="w-full sm:w-44" aria-label="Status"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Status"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="active">Active (not finished)</SelectItem>
@@ -638,7 +638,7 @@ export default function BatchManagementPage() {
               </SelectContent>
             </Select>
             <Select value={stageFilter} onValueChange={setStageFilter}>
-              <SelectTrigger className="w-full sm:w-44" aria-label="Current stage"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Current stage"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All stages</SelectItem>
                 <SelectItem value="none">Not started</SelectItem>
@@ -646,7 +646,7 @@ export default function BatchManagementPage() {
               </SelectContent>
             </Select>
             <Select value={orderFilter} onValueChange={setOrderFilter}>
-              <SelectTrigger className="w-full sm:w-44" aria-label="Order"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Order"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All orders</SelectItem>
                 {batchOrders.map((o) => (
@@ -655,7 +655,7 @@ export default function BatchManagementPage() {
               </SelectContent>
             </Select>
             <Select value={dueFilter} onValueChange={(v) => setDueFilter(v as DueFilter)}>
-              <SelectTrigger className="w-full sm:w-40" aria-label="Due date"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-40" aria-label="Due date"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Any due date</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
@@ -674,7 +674,7 @@ export default function BatchManagementPage() {
           ) : (
             <div className="rounded-lg border border-border bg-card">
               <div className={`hidden md:grid ${ROW_GRID} gap-4 border-b border-border px-4 py-2 admin-label text-xs font-medium text-muted-foreground`}>
-                <span>Batch / order</span><span className="text-right">Qty</span><span>Current stage</span><span>Status / next step</span><span>Due</span><span className="sr-only">Actions</span>
+                <span>Batch / order</span><span className="text-right">Qty</span><span>Current stage</span><span>Status / next step</span><span>Due</span><span><span className="sr-only">Actions</span></span>
               </div>
               <ul className="divide-y divide-border">
                 {visible.map((r) => {
@@ -698,7 +698,7 @@ export default function BatchManagementPage() {
                       </div>
                       <div className="hidden md:block text-right text-sm tabular-nums">{b.total_quantity.toLocaleString()} pcs</div>
                       <div className="min-w-0 space-y-1">
-                        <p className="text-sm text-foreground truncate">{stageText(r)}</p>
+                        <p className="text-sm text-foreground truncate" title={stageText(r)}>{stageText(r)}</p>
                         <ProgressBar done={r.progress.done} total={r.progress.total} />
                       </div>
                       <div className="min-w-0 space-y-1">
@@ -710,7 +710,7 @@ export default function BatchManagementPage() {
                           </div>
                         )}
                       </div>
-                      <div className="text-sm">
+                      <div className={r.due ? "text-sm" : "hidden md:block text-sm"}>
                         <span className="md:hidden text-muted-foreground">Due </span>
                         {r.due ? fmtDate(r.due) : <span className="text-muted-foreground">—</span>}
                         {r.overdue && <StatusBadge tone="danger" className="ml-1 md:ml-0 md:mt-1 md:flex md:w-fit">Overdue</StatusBadge>}
@@ -1046,14 +1046,14 @@ export default function BatchManagementPage() {
                       <h3 className="admin-section-title font-semibold text-foreground">Stage progress</h3>
                       <ProgressBar done={r.progress.done} total={r.progress.total} />
                     </div>
-                    <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    <ol className="space-y-1">
                       {r.progress.stages.map((s, i) => (
                         <li key={s.key} className="flex items-center gap-2">
                           {s.status === "done" ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" aria-hidden />
                             : s.status === "open" ? <CircleDot className="h-4 w-4 text-info shrink-0" aria-hidden />
                             : <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" aria-hidden />}
                           <span className={s.status === "none" ? "text-muted-foreground" : "text-foreground"}>{i + 1}. {s.label}</span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="ml-auto text-xs text-muted-foreground">
                             {s.status === "done" ? "Done" : s.status === "open" ? "In progress" : ""}
                           </span>
                         </li>
