@@ -1186,6 +1186,7 @@ export type Database = {
           id: string
           order_number: string
           party_name: string | null
+          placed_by_client: boolean
           product_summary: string
           quantity: number
           status: Database["public"]["Enums"]["order_status"]
@@ -1202,6 +1203,7 @@ export type Database = {
           id?: string
           order_number?: string
           party_name?: string | null
+          placed_by_client?: boolean
           product_summary: string
           quantity: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -1218,12 +1220,49 @@ export type Database = {
           id?: string
           order_number?: string
           party_name?: string | null
+          placed_by_client?: boolean
           product_summary?: string
           quantity?: number
           status?: Database["public"]["Enums"]["order_status"]
           total_amount?: number | null
           tracking_number?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      permission_change_log: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_by_name: string | null
+          id: string
+          new_value: boolean
+          old_value: boolean
+          permission: string
+          user_id: string
+          user_name: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          id?: string
+          new_value: boolean
+          old_value: boolean
+          permission: string
+          user_id: string
+          user_name?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          id?: string
+          new_value?: boolean
+          old_value?: boolean
+          permission?: string
+          user_id?: string
+          user_name?: string | null
         }
         Relationships: []
       }
@@ -1427,6 +1466,42 @@ export type Database = {
           quantity?: string | null
           status?: Database["public"]["Enums"]["rfq_status"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          emailed_at: string | null
+          id: string
+          kind: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          kind: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          kind?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1931,6 +2006,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_manage_pay_of: { Args: { _target: string }; Returns: boolean }
       can_worker_enter_phase: {
         Args: { _phase_id: string; _worker_id: string }
         Returns: boolean
@@ -2002,6 +2078,26 @@ export type Database = {
           label: string
         }[]
       }
+      notify_users: {
+        Args: {
+          _body: string
+          _kind: string
+          _link: string
+          _title: string
+          _user_ids: string[]
+        }
+        Returns: undefined
+      }
+      pending_request_alerts: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          kind: string
+          label: string
+        }[]
+      }
+      person_name: { Args: { _id: string }; Returns: string }
       post_finance_entry: {
         Args: { _expected_modified_at: string; _id: string; _table: string }
         Returns: undefined
@@ -2016,6 +2112,10 @@ export type Database = {
         Returns: string
       }
       undo_action: { Args: { _action_id: string }; Returns: undefined }
+      users_with_roles: {
+        Args: { _roles: Database["public"]["Enums"]["app_role"][] }
+        Returns: string[]
+      }
       void_finance_entry: {
         Args: { _id: string; _reason: string; _table: string }
         Returns: string

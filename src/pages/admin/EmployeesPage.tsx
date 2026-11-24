@@ -71,10 +71,18 @@ export default function EmployeesPage() {
   const [search, setSearch] = useState("");
   const [permEdit, setPermEdit] = useState<{ profile: Profile; granted: Set<string>; original: Set<string> } | null>(null);
 
+  // IMP-13: permanent change history (RLS: admins, or the member themself).
+  const [permHistory, setPermHistory] = useState<{ id: string; permission: string; old_value: boolean; new_value: boolean; changed_by_name: string | null; changed_at: string }[]>([]);
+
   const openPermissions = async (p: Profile) => {
-    const { data, error } = await supabase.from("user_permissions").select("permission").eq("user_id", p.id);
+    const [{ data, error }, { data: hist }] = await Promise.all([
+      supabase.from("user_permissions").select("permission").eq("user_id", p.id),
+      supabase.from("permission_change_log").select("id, permission, old_value, new_value, changed_by_name, changed_at")
+        .eq("user_id", p.id).order("changed_at", { ascending: false }).limit(100),
+    ]);
     if (error) return toast({ title: "Could not load permissions", description: error.message, variant: "destructive" });
     const set = new Set((data ?? []).map((r) => r.permission));
+    setPermHistory(hist ?? []);
     setPermEdit({ profile: p, granted: new Set(set), original: set });
   };
 
@@ -420,6 +428,24 @@ export default function EmployeesPage() {
                   </Fragment>))}
                 </tbody>
               </table>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mt-2 mb-1">Change history</h4>
+              {permHistory.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No changes recorded yet.</p>
+              ) : (
+                <ul className="text-xs space-y-1 max-h-48 overflow-y-auto">
+                  {permHistory.map((h) => (
+                    <li key={h.id} className="flex gap-2">
+                      <span className="text-muted-foreground shrink-0">{new Date(h.changed_at).toLocaleString()}</span>
+                      <span>
+                        {h.changed_by_name ?? "System"}: <span className="font-mono">{h.permission}</span>{" "}
+                        {h.old_value ? "on" : "off"} → <span className={h.new_value ? "text-emerald-600" : "text-red-600"}>{h.new_value ? "on" : "off"}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPermEdit(null)}>Cancel</Button>

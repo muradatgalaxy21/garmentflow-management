@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Check, AlertTriangle, DollarSign, CheckCircle, Info } from "lucide-react";
+import { Bell, Check, AlertTriangle, DollarSign, CheckCircle, Info, Inbox, ShoppingBag, KeyRound } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 // unread notification count. Clicking opens a popover with
 // recent notifications from the admin_notifications table.
 //
+// Two sources: admin_notifications (shared, production events) and
+// user_notifications (per person: new RFQ / client order, permission changes).
 // Notifications are populated by database triggers:
 //   - high_waste: worker reported waste exceeding 5% threshold
 //   - missing_rate: no rate configured for a batch/phase combo
@@ -22,11 +25,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Notification {
   id: string;
+  source: "admin" | "user";
   type: string;
   title: string;
   message: string;
   is_read: boolean;
-  batch_id: string | null;
+  link: string | null;
   created_at: string;
 }
 
@@ -36,22 +40,28 @@ const typeConfig: Record<string, { icon: typeof Bell; color: string }> = {
   missing_rate: { icon: DollarSign, color: "text-amber-500" },
   batch_completed: { icon: CheckCircle, color: "text-emerald-500" },
   info: { icon: Info, color: "text-blue-500" },
+  new_rfq: { icon: Inbox, color: "text-red-500" },
+  new_order: { icon: ShoppingBag, color: "text-red-500" },
+  permission_change: { icon: KeyRound, color: "text-purple-500" },
 };
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   // 1. Fetch notifications on mount and periodically
   const fetchNotifications = async () => {
     try {
-      const { data } = await supabase
-        .from("admin_notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      const items = (data ?? []) as Notification[];
+      const [{ data: shared }, { data: mine }] = await Promise.all([
+        supabase.from("admin_notifications").select("id, type, title, message, is_read, created_at").order("created_at", { ascending: false }).limit(20),
+        supabase.from("user_notifications").select("id, kind, title, body, link, read_at, created_at").order("created_at", { ascending: false }).limit(30),
+      ]);
+      const items: Notification[] = [
+        ...(shared ?? []).map((n) => ({ ...n, source: "admin" as const, link: null })),
+        ...(mine ?? []).map((n) => ({ id: n.id, source: "user" as const, type: n.kind, title: n.title, message: n.body, is_read: !!n.read_at, link: n.link, created_at: n.created_at })),
+      ].sort((a, b) => b.created_at.localeCompare(a.created_at));
       setNotifications(items);
       setUnreadCount(items.filter((n) => !n.is_read).length);
     } catch (err) {
@@ -65,26 +75,31 @@ export default function NotificationBell() {
       .channel("admin-notifications")
       .on("postgres_changes", { event: "*", schema: "public", table: "admin_notifications" }, fetchNotifications)
       .subscribe();
+    const poll = setInterval(fetchNotifications, 60_000); // user_notifications is not in realtime
     return () => {
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, []);
 
   // 2. Mark a single notification as read
-  const markAsRead = async (id: string) => {
-    await supabase
-      .from("admin_notifications")
-      .update({ is_read: true })
-      .eq("id", id);
+  const markAsRead = async (n: Notification) => {
+    await (n.source === "admin"
+      ? supabase.from("admin_notifications").update({ is_read: true }).eq("id", n.id)
+      : supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).eq("id", n.id));
     fetchNotifications();
+    if (n.link) {
+      setOpen(false);
+      navigate(n.link);
+    }
   };
 
   // 3. Mark all notifications as read
   const markAllRead = async () => {
-    await supabase
-      .from("admin_notifications")
-      .update({ is_read: true })
-      .eq("is_read", false);
+    await Promise.all([
+      supabase.from("admin_notifications").update({ is_read: true }).eq("is_read", false),
+      supabase.from("user_notifications").update({ read_at: new Date().toISOString() }).is("read_at", null),
+    ]);
     fetchNotifications();
   };
 
@@ -128,11 +143,11 @@ export default function NotificationBell() {
               const Icon = config.icon;
               return (
                 <div
-                  key={n.id}
+                  key={n.source + n.id}
                   className={`flex gap-3 p-3 border-b last:border-0 transition-colors cursor-pointer hover:bg-muted/50 ${
                     !n.is_read ? "bg-accent/5" : ""
                   }`}
-                  onClick={() => markAsRead(n.id)}
+                  onClick={() => markAsRead(n)}
                 >
                   <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${config.color}`} />
                   <div className="min-w-0">
