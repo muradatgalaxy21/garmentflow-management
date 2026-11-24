@@ -231,9 +231,9 @@ async function seedFinance(clients: string[]) {
 
   const vendors = await must("vendors", clerk.from("vendors").insert([
     { name: "MOCK Kapra House", category: "fabric", contact_person: "Mock Contact", phone: "+923000001001", opening_balance: 150000 },
-    { name: "MOCK Accessories Mart", category: "accessories", phone: "+923000001002" },
-    { name: "MOCK Print Works", category: "printing" },
-    { name: "MOCK Cargo Movers", category: "transport" },
+    { name: "MOCK Accessories Mart", category: "accessories", phone: "+923000001002", opening_balance: 0 },
+    { name: "MOCK Print Works", category: "printing", opening_balance: 0 },
+    { name: "MOCK Cargo Movers", category: "transport", opening_balance: 0 },
   ]).select("id, name"));
   const v = Object.fromEntries(vendors.map((x: { id: string; name: string }) => [x.name, x.id]));
 

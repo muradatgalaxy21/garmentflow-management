@@ -2,7 +2,7 @@
 
 Use this on the **separate test project** with mock data, never on live. Work top to bottom. In the **Result** column write `✅`, `❌ BUG-n`, or `⚠️ IMP-n`, and log details in the tables at the end.
 
-- Tester: ______  Date: ______  Build/commit: ______
+- Tester: Murad Ahmad  Date: 24-Nov-2026  Build/commit: _______
 - Test project URL: ______
 - Logins: see `mock-users.out.md` (created by the seed script). Workers use the test phone numbers + fixed OTP.
 

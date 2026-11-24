@@ -75,3 +75,6 @@ migration-guide.md
 
 # Mock data seed output (test project logins)
 mock-users.out.md
+
+# Local test-project credentials
+test-database-enen-test/

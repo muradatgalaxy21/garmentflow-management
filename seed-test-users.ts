@@ -6,17 +6,17 @@ import { createClient } from "@supabase/supabase-js";
  * Usage:
  *   npx tsx --env-file=.env seed-test-users.ts --workers=5 --clients=3
  *
- * Requires VITE_SUPABASE_SERVICE_ROLE_KEY in .env (Supabase dashboard ->
+ * Requires SUPABASE_SERVICE_ROLE_KEY in .env (Supabase dashboard ->
  * Project Settings -> API -> service_role key). Never commit that key.
  *
  * Prints email/password pairs to stdout and to seed-test-users.out.json.
  */
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const serviceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceKey) {
-  console.error("VITE_SUPABASE_URL and VITE_SUPABASE_SERVICE_ROLE_KEY must be set in .env.");
+  console.error("VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env.");
   process.exit(1);
 }
 
