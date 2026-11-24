@@ -5,7 +5,7 @@ export const KB = `
 # GarmentFlow staff guide
 
 ## Portals and who uses them
-- Admin portal: /admin. Admin, staff and managers. Every section needs a permission (View / Add / Edit / Delete, and Approve for Finance). Admin has everything. Managers only see batches assigned to them.
+- Admin portal: /admin. Admin, staff and managers. Every section needs a permission (View / Add / Edit / Delete, and Approve for Finance). Admin has everything. Managers oversee departments; each manager sees and does only what the admin ticked in their permissions (there is no batch assignment).
 - Worker portal: /factory. Workers sign in with mobile number + SMS code. Bottom tabs: Log Entry, My Work, Inbox, Restock (accessories department only).
 - Client portal: /client-portal (clients only, separate).
 
@@ -36,11 +36,11 @@ Top up an existing accessory or register a new variant. Fabric restock is admin/
 - New Order (Orders > Add). Open an order to change status (pending, in production, QC, shipped, delivered, cancelled), tracking number, and a note the client sees. Saving asks for confirmation and can be undone for 10 minutes.
 - Issue Client Access Code: one-time code so the client can activate the portal.
 - Set the order's total amount; receivables only count priced orders.
+- New RFQ or client direct order: every admin, manager and staff member gets a bell alert and an email, and a red banner shows on every admin page until the RFQ leaves "new" or the order leaves "pending".
 
 ## Batches
 - New Batch (Batches > Add) under an order. Print QR Labels (START and END cards).
-- Piece Rates and Department Rates set what workers earn per piece. Pack Ratio sets the size mix.
-- Manager Rights (admin only) assigns a batch to a manager.
+- Piece Rates and Department Rates set what workers earn per piece. Only people with the "Piece & department rates: Manage" permission can change them. Pack Ratio sets the size mix.
 - Multi-Worker Log (manual entry): open the batch, choose Multi-Worker Log, pick the phase, enter pieces completed/wasted per worker, save. Use this when work was not scanned on the floor.
 - Cancel batch asks for confirmation and can be undone for 10 minutes.
 
@@ -55,9 +55,9 @@ Add Item (unit, category, reorder level). In / Out buttons record stock movement
 
 ## Employees
 - Create New Employee Account: name + Pakistani mobile number. The worker signs in with SMS code.
-- Edit wage type (dihaari per piece or monthly salary), department, skills.
-- Permissions (admin only): tick View / Add / Edit / Delete per section, and Approve for Finance. Add/Edit/Delete also turn on View.
-- Payout ledger: weekly dihaari & salary totals, CSV download.
+- Edit department and skills. Wage type (dihaari per piece or monthly salary) and pay amounts need "Payroll: Manage". A non-admin with that permission cannot change their own pay or an admin's pay.
+- Permissions (admin only): tick the actions per section (View / Add / Edit / Delete, Approve for Finance, Manage for rates and payroll). Any action also turns on View. Every change is saved in the member's permission history (who, what, when, old → new) and alerts all admins and the member by email and the bell icon.
+- Payout ledger: weekly dihaari & salary totals, CSV download. Needs "Payroll: View".
 
 ## Finance
 - Vendors: suppliers (fabric, accessories, services). Each vendor has a ledger (opening balance + bills − payments).
