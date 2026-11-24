@@ -29,6 +29,19 @@ interface RecentEntry {
   payload: Record<string, unknown>;
   total_cost: number | null;
   created_at: string;
+  done: boolean; // END logged for this batch + department
+}
+
+/** Newest-first entries → one card per batch + department (latest entry), done once any END exists. */
+export function groupRecentEntries(entries: RecentEntry[], max = 5): RecentEntry[] {
+  const cards = new Map<string, RecentEntry>();
+  for (const e of entries) {
+    const key = `${e.batch_id}|${e.department}`;
+    const card = cards.get(key);
+    if (!card) cards.set(key, { ...e });
+    else if (e.done) card.done = true;
+  }
+  return [...cards.values()].slice(0, max);
 }
 
 export default function FactoryDashboard() {
@@ -120,7 +133,7 @@ export default function FactoryDashboard() {
           .select("id, batch_id, department, stage, payload, total_cost, created_at")
           .eq("worker_id", user.id)
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(30); // grouped into ≤5 batch+department cards below
 
         if (recentTracking && recentTracking.length > 0) {
           const batchIds = [...new Set(recentTracking.map((t) => t.batch_id))];
@@ -131,16 +144,19 @@ export default function FactoryDashboard() {
           const batchMap = new Map((batches ?? []).map((b) => [b.id, b.style_number]));
 
           setRecentEntries(
-            recentTracking.map((t) => ({
-              id: t.id,
-              batch_id: t.batch_id,
-              style_number: batchMap.get(t.batch_id) ?? "—",
-              department: t.department as Department,
-              stage: t.stage as EntryStage,
-              payload: (t.payload as Record<string, unknown>) ?? {},
-              total_cost: t.total_cost,
-              created_at: t.created_at,
-            }))
+            groupRecentEntries(
+              recentTracking.map((t) => ({
+                id: t.id,
+                batch_id: t.batch_id,
+                style_number: batchMap.get(t.batch_id) ?? "—",
+                department: t.department as Department,
+                stage: t.stage as EntryStage,
+                payload: (t.payload as Record<string, unknown>) ?? {},
+                total_cost: t.total_cost,
+                created_at: t.created_at,
+                done: t.stage === "end",
+              }))
+            )
           );
         }
       } catch (err) {
@@ -313,18 +329,18 @@ export default function FactoryDashboard() {
                         {t("factory.dashboard.style")} {entry.style_number}
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5 font-normal capitalize">
-                        {DEPARTMENT_LABELS[entry.department]} · {entry.stage}
+                        {DEPARTMENT_LABELS[entry.department]}
                       </p>
                     </div>
                     <Badge
                       variant="outline"
                       className={
-                        entry.stage === "end"
+                        entry.done
                           ? "bg-white text-slate-700 border-slate-300 text-xs px-3 py-1 font-medium rounded-full"
                           : "bg-blue-50 text-blue-700 border-blue-200 text-xs px-3 py-1 font-medium rounded-full"
                       }
                     >
-                      {entry.stage === "end" ? t("factory.dashboard.closed") : t("factory.common.inProgress")}
+                      {entry.done ? t("factory.common.completed") : t("factory.common.inProgress")}
                     </Badge>
                   </div>
                 </CardContent>
