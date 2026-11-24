@@ -272,7 +272,7 @@ Deferred: true conversation threads (multi-message history), assignment, escalat
 
 Collected from page sessions; each item gets its own session later.
 
-- RFQ internal notes + history.
+- RFQ internal notes + history: timestamped, per-author notes and a status-change log per RFQ (today `rfqs.notes` is one overwritable text field, kept as-is in the detail sheet).
 - Order due dates + overdue filters.
 - Dispatch tracking refs + correction/cancel flow.
 - Vendor payment terms.
