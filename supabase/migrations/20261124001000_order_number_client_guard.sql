@@ -18,7 +18,8 @@ DROP TRIGGER IF EXISTS assign_order_number ON public.orders;
 CREATE TRIGGER assign_order_number BEFORE INSERT ON public.orders
   FOR EACH ROW EXECUTE FUNCTION public.assign_order_number();
 
-ALTER TABLE public.orders ALTER COLUMN order_number DROP DEFAULT;
+-- '' default keeps order_number optional for inserts (and in generated types); the trigger replaces it.
+ALTER TABLE public.orders ALTER COLUMN order_number SET DEFAULT '';
 -- Only the SECURITY DEFINER trigger touches the sequence.
 REVOKE ALL ON SEQUENCE public.order_number_seq FROM anon, authenticated;
 

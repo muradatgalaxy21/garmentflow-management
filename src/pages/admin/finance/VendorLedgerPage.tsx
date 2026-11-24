@@ -54,7 +54,7 @@ export default function VendorLedgerPage() {
       </Link>
       <PageHeader title={vendor.name} subtitle={[label(vendor.category), vendor.contact_person, vendor.phone, vendor.address].filter(Boolean).join(" · ")}>
         <ExportButtons title={`Vendor Ledger — ${vendor.name}`} subtitle={`${from} to ${to}`} rows={exportRows} />
-        {can("finance.create") && (
+        {can("finance_purchases.create") && (
           <Button size="sm" onClick={() => setPay({ kind: "vendor", partyId: vendor.id, partyName: vendor.name, docs: openDocs })}>
             <Wallet className="w-4 h-4 mr-1" /> Pay
           </Button>

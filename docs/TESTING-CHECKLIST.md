@@ -31,7 +31,7 @@ Log in as each user and check what they can and can't see/do.
 | 1.2 | staff (ops) | Sidebar | RFQ, Inbox, Inventory, Orders, Batches, Pipeline, Dispatch, Employees, Clients. **No Finance** | ⚠️ IMP-1, BUG-1 |
 | 1.3 | staff | Orders: open an order | Can edit status; **no Delete button** | ✅ |
 | 1.4 | staff | Type `/admin/finance` in the URL | "No access" page | ✅ |
-| 1.5 | manager | Batches | Sees **only MOCK-B1-TEE** (assigned), not B2/B3 | ✅ (model changes: IMP-4) |
+| 1.5 | manager | Batches | Sees all batches (no assignment scoping since IMP-4); no Piece Rates / Department Rates buttons without rates.manage | ✅ (model changes: IMP-4) |
 | 1.6 | manager | Pipeline Status / Dispatch | Only B1-related data | ✅ (IMP-4) |
 | 1.7 | manager | Batches → New Batch button | Not shown (no batches.create) | ✅ |
 | 1.8 | finance_maker | Sidebar | Finance only (+ Dashboard) | ✅ (BUG-2) |
@@ -197,8 +197,8 @@ Log in as each user and check what they can and can't see/do.
 |---|---|---|---|---|---|---|
 | IMP-1 | 24-Nov-2026 | Admin sidebar (all roles) | Current section not highlighted in left sidebar | Hard to tell which page you're on | med | fixed 24-Nov-2026 — retest |
 | IMP-2 | 24-Nov-2026 | Worker auth page | Default phone + OTP; add "use email & password" option for staff/managers (pairs with BUG-1) | One staff login entry point, separate from client portal | high | fixed 24-Nov-2026 — retest |
-| IMP-3 | 24-Nov-2026 | Manager role | Remove department rates + piece rate settings from manager | Managers must not set pay rates | high | open — after section 1 |
-| IMP-4 | 24-Nov-2026 | Access control / manager | Manager = department overseer, not batch/order owner. Drop hard-coded batch-assignment scoping; admin picks each manager's pages/functions. Expand permission list: many granular, each real and useful, no filler | Admin controls exactly what each manager does | high | open — after section 1 |
+| IMP-3 | 24-Nov-2026 | Manager role | Remove department rates + piece rate settings from manager | Managers must not set pay rates | high | fixed 24-Nov-2026 — retest |
+| IMP-4 | 24-Nov-2026 | Access control / manager | Manager = department overseer, not batch/order owner. Drop hard-coded batch-assignment scoping; admin picks each manager's pages/functions. Expand permission list: many granular, each real and useful, no filler | Admin controls exactly what each manager does | high | fixed 24-Nov-2026 — retest |
 | IMP-5 | 24-Nov-2026 | Manager / finance portals | Non-admin roles reuse admin pages with permissions. OK for MVP; revisit dedicated portal later | Cleaner separation | low | deferred (post-MVP) |
 | IMP-6 | 24-Nov-2026 | Finance → Bills table | Show Paid column: Total / Paid / Balance | Hard to see how much was paid | med | open — with IMP-7 |
 | IMP-7 | 24-Nov-2026 | Whole app UI/UX | Full UI/UX pass: layout, positioning, clarity, fewer wrong clicks (e.g. wrong payment drafts). Must be fast to use for first-timers and daily users | Most crucial: UX speed and errors | **top** | open — after ALL sections done |

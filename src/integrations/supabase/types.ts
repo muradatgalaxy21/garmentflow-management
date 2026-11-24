@@ -10,35 +10,55 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
+      accounting_period_events: {
+        Row: {
+          action: string
+          done_at: string
+          done_by: string | null
+          id: string
+          note: string | null
+          period_month: string
+        }
+        Insert: {
+          action: string
+          done_at?: string
+          done_by?: string | null
+          id?: string
+          note?: string | null
+          period_month: string
+        }
+        Update: {
+          action?: string
+          done_at?: string
+          done_by?: string | null
+          id?: string
+          note?: string | null
+          period_month?: string
+        }
+        Relationships: []
+      }
+      accounting_periods: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          period_month: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          period_month: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          period_month?: string
+        }
+        Relationships: []
+      }
       admin_access_codes: {
         Row: {
           attempts: number
@@ -109,6 +129,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      assistant_usage: {
+        Row: {
+          at: string
+          id: number
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          id?: number
+          user_id: string
+        }
+        Update: {
+          at?: string
+          id?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       batch_department_status: {
         Row: {
@@ -227,6 +265,48 @@ export type Database = {
           },
         ]
       }
+      batch_phase_panel_rates: {
+        Row: {
+          batch_id: string
+          created_at: string
+          id: string
+          label: string
+          phase_id: string
+          rate_per_piece: number
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          id?: string
+          label: string
+          phase_id: string
+          rate_per_piece?: number
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          phase_id?: string
+          rate_per_piece?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_phase_panel_rates_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_phase_panel_rates_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       batch_phase_rates: {
         Row: {
           batch_id: string
@@ -313,48 +393,6 @@ export type Database = {
           },
           {
             foreignKeyName: "batch_phase_status_phase_id_fkey"
-            columns: ["phase_id"]
-            isOneToOne: false
-            referencedRelation: "production_phases"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      batch_phase_panel_rates: {
-        Row: {
-          batch_id: string
-          created_at: string
-          id: string
-          label: string
-          phase_id: string
-          rate_per_piece: number
-        }
-        Insert: {
-          batch_id: string
-          created_at?: string
-          id?: string
-          label: string
-          phase_id: string
-          rate_per_piece?: number
-        }
-        Update: {
-          batch_id?: string
-          created_at?: string
-          id?: string
-          label?: string
-          phase_id?: string
-          rate_per_piece?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "batch_phase_panel_rates_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "production_batches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "batch_phase_panel_rates_phase_id_fkey"
             columns: ["phase_id"]
             isOneToOne: false
             referencedRelation: "production_phases"
@@ -569,6 +607,239 @@ export type Database = {
           },
         ]
       }
+      change_log: {
+        Row: {
+          action_id: string | null
+          changed_at: string
+          changed_by: string
+          id: number
+          label: string | null
+          new_values: Json
+          old_values: Json | null
+          op: string
+          row_id: string | null
+          row_key: Json
+          table_name: string
+          undone_at: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          changed_at?: string
+          changed_by: string
+          id?: number
+          label?: string | null
+          new_values: Json
+          old_values?: Json | null
+          op: string
+          row_id?: string | null
+          row_key: Json
+          table_name: string
+          undone_at?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          changed_at?: string
+          changed_by?: string
+          id?: number
+          label?: string | null
+          new_values?: Json
+          old_values?: Json | null
+          op?: string
+          row_id?: string | null
+          row_key?: Json
+          table_name?: string
+          undone_at?: string | null
+        }
+        Relationships: []
+      }
+      client_inbox_messages: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          message: string
+          order_id: string | null
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          type: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          message: string
+          order_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          order_id?: string | null
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_inbox_messages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          email: string | null
+          expires_at: string
+          id: string
+          order_id: string | null
+          redeemed_at: string | null
+          redeemed_by: string | null
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          email?: string | null
+          expires_at: string
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          redeemed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_invite_codes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          id: string
+          method: string
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          order_id: string | null
+          posted_at: string | null
+          posted_by: string | null
+          received_on: string
+          reference: string | null
+          reverses_id: string | null
+          self_approved: boolean
+          status: string
+          void_reason: string | null
+          voided_by_id: string | null
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          order_id?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          received_on?: string
+          reference?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          status?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          order_id?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          received_on?: string
+          reference?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          status?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_payments_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "client_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_payments_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "client_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_cost_rates: {
         Row: {
           department: string
@@ -665,6 +936,128 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_pay: {
+        Row: {
+          base_salary: number
+          default_piece_rate: number
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+          wage_type: string
+        }
+        Insert: {
+          base_salary?: number
+          default_piece_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+          wage_type?: string
+        }
+        Update: {
+          base_salary?: number
+          default_piece_rate?: number
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+          wage_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_pay_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          created_by: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          id: string
+          method: string
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          paid_to: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reverses_id: string | null
+          self_approved: boolean
+          spent_on: string
+          status: string
+          updated_at: string
+          void_reason: string | null
+          voided_by_id: string | null
+        }
+        Insert: {
+          amount: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          paid_to?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          spent_on?: string
+          status?: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          paid_to?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          spent_on?: string
+          status?: string
+          updated_at?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           attributes: Json
@@ -744,38 +1137,6 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "inventory_items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      manager_batch_assignments: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          batch_id: string
-          id: string
-          manager_id: string
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          batch_id: string
-          id?: string
-          manager_id: string
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          batch_id?: string
-          id?: string
-          manager_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manager_batch_assignments_batch_id_fkey"
-            columns: ["batch_id"]
-            isOneToOne: false
-            referencedRelation: "production_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -978,11 +1339,9 @@ export type Database = {
       }
       profiles: {
         Row: {
-          base_salary: number | null
           client_activated: boolean
           company: string | null
           created_at: string
-          default_piece_rate: number | null
           department: string | null
           email: string | null
           employee_id: string | null
@@ -992,14 +1351,11 @@ export type Database = {
           skills: string[] | null
           sub_department: string | null
           updated_at: string
-          wage_type: string | null
         }
         Insert: {
-          base_salary?: number | null
           client_activated?: boolean
           company?: string | null
           created_at?: string
-          default_piece_rate?: number | null
           department?: string | null
           email?: string | null
           employee_id?: string | null
@@ -1009,14 +1365,11 @@ export type Database = {
           skills?: string[] | null
           sub_department?: string | null
           updated_at?: string
-          wage_type?: string | null
         }
         Update: {
-          base_salary?: number | null
           client_activated?: boolean
           company?: string | null
           created_at?: string
-          default_piece_rate?: number | null
           department?: string | null
           email?: string | null
           employee_id?: string | null
@@ -1026,7 +1379,6 @@ export type Database = {
           skills?: string[] | null
           sub_department?: string | null
           updated_at?: string
-          wage_type?: string | null
         }
         Relationships: []
       }
@@ -1078,6 +1430,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          permission: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1099,99 +1472,324 @@ export type Database = {
         }
         Relationships: []
       }
-      client_inbox_messages: {
+      vendor_bill_items: {
         Row: {
-          client_id: string
+          amount: number | null
+          bill_id: string
           created_at: string
+          description: string
           id: string
-          message: string
-          order_id: string | null
-          resolution_note: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          status: string
-          type: string
+          inventory_item_id: string | null
+          quantity: number
+          unit: string | null
+          unit_price: number
         }
         Insert: {
-          client_id: string
+          amount?: number | null
+          bill_id: string
           created_at?: string
+          description: string
           id?: string
-          message: string
-          order_id?: string | null
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          type?: string
+          inventory_item_id?: string | null
+          quantity: number
+          unit?: string | null
+          unit_price: number
         }
         Update: {
-          client_id?: string
+          amount?: number | null
+          bill_id?: string
           created_at?: string
+          description?: string
           id?: string
-          message?: string
-          order_id?: string | null
-          resolution_note?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          status?: string
-          type?: string
+          inventory_item_id?: string | null
+          quantity?: number
+          unit?: string | null
+          unit_price?: number
         }
         Relationships: [
           {
-            foreignKeyName: "client_inbox_messages_order_id_fkey"
-            columns: ["order_id"]
+            foreignKeyName: "vendor_bill_items_bill_id_fkey"
+            columns: ["bill_id"]
             isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bill_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
             referencedColumns: ["id"]
           },
         ]
       }
-      client_invite_codes: {
+      vendor_bills: {
         Row: {
-          code: string
+          bill_date: string
+          bill_no: string | null
           created_at: string
-          created_by: string
-          email: string | null
-          expires_at: string
+          created_by: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          due_date: string | null
           id: string
-          order_id: string | null
-          redeemed_at: string | null
-          redeemed_by: string | null
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reverses_id: string | null
+          self_approved: boolean
           status: string
+          total_amount: number
+          updated_at: string
+          vendor_id: string
+          void_reason: string | null
+          voided_by_id: string | null
         }
         Insert: {
-          code: string
+          bill_date?: string
+          bill_no?: string | null
           created_at?: string
-          created_by: string
-          email?: string | null
-          expires_at: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          due_date?: string | null
           id?: string
-          order_id?: string | null
-          redeemed_at?: string | null
-          redeemed_by?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
           status?: string
+          total_amount?: number
+          updated_at?: string
+          vendor_id: string
+          void_reason?: string | null
+          voided_by_id?: string | null
         }
         Update: {
-          code?: string
+          bill_date?: string
+          bill_no?: string | null
           created_at?: string
-          created_by?: string
-          email?: string | null
-          expires_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          due_date?: string | null
           id?: string
-          order_id?: string | null
-          redeemed_at?: string | null
-          redeemed_by?: string | null
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
           status?: string
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "client_invite_codes_order_id_fkey"
-            columns: ["order_id"]
+            foreignKeyName: "vendor_bills_reverses_id_fkey"
+            columns: ["reverses_id"]
             isOneToOne: false
-            referencedRelation: "orders"
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendor_payments: {
+        Row: {
+          amount: number
+          bill_id: string | null
+          created_at: string
+          created_by: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          id: string
+          method: string
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          paid_on: string
+          posted_at: string | null
+          posted_by: string | null
+          reference: string | null
+          reverses_id: string | null
+          self_approved: boolean
+          status: string
+          vendor_id: string
+          void_reason: string | null
+          voided_by_id: string | null
+        }
+        Insert: {
+          amount: number
+          bill_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          paid_on?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          status?: string
+          vendor_id: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Update: {
+          amount?: number
+          bill_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          method?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          paid_on?: string
+          posted_at?: string | null
+          posted_by?: string | null
+          reference?: string | null
+          reverses_id?: string | null
+          self_approved?: boolean
+          status?: string
+          vendor_id?: string
+          void_reason?: string | null
+          voided_by_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_payments_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          category: string
+          contact_person: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          opening_balance: number
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          opening_balance?: number
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          contact_person?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          opening_balance?: number
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       worker_inbox_messages: {
         Row: {
@@ -1246,426 +1844,8 @@ export type Database = {
           },
         ]
       }
-      user_permissions: {
-        Row: {
-          created_at: string
-          granted_by: string | null
-          permission: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          granted_by?: string | null
-          permission: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          granted_by?: string | null
-          permission?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      vendors: {
-        Row: {
-          address: string | null
-          category: string
-          contact_person: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          is_active: boolean
-          name: string
-          notes: string | null
-          opening_balance: number
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          category?: string
-          contact_person?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          notes?: string | null
-          opening_balance?: number
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          category?: string
-          contact_person?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          notes?: string | null
-          opening_balance?: number
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      vendor_bills: {
-        Row: {
-          modified_at: string
-          modified_by: string | null
-          status: string
-          posted_at: string | null
-          posted_by: string | null
-          self_approved: boolean
-          discarded_at: string | null
-          discarded_by: string | null
-          reverses_id: string | null
-          voided_by_id: string | null
-          void_reason: string | null
-          bill_date: string
-          bill_no: string | null
-          created_at: string
-          created_by: string | null
-          due_date: string | null
-          id: string
-          notes: string | null
-          total_amount: number
-          updated_at: string
-          vendor_id: string
-        }
-        Insert: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          bill_date?: string
-          bill_no?: string | null
-          created_at?: string
-          created_by?: string | null
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          total_amount?: number
-          updated_at?: string
-          vendor_id: string
-        }
-        Update: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          bill_date?: string
-          bill_no?: string | null
-          created_at?: string
-          created_by?: string | null
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          total_amount?: number
-          updated_at?: string
-          vendor_id?: string
-        }
-        Relationships: []
-      }
-      vendor_bill_items: {
-        Row: {
-          amount: number
-          bill_id: string
-          created_at: string
-          description: string
-          id: string
-          inventory_item_id: string | null
-          quantity: number
-          unit: string | null
-          unit_price: number
-        }
-        Insert: {
-          bill_id: string
-          created_at?: string
-          description: string
-          id?: string
-          inventory_item_id?: string | null
-          quantity: number
-          unit?: string | null
-          unit_price: number
-        }
-        Update: {
-          bill_id?: string
-          created_at?: string
-          description?: string
-          id?: string
-          inventory_item_id?: string | null
-          quantity?: number
-          unit?: string | null
-          unit_price?: number
-        }
-        Relationships: []
-      }
-      vendor_payments: {
-        Row: {
-          modified_at: string
-          modified_by: string | null
-          status: string
-          posted_at: string | null
-          posted_by: string | null
-          self_approved: boolean
-          discarded_at: string | null
-          discarded_by: string | null
-          reverses_id: string | null
-          voided_by_id: string | null
-          void_reason: string | null
-          amount: number
-          bill_id: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          method: string
-          notes: string | null
-          paid_on: string
-          reference: string | null
-          vendor_id: string
-        }
-        Insert: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount: number
-          bill_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          paid_on?: string
-          reference?: string | null
-          vendor_id: string
-        }
-        Update: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount?: number
-          bill_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          paid_on?: string
-          reference?: string | null
-          vendor_id?: string
-        }
-        Relationships: []
-      }
-      client_payments: {
-        Row: {
-          modified_at: string
-          modified_by: string | null
-          status: string
-          posted_at: string | null
-          posted_by: string | null
-          self_approved: boolean
-          discarded_at: string | null
-          discarded_by: string | null
-          reverses_id: string | null
-          voided_by_id: string | null
-          void_reason: string | null
-          amount: number
-          client_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          method: string
-          notes: string | null
-          order_id: string | null
-          received_on: string
-          reference: string | null
-        }
-        Insert: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount: number
-          client_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          order_id?: string | null
-          received_on?: string
-          reference?: string | null
-        }
-        Update: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount?: number
-          client_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          order_id?: string | null
-          received_on?: string
-          reference?: string | null
-        }
-        Relationships: []
-      }
-      expenses: {
-        Row: {
-          modified_at: string
-          modified_by: string | null
-          status: string
-          posted_at: string | null
-          posted_by: string | null
-          self_approved: boolean
-          discarded_at: string | null
-          discarded_by: string | null
-          reverses_id: string | null
-          voided_by_id: string | null
-          void_reason: string | null
-          amount: number
-          category: string
-          created_at: string
-          created_by: string | null
-          id: string
-          method: string
-          notes: string | null
-          paid_to: string | null
-          spent_on: string
-          updated_at: string
-        }
-        Insert: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount: number
-          category?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          paid_to?: string | null
-          spent_on?: string
-          updated_at?: string
-        }
-        Update: {
-          modified_at?: string
-          modified_by?: string | null
-          status?: string
-          posted_at?: string | null
-          posted_by?: string | null
-          self_approved?: boolean
-          discarded_at?: string | null
-          discarded_by?: string | null
-          reverses_id?: string | null
-          voided_by_id?: string | null
-          void_reason?: string | null
-          amount?: number
-          category?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          method?: string
-          notes?: string | null
-          paid_to?: string | null
-          spent_on?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      accounting_periods: {
-        Row: { period_month: string; closed_at: string | null; closed_by: string | null }
-        Insert: { period_month: string; closed_at?: string | null; closed_by?: string | null }
-        Update: { period_month?: string; closed_at?: string | null; closed_by?: string | null }
-        Relationships: []
-      }
-      accounting_period_events: {
-        Row: { id: string; period_month: string; action: string; note: string | null; done_by: string | null; done_at: string }
-        Insert: { id?: string; period_month: string; action: string; note?: string | null; done_by?: string | null; done_at?: string }
-        Update: { id?: string; period_month?: string; action?: string; note?: string | null; done_by?: string | null; done_at?: string }
-        Relationships: []
-      }
     }
     Views: {
-      vendor_bill_balances: {
-        Row: {
-          doc_status: string | null
-          reverses_id: string | null
-          voided_by_id: string | null
-          created_by: string | null
-          balance: number | null
-          bill_date: string | null
-          bill_no: string | null
-          due_date: string | null
-          id: string | null
-          paid_amount: number | null
-          status: string | null
-          total_amount: number | null
-          vendor_id: string | null
-        }
-        Relationships: []
-      }
       bundle_quality_status: {
         Row: {
           alter_reason: string | null
@@ -1695,39 +1875,110 @@ export type Database = {
           },
         ]
       }
+      vendor_bill_balances: {
+        Row: {
+          balance: number | null
+          bill_date: string | null
+          bill_no: string | null
+          created_by: string | null
+          doc_status: string | null
+          due_date: string | null
+          id: string | null
+          paid_amount: number | null
+          reverses_id: string | null
+          status: string | null
+          total_amount: number | null
+          vendor_id: string | null
+          voided_by_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_bills_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_reverses_id_fkey"
+            columns: ["reverses_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bill_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_bills_voided_by_id_fkey"
+            columns: ["voided_by_id"]
+            isOneToOne: false
+            referencedRelation: "vendor_bills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      post_finance_entry: { Args: { _table: string; _id: string; _expected_modified_at: string }; Returns: undefined }
-      discard_finance_draft: { Args: { _table: string; _id: string }; Returns: undefined }
-      void_finance_entry: { Args: { _table: string; _id: string; _reason: string }; Returns: string }
-      close_period: { Args: { _month: string; _note?: string }; Returns: undefined }
-      reopen_period: { Args: { _month: string; _note: string }; Returns: undefined }
-      server_now: { Args: Record<string, never>; Returns: string }
-      tag_my_changes: { Args: { _since: string; _label: string }; Returns: string | null }
-      my_recent_actions: { Args: Record<string, never>; Returns: { action_id: string; label: string; changed_at: string; changes: number }[] }
-      undo_action: { Args: { _action_id: string }; Returns: undefined }
+      can_worker_enter_phase: {
+        Args: { _phase_id: string; _worker_id: string }
+        Returns: boolean
+      }
+      change_log_key: { Args: { _row: Json; _table: string }; Returns: Json }
+      change_log_perms: { Args: { _table: string }; Returns: string[] }
+      change_log_where: {
+        Args: { _key: Json; _table: string }
+        Returns: string
+      }
+      close_period: {
+        Args: { _month: string; _note?: string }
+        Returns: undefined
+      }
+      discard_finance_draft: {
+        Args: { _id: string; _table: string }
+        Returns: undefined
+      }
+      finance_area: { Args: { _table: string }; Returns: string }
+      finance_check_table: { Args: { _table: string }; Returns: undefined }
+      finance_doc_date: {
+        Args: { _row: Json; _table: string }
+        Returns: string
+      }
       finance_party_names: {
         Args: { _ids: string[] }
-        Returns: { id: string; name: string }[]
+        Returns: {
+          id: string
+          name: string
+        }[]
       }
       finance_wage_totals: {
         Args: { _from: string; _to: string }
-        Returns: { monthly_salaries: number; piece_rate: number }[]
+        Returns: {
+          monthly_salaries: number
+          piece_rate: number
+        }[]
       }
       has_any_permission: {
         Args: { _permissions: string[]; _user_id: string }
         Returns: boolean
       }
-      has_permission: {
-        Args: { _permission: string; _user_id: string }
-        Returns: boolean
-      }
-      can_worker_enter_phase: {
-        Args: { _phase_id: string; _worker_id: string }
-        Returns: boolean
-      }
       has_batch_access: {
         Args: { _batch_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -1737,9 +1988,37 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_period_closed: { Args: { _d: string }; Returns: boolean }
       is_previous_phase_closed: {
         Args: { _batch_id: string; _phase_id: string }
         Returns: boolean
+      }
+      my_recent_actions: {
+        Args: never
+        Returns: {
+          action_id: string
+          changed_at: string
+          changes: number
+          label: string
+        }[]
+      }
+      post_finance_entry: {
+        Args: { _expected_modified_at: string; _id: string; _table: string }
+        Returns: undefined
+      }
+      reopen_period: {
+        Args: { _month: string; _note: string }
+        Returns: undefined
+      }
+      server_now: { Args: never; Returns: string }
+      tag_my_changes: {
+        Args: { _label: string; _since: string }
+        Returns: string
+      }
+      undo_action: { Args: { _action_id: string }; Returns: undefined }
+      void_finance_entry: {
+        Args: { _id: string; _reason: string; _table: string }
+        Returns: string
       }
     }
     Enums: {
@@ -1768,12 +2047,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1797,11 +2076,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1822,11 +2101,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1847,11 +2126,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1864,11 +2143,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1878,9 +2157,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["admin", "staff", "client", "worker", "manager"],

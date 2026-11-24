@@ -35,7 +35,7 @@ const adminNav: NavItem[] = [
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false, perm: "inventory.view" },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false, perm: "orders.view" },
   { title: "Batches", url: "/admin/batches", icon: Factory, end: false, perm: "batches.view" },
-  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "batches.view" },
+  { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "pipeline.view" },
   { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false, perm: "dispatch.view" },
   { title: "Employees", url: "/admin/employees", icon: HardHat, end: false, perm: "employees.view" },
   { title: "Clients", url: "/admin/clients", icon: Users, end: false, perm: "clients.view" },
@@ -43,11 +43,11 @@ const adminNav: NavItem[] = [
 
 const financeNav: NavItem[] = [
   { title: "Overview", url: "/admin/finance", icon: Wallet, end: true, perm: "finance.view" },
-  { title: "Vendors", url: "/admin/finance/vendors", icon: Store, end: false, perm: "finance.view" },
-  { title: "Purchases", url: "/admin/finance/purchases", icon: Receipt, end: false, perm: "finance.view" },
-  { title: "Receivables", url: "/admin/finance/receivables", icon: HandCoins, end: false, perm: "finance.view" },
-  { title: "Expenses", url: "/admin/finance/expenses", icon: BadgeDollarSign, end: false, perm: "finance.view" },
-  { title: "Reports", url: "/admin/finance/reports", icon: FileBarChart, end: false, perm: "finance.view" },
+  { title: "Vendors", url: "/admin/finance/vendors", icon: Store, end: false, perm: "finance_vendors.view" },
+  { title: "Purchases", url: "/admin/finance/purchases", icon: Receipt, end: false, perm: "finance_purchases.view" },
+  { title: "Receivables", url: "/admin/finance/receivables", icon: HandCoins, end: false, perm: "finance_receivables.view" },
+  { title: "Expenses", url: "/admin/finance/expenses", icon: BadgeDollarSign, end: false, perm: "finance_expenses.view" },
+  { title: "Reports", url: "/admin/finance/reports", icon: FileBarChart, end: false, perm: "finance_reports.view" },
 ];
 
 export default function AdminLayout() {

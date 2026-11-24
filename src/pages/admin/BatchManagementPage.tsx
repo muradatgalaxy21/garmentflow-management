@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Plus, Loader2, QrCode, Printer, Settings, Eye, UserCheck, Shield, Users, Coins, Trash2, Ban, Boxes, X } from "lucide-react";
+import { Plus, Loader2, QrCode, Printer, Settings, Eye, Users, Coins, Trash2, Ban, Boxes, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,12 +42,6 @@ interface Batch {
   created_at: string;
 }
 
-interface ManagerProfile {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-}
-
 interface Order { id: string; order_number: string; product_summary: string; party_name: string | null; }
 interface InventoryItem { id: string; name: string; sku: string; }
 interface Phase { id: string; name: string; sequence_order: number; }
@@ -71,9 +65,6 @@ export default function BatchManagementPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [phases, setPhases] = useState<Phase[]>([]);
-  const [managers, setManagers] = useState<ManagerProfile[]>([]);
-  const [assignedManagers, setAssignedManagers] = useState<string[]>([]);
-  const [assigningBatch, setAssigningBatch] = useState<Batch | null>(null);
   const [multiWorkerBatch, setMultiWorkerBatch] = useState<Batch | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -93,30 +84,24 @@ export default function BatchManagementPage() {
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
   const confirm = useConfirm();
-  const { isAdmin, can } = useAuth();
+  const { can } = useAuth();
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [batchRes, orderRes, itemRes, phaseRes, mgrRolesRes] = await Promise.all([
+      const [batchRes, orderRes, itemRes, phaseRes] = await Promise.all([
         supabase.from("production_batches").select("*").order("created_at", { ascending: false }),
         supabase.from("orders").select("id, order_number, product_summary, party_name"),
         supabase.from("inventory_items").select("id, name, sku"),
         supabase.from("production_phases").select("id, name, sequence_order").order("sequence_order"),
-        supabase.from("user_roles").select("user_id").in("role", ["manager", "admin", "staff"]),
       ]);
       if (batchRes.data) setBatches(batchRes.data as Batch[]);
       if (orderRes.data) setOrders(orderRes.data as Order[]);
       if (itemRes.data) setItems(itemRes.data as InventoryItem[]);
       if (phaseRes.data) setPhases(phaseRes.data as Phase[]);
 
-      if (mgrRolesRes.data && mgrRolesRes.data.length > 0) {
-        const mgrIds = [...new Set(mgrRolesRes.data.map((r) => r.user_id))];
-        const { data: mProfiles } = await supabase.from("profiles").select("id, full_name, email").in("id", mgrIds);
-        if (mProfiles) setManagers(mProfiles as ManagerProfile[]);
-      }
     } catch (err) {
       console.error("Load failed:", err);
     } finally {
@@ -208,27 +193,6 @@ export default function BatchManagementPage() {
       return;
     }
     setTimeline((prev) => prev.filter((t) => t.id !== entry.id));
-  };
-
-  const openAssignModal = async (batch: Batch) => {
-    setAssigningBatch(batch);
-    const { data } = await supabase.from("manager_batch_assignments").select("manager_id").eq("batch_id", batch.id);
-    setAssignedManagers((data ?? []).map((m) => m.manager_id));
-  };
-
-  const saveAssignments = async () => {
-    if (!assigningBatch) return;
-    // Clear existing & insert selected
-    await supabase.from("manager_batch_assignments").delete().eq("batch_id", assigningBatch.id);
-    if (assignedManagers.length > 0) {
-      const rows = assignedManagers.map((mId) => ({
-        batch_id: assigningBatch.id,
-        manager_id: mId,
-      }));
-      await supabase.from("manager_batch_assignments").insert(rows);
-    }
-    toast({ title: "Manager batch access permissions saved!" });
-    setAssigningBatch(null);
   };
 
   const showQr = async (batch: Batch) => {
@@ -457,10 +421,10 @@ export default function BatchManagementPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Production Batches</h1>
-          <p className="text-sm text-muted-foreground">Manage production runs, manager batch rights, and print QR labels.</p>
+          <p className="text-sm text-muted-foreground">Manage production runs and print QR labels.</p>
         </div>
         <div className="flex gap-2">
-          {can("batches.update") && (
+          {can("rates.manage") && (
             <Button variant="outline" onClick={openDeptRates}>
               <Coins className="w-4 h-4 mr-2" /> Department Rates
             </Button>
@@ -514,19 +478,16 @@ export default function BatchManagementPage() {
                   <Button size="sm" variant="outline" onClick={() => showQr(b)}>
                     <QrCode className="w-4 h-4 mr-1 text-emerald-500" /> QR Labels
                   </Button>
-                  {isAdmin && (
-                    <Button size="sm" variant="outline" onClick={() => openAssignModal(b)}>
-                      <UserCheck className="w-4 h-4 mr-1 text-blue-500" /> Manager Rights
-                    </Button>
-                  )}
-                  {can("batches.update") && (<>
+                  {can("rates.manage") && (
                     <Button size="sm" variant="outline" onClick={() => openRateDialog(b)}>
                       <Settings className="w-4 h-4 mr-1" /> Piece Rates
                     </Button>
+                  )}
+                  {can("batches.update") && (
                     <Button size="sm" variant="outline" onClick={() => openPackRatio(b)}>
                       <Boxes className="w-4 h-4 mr-1 text-purple-500" /> Pack Ratio
                     </Button>
-                  </>)}
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => openDetail(b)}>
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -547,51 +508,6 @@ export default function BatchManagementPage() {
         </div>
       )}
 
-      {/* Manager Assignment Modal */}
-      {assigningBatch && (
-        <Dialog open={!!assigningBatch} onOpenChange={(o) => !o && setAssigningBatch(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-500" /> Assign Manager Access
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <p className="text-sm text-muted-foreground">
-                Select which managers have explicit access rights to monitor and manage batch <strong className="text-foreground">{assigningBatch.style_number}</strong>.
-              </p>
-
-              <div className="space-y-2">
-                {managers.map((m) => {
-                  const isChecked = assignedManagers.includes(m.id);
-                  return (
-                    <label key={m.id} className="flex items-center justify-between p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30">
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{m.full_name || "Unnamed Manager"}</p>
-                        <p className="text-xs text-muted-foreground">{m.email}</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          if (e.target.checked) setAssignedManagers([...assignedManagers, m.id]);
-                          else setAssignedManagers(assignedManagers.filter((id) => id !== m.id));
-                        }}
-                        className="w-4 h-4 rounded text-accent focus:ring-accent"
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={saveAssignments} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                Save Manager Access Rights
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
 
       {/* Dual QR Cards Dialog */}
       <Dialog open={!!qrBatch} onOpenChange={(o) => !o && setQrBatch(null)}>

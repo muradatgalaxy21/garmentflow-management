@@ -70,8 +70,10 @@ export default function WorkerDetailPage() {
   const load = async () => {
     if (!id) return;
     setLoading(true);
-    const [pRes, rRes, eRes] = await Promise.all([
+    const [pRes, payRes, rRes, eRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
+      // RLS: own row or payroll.view only.
+      supabase.from("employee_pay").select("wage_type, base_salary, default_piece_rate").eq("user_id", id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", id),
       supabase
         .from("department_entries")
@@ -79,7 +81,15 @@ export default function WorkerDetailPage() {
         .eq("worker_id", id)
         .order("created_at", { ascending: false }),
     ]);
-    if (!pRes.error) setProfile(pRes.data as Profile | null);
+    if (!pRes.error) {
+      const w = payRes.data;
+      setProfile(pRes.data ? ({
+        ...pRes.data,
+        wage_type: (w?.wage_type ?? "piece_rate") as Profile["wage_type"],
+        base_salary: w?.base_salary ?? 0,
+        default_piece_rate: w?.default_piece_rate ?? 0,
+      } as Profile) : null);
+    }
     if (!rRes.error) setRoles((rRes.data ?? []).map((r) => r.role as AppRole));
 
     const tracking = eRes.data ?? [];
@@ -171,13 +181,18 @@ export default function WorkerDetailPage() {
     e.preventDefault();
     if (!editing) return;
     setBusy("saving");
-    const { error } = await supabase
+    const { error: payErr } = can("payroll.manage")
+      ? await supabase.from("employee_pay").upsert({
+          user_id: editing.id,
+          wage_type: editing.wage_type ?? "piece_rate",
+          base_salary: editing.base_salary ?? 0,
+          default_piece_rate: editing.default_piece_rate ?? 0,
+        })
+      : { error: null };
+    const { error } = payErr ? { error: payErr } : await supabase
       .from("profiles")
       .update({
         full_name: editing.full_name,
-        wage_type: editing.wage_type,
-        base_salary: editing.base_salary,
-        default_piece_rate: editing.default_piece_rate,
         skills: editing.skills,
         department: editing.department,
       })
@@ -237,7 +252,7 @@ export default function WorkerDetailPage() {
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
               <span>{profile.email || profile.phone || "No direct contact"}</span>
-              <span>• Wage: {isDihaari ? `Default ${profile.default_piece_rate || 0}/pc` : `Salary ${profile.base_salary || 0}/mo`}</span>
+              {can("payroll.view") && <span>• Wage: {isDihaari ? `Default ${profile.default_piece_rate || 0}/pc` : `Salary ${profile.base_salary || 0}/mo`}</span>}
               {profile.department && <span className="capitalize">• Dept: {profile.department}</span>}
               {profile.skills && profile.skills.length > 0 && (
                 <span className="flex items-center gap-1"><Wrench className="w-3 h-3 text-accent" /> {profile.skills.join(", ")}</span>
@@ -334,9 +349,11 @@ export default function WorkerDetailPage() {
                 <p className="text-[11px] text-muted-foreground mt-1">Auto-assigned sequentially, not editable.</p>
               </div>
 
+              {can("payroll.view") && (<>
               <div>
                 <Label className="text-xs font-semibold">Employment &amp; Wage Type</Label>
                 <Select
+                  disabled={!can("payroll.manage")}
                   value={editing.wage_type || "piece_rate"}
                   onValueChange={(v: "piece_rate" | "monthly_salary") => setEditing({ ...editing, wage_type: v })}
                 >
@@ -355,6 +372,7 @@ export default function WorkerDetailPage() {
                   <Label className="text-xs font-semibold">Monthly Base Salary (PKR / USD)</Label>
                   <Input
                     type="number"
+                    disabled={!can("payroll.manage")}
                     value={editing.base_salary || 0}
                     onChange={(e) => setEditing({ ...editing, base_salary: Number(e.target.value) })}
                     className="mt-1"
@@ -366,12 +384,14 @@ export default function WorkerDetailPage() {
                   <Input
                     type="number"
                     step="0.1"
+                    disabled={!can("payroll.manage")}
                     value={editing.default_piece_rate || 0}
                     onChange={(e) => setEditing({ ...editing, default_piece_rate: Number(e.target.value) })}
                     className="mt-1"
                   />
                 </div>
               )}
+              </>)}
 
               <div>
                 <Label className="text-xs font-semibold">Department (data-entry access)</Label>

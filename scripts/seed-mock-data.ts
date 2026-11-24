@@ -64,7 +64,7 @@ async function findUser(email?: string, phone?: string) {
   return userCache.find((u) => (email && u.email === email) || (phone && u.phone === phone.replace("+", "")));
 }
 
-interface Person { key: string; name: string; email?: string; phone?: string; roles: string[]; perms?: string[]; profile?: Record<string, unknown> }
+interface Person { key: string; name: string; email?: string; phone?: string; roles: string[]; perms?: string[]; profile?: Record<string, unknown>; pay?: Record<string, unknown> }
 
 async function ensurePerson(p: Person): Promise<string> {
   let u = await findUser(p.email, p.phone);
@@ -85,13 +85,16 @@ async function ensurePerson(p: Person): Promise<string> {
   await must(`perms ${p.key} clear`, admin.from("user_permissions").delete().eq("user_id", u.id));
   if (p.perms?.length) await must(`perms ${p.key}`, admin.from("user_permissions").insert(p.perms.map((permission) => ({ user_id: u!.id, permission, granted_by: null }))));
   await must(`profile ${p.key}`, admin.from("profiles").update({ full_name: p.name, phone: p.phone ?? null, client_activated: true, ...(p.profile ?? {}) }).eq("id", u.id));
+  if (p.pay) await must(`pay ${p.key}`, admin.from("employee_pay").upsert({ user_id: u.id, ...p.pay }));
   out.push(`| ${p.key} | ${p.name} | ${p.email ?? p.phone} | ${p.roles.join(", ")} | ${p.perms?.join(", ") ?? (p.roles.includes("admin") ? "all" : "—")} |`);
   return u.id;
 }
 
-const ALL_OPS = ["rfqs.view", "rfqs.update", "inbox.view", "inbox.update", "inventory.view", "inventory.create", "inventory.update",
-  "orders.view", "orders.create", "orders.update", "batches.view", "batches.create", "batches.update",
+const ALL_OPS = ["rfqs.view", "rfqs.update", "inbox_workers.view", "inbox_workers.update", "inbox_clients.view", "inbox_clients.update",
+  "inventory.view", "inventory.create", "inventory.update",
+  "orders.view", "orders.create", "orders.update", "batches.view", "batches.create", "batches.update", "pipeline.view", "rates.manage",
   "dispatch.view", "dispatch.create", "employees.view", "clients.view"];
+const FIN_AREAS = ["finance_vendors", "finance_purchases", "finance_receivables", "finance_expenses"];
 
 const WORKER_DEPTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "stitching", "button_ops", "clipping", "press", "quality_final", "packing"];
 
@@ -102,20 +105,19 @@ async function main() {
   ids.admin = await ensurePerson({ key: "admin", name: "Mock Admin", email: `admin@${DOMAIN}`, roles: ["admin"] });
   ids.staff = await ensurePerson({ key: "staff", name: "Mock Staff (ops)", email: `staff@${DOMAIN}`, roles: ["staff"], perms: ALL_OPS });
   ids.manager = await ensurePerson({ key: "manager", name: "Mock Floor Manager", email: `manager@${DOMAIN}`, roles: ["manager"],
-    perms: ["batches.view", "batches.update", "inbox.view", "inbox.update", "dispatch.view"] });
+    perms: ["batches.view", "batches.update", "pipeline.view", "inbox_workers.view", "inbox_workers.update", "dispatch.view"] });
   ids.maker = await ensurePerson({ key: "finance_maker", name: "Mock Accounts Clerk", email: `clerk@${DOMAIN}`, roles: ["staff"],
-    perms: ["finance.view", "finance.create", "finance.update"] });
+    perms: [...FIN_AREAS.flatMap((a) => [`${a}.view`, `${a}.create`, `${a}.update`]), "finance_reports.view"] });
   ids.checker = await ensurePerson({ key: "finance_checker", name: "Mock Finance Manager", email: `checker@${DOMAIN}`, roles: ["manager"],
-    perms: ["finance.view", "finance.approve", "finance.delete"] });
+    perms: [...FIN_AREAS.flatMap((a) => [`${a}.view`, `${a}.delete`, ...(a === "finance_vendors" ? [] : [`${a}.approve`])]), "finance_reports.view"] });
   ids.viewer = await ensurePerson({ key: "viewer", name: "Mock Viewer (no perms)", email: `viewer@${DOMAIN}`, roles: ["staff"], perms: [] });
 
   const workers: Record<string, string> = {};
   for (const [i, dept] of WORKER_DEPTS.entries()) {
     workers[dept] = await ensurePerson({
       key: `worker_${dept}`, name: `Mock Worker ${dept}`, phone: `+9230000000${String(i + 10).padStart(2, "0")}`, roles: ["worker"],
-      profile: { department: dept, wage_type: i % 3 === 0 ? "monthly_salary" : "piece_rate", base_salary: i % 3 === 0 ? 32000 : null,
-        default_piece_rate: i % 3 === 0 ? null : 6 + i, employee_id: `MK-${String(i + 1).padStart(3, "0")}`,
-        sub_department: dept === "stitching" ? "overlock" : null },
+      profile: { department: dept, employee_id: `MK-${String(i + 1).padStart(3, "0")}`, sub_department: dept === "stitching" ? "overlock" : null },
+      pay: { wage_type: i % 3 === 0 ? "monthly_salary" : "piece_rate", base_salary: i % 3 === 0 ? 32000 : 0, default_piece_rate: i % 3 === 0 ? 0 : 6 + i },
     });
   }
   const clients: string[] = [];
@@ -166,7 +168,6 @@ async function main() {
   const b1 = await ensureBatch("MOCK-B1-TEE", "MOCK-ORD-001", 1200, "in_progress");
   const b2 = await ensureBatch("MOCK-B2-HOOD", "MOCK-ORD-002", 600, "in_progress");
   const b3 = await ensureBatch("MOCK-B3-POLO", "MOCK-ORD-003", 800, "completed");
-  await admin.from("manager_batch_assignments").upsert({ manager_id: ids.manager, batch_id: b1 }, { onConflict: "manager_id,batch_id" });
 
   // ---------- pipeline progress ----------
   const now = new Date().toISOString();

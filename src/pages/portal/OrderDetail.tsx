@@ -69,7 +69,7 @@ export default function OrderDetail() {
           supabase.from("production_batches").select("id, style_number, total_quantity, status").eq("order_id", id),
         ]);
 
-        if (oRes.data) setOrder(oRes.data as Order);
+        if (oRes.data) setOrder(oRes.data as unknown as Order); // color_breakdown is Json in generated types
         if (uRes.data) setUpdates(uRes.data as Update[]);
 
         const phaseList = (phasesRes.data ?? []) as { id: string; name: string; sequence_order: number }[];

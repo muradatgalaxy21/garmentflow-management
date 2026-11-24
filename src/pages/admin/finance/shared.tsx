@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { offerFinanceUndo, type FinanceTable } from "@/lib/undo";
+import { FINANCE_AREA } from "@/lib/permissions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
@@ -335,8 +336,8 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
   };
 
   if (row.status === "draft") {
-    const canApprove = can("finance.approve") && (!touched || isAdmin);
-    const canUndo = (mine && fresh) || can("finance.delete");
+    const canApprove = can(`${FINANCE_AREA[table]}.approve`) && (!touched || isAdmin);
+    const canUndo = (mine && fresh) || can(`${FINANCE_AREA[table]}.delete`);
     return (
       <>
         {canApprove && (
@@ -365,7 +366,7 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
       </>
     );
   }
-  if (row.reverses_id || row.voided_by_id || !can("finance.delete")) return null;
+  if (row.reverses_id || row.voided_by_id || !can(`${FINANCE_AREA[table]}.delete`)) return null;
   return (
     <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
       const ok = await confirm({

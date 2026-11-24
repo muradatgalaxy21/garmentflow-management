@@ -122,18 +122,18 @@ const App = () => (
               <Route path="inventory" element={gate("inventory.view", <InventoryPage />)} />
               <Route path="orders" element={gate("orders.view", <OrdersAdminPage />)} />
               <Route path="batches" element={gate("batches.view", <BatchManagementPage />)} />
-              <Route path="pipeline-status" element={gate("batches.view", <BatchPipelineStatusPage />)} />
+              <Route path="pipeline-status" element={gate("pipeline.view", <BatchPipelineStatusPage />)} />
               <Route path="dispatch" element={gate("dispatch.view", <DispatchPage />)} />
               <Route path="clients" element={gate("clients.view", <ClientsPage />)} />
               <Route path="employees" element={gate("employees.view", <EmployeesPage />)} />
               <Route path="employees/:id" element={gate("employees.view", <WorkerDetailPage />)} />
               <Route path="finance" element={gate("finance.view", <FinanceDashboard />)} />
-              <Route path="finance/vendors" element={gate("finance.view", <VendorsPage />)} />
-              <Route path="finance/vendors/:id" element={gate("finance.view", <VendorLedgerPage />)} />
-              <Route path="finance/purchases" element={gate("finance.view", <PurchasesPage />)} />
-              <Route path="finance/receivables" element={gate("finance.view", <ReceivablesPage />)} />
-              <Route path="finance/expenses" element={gate("finance.view", <ExpensesPage />)} />
-              <Route path="finance/reports" element={gate("finance.view", <FinanceReportsPage />)} />
+              <Route path="finance/vendors" element={gate("finance_vendors.view", <VendorsPage />)} />
+              <Route path="finance/vendors/:id" element={gate("finance_vendors.view", <VendorLedgerPage />)} />
+              <Route path="finance/purchases" element={gate("finance_purchases.view", <PurchasesPage />)} />
+              <Route path="finance/receivables" element={gate("finance_receivables.view", <ReceivablesPage />)} />
+              <Route path="finance/expenses" element={gate("finance_expenses.view", <ExpensesPage />)} />
+              <Route path="finance/reports" element={gate("finance_reports.view", <FinanceReportsPage />)} />
             </Route>
 
             {/* Client portal — client role only */}

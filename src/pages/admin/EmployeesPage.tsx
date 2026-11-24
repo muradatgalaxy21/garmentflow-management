@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
+// Pay fields come from employee_pay (payroll.view), merged in on load.
 interface Profile {
   id: string;
   full_name: string | null;
@@ -96,11 +97,24 @@ export default function EmployeesPage() {
 
   const load = async () => {
     setLoading(true);
-    const [pRes, rRes] = await Promise.all([
+    const [pRes, rRes, payRes] = await Promise.all([
       supabase.from("profiles").select("*"),
       supabase.from("user_roles").select("user_id, role"),
+      // RLS returns nothing here without payroll.view.
+      supabase.from("employee_pay").select("user_id, wage_type, base_salary, default_piece_rate"),
     ]);
-    if (!pRes.error) setProfiles((pRes.data ?? []) as Profile[]);
+    const pay = new Map((payRes.data ?? []).map((r) => [r.user_id, r]));
+    if (!pRes.error) {
+      setProfiles((pRes.data ?? []).map((p) => {
+        const w = pay.get(p.id);
+        return {
+          ...p,
+          wage_type: (w?.wage_type ?? "piece_rate") as Profile["wage_type"],
+          base_salary: w?.base_salary ?? 0,
+          default_piece_rate: w?.default_piece_rate ?? 0,
+        } as Profile;
+      }));
+    }
     if (!rRes.error) setRoles((rRes.data ?? []) as RoleRow[]);
     setLoading(false);
   };
@@ -234,14 +248,19 @@ export default function EmployeesPage() {
     if (!editingProfile) return;
     setBusy("saving_profile");
 
-    const { error } = await supabase
+    const { error: payErr } = can("payroll.manage")
+      ? await supabase.from("employee_pay").upsert({
+          user_id: editingProfile.id,
+          wage_type: editingProfile.wage_type ?? "piece_rate",
+          base_salary: editingProfile.base_salary ?? 0,
+          default_piece_rate: editingProfile.default_piece_rate ?? 0,
+        })
+      : { error: null };
+    const { error } = payErr ? { error: payErr } : await supabase
       .from("profiles")
       .update({
         full_name: editingProfile.full_name,
         employee_id: editingProfile.employee_id,
-        wage_type: editingProfile.wage_type,
-        base_salary: editingProfile.base_salary,
-        default_piece_rate: editingProfile.default_piece_rate,
         skills: editingProfile.skills,
         department: editingProfile.department,
         sub_department: editingProfile.department === "stitching" ? editingProfile.sub_department : null,
@@ -321,9 +340,9 @@ export default function EmployeesPage() {
         </div>
       ) : (
         <Tabs defaultValue="workers" onValueChange={(v) => v === "payouts" && loadPayoutLedger()}>
-          <TabsList className="grid grid-cols-2 max-w-md">
+          <TabsList className={`grid max-w-md ${can("payroll.view") ? "grid-cols-2" : "grid-cols-1"}`}>
             <TabsTrigger value="workers">Workers &amp; Staff ({workerProfiles.length})</TabsTrigger>
-            <TabsTrigger value="payouts">Dihaari Payout Ledger</TabsTrigger>
+            {can("payroll.view") && <TabsTrigger value="payouts">Dihaari Payout Ledger</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="workers" className="mt-4 space-y-3">
@@ -338,16 +357,18 @@ export default function EmployeesPage() {
             {renderWorkerList(shownWorkers)}
           </TabsContent>
 
-          <TabsContent value="payouts" className="mt-4">
-            {renderPayoutLedger()}
-          </TabsContent>
+          {can("payroll.view") && (
+            <TabsContent value="payouts" className="mt-4">
+              {renderPayoutLedger()}
+            </TabsContent>
+          )}
         </Tabs>
       )}
 
       {/* Edit Worker Profile Modal */}
       {permEdit && (
         <Dialog open onOpenChange={(o) => !o && setPermEdit(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Permissions — {permEdit.profile.full_name ?? "Unnamed"}</DialogTitle>
             </DialogHeader>
@@ -363,8 +384,11 @@ export default function EmployeesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {SECTIONS.map((sec) => (
-                    <tr key={sec.key} className="border-t border-border">
+                  {SECTIONS.map((sec, i) => (<Fragment key={sec.key}>
+                    {sec.group !== SECTIONS[i - 1]?.group && (
+                      <tr><td colSpan={ACTIONS.length + 1} className="pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{sec.group}</td></tr>
+                    )}
+                    <tr className="border-t border-border">
                       <td className="py-2 pr-2">{sec.label}</td>
                       {ACTIONS.map((a) => {
                         const key = `${sec.key}.${a}`;
@@ -380,7 +404,7 @@ export default function EmployeesPage() {
                                 const next = new Set(permEdit.granted);
                                 if (c) {
                                   next.add(key);
-                                  next.add(`${sec.key}.view`); // any action needs view
+                                  if ((sec.actions as readonly Action[]).includes("view")) next.add(`${sec.key}.view`); // any action needs view
                                 } else if (a === "view") {
                                   for (const x of sec.actions) next.delete(`${sec.key}.${x}`); // no view = nothing
                                 } else {
@@ -393,7 +417,7 @@ export default function EmployeesPage() {
                         );
                       })}
                     </tr>
-                  ))}
+                  </Fragment>))}
                 </tbody>
               </table>
             </div>
@@ -429,9 +453,11 @@ export default function EmployeesPage() {
                 <p className="text-[11px] text-muted-foreground mt-1">Auto-assigned sequentially, not editable.</p>
               </div>
 
+              {can("payroll.view") && (<>
               <div>
                 <Label className="text-xs font-semibold">Employment &amp; Wage Type</Label>
                 <Select
+                  disabled={!can("payroll.manage")}
                   value={editingProfile.wage_type || "piece_rate"}
                   onValueChange={(v: "piece_rate" | "monthly_salary") => setEditingProfile({ ...editingProfile, wage_type: v })}
                 >
@@ -450,6 +476,7 @@ export default function EmployeesPage() {
                   <Label className="text-xs font-semibold">Monthly Base Salary (PKR / USD)</Label>
                   <Input
                     type="number"
+                    disabled={!can("payroll.manage")}
                     value={editingProfile.base_salary || 0}
                     onChange={(e) => setEditingProfile({ ...editingProfile, base_salary: Number(e.target.value) })}
                     className="mt-1"
@@ -461,12 +488,14 @@ export default function EmployeesPage() {
                   <Input
                     type="number"
                     step="0.1"
+                    disabled={!can("payroll.manage")}
                     value={editingProfile.default_piece_rate || 0}
                     onChange={(e) => setEditingProfile({ ...editingProfile, default_piece_rate: Number(e.target.value) })}
                     className="mt-1"
                   />
                 </div>
               )}
+              </>)}
 
               <div>
                 <Label className="text-xs font-semibold">Department (data-entry access)</Label>
@@ -585,7 +614,7 @@ export default function EmployeesPage() {
                     <UserIcon className="w-4 h-4 text-muted-foreground" />
                     <h3 className="font-semibold text-foreground">{p.full_name ?? (hasAdmin ? "Admin" : "Unnamed Worker")}</h3>
                     {p.employee_id && <Badge variant="secondary" className="font-mono text-xs">{p.employee_id}</Badge>}
-                    {hasAdmin ? null : isDihaari ? (
+                    {hasAdmin || !can("payroll.view") ? null : isDihaari ? (
                       <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Dihaari (Per-Piece)</Badge>
                     ) : (
                       <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">Permanent Monthly</Badge>
@@ -597,7 +626,7 @@ export default function EmployeesPage() {
                   </div>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
                     <span>{p.email || p.phone || "No direct contact"}</span>
-                    {!hasAdmin && <span>• Wage: {isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`}</span>}
+                    {!hasAdmin && can("payroll.view") && <span>• Wage: {isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`}</span>}
                     {p.skills && p.skills.length > 0 && (
                       <span className="flex items-center gap-1"><Wrench className="w-3 h-3 text-accent" /> {p.skills.join(", ")}</span>
                     )}

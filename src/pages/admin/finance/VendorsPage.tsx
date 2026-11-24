@@ -30,8 +30,8 @@ export default function VendorsPage() {
   const [pay, setPay] = useState<PaymentTarget | null>(null);
   const [q, setQ] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const canCreate = can("finance.create");
-  const canUpdate = can("finance.update");
+  const canCreate = can("finance_vendors.create");
+  const canUpdate = can("finance_vendors.update");
 
   if (data.loading) return <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mt-24" />;
 

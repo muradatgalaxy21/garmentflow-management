@@ -32,8 +32,8 @@ export default function PurchasesPage() {
   const data = useFinanceData();
   const { can } = useAuth();
   const { toast } = useToast();
-  const canCreate = can("finance.create");
-  const canUpdate = can("finance.update");
+  const canCreate = can("finance_purchases.create");
+  const canUpdate = can("finance_purchases.update");
   const confirm = useConfirm();
   const [items, setItems] = useState<Item[]>([]);
   const [vendorFilter, setVendorFilter] = useState("all");

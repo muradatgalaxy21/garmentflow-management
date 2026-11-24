@@ -145,7 +145,7 @@ function WorkerInboxTab() {
                     </div>
                   </div>
 
-                  {isPending && can("inbox.update") && (
+                  {isPending && can("inbox_workers.update") && (
                     <div className="space-y-2 border-t pt-3">
                       <Textarea
                         placeholder="Optional note..."
@@ -334,7 +334,7 @@ function ClientInboxTab() {
                     </div>
                   </div>
 
-                  {isPending && can("inbox.update") && (
+                  {isPending && can("inbox_clients.update") && (
                     <div className="space-y-2 border-t pt-3">
                       <Textarea
                         placeholder="Reply (optional)..."
@@ -359,6 +359,9 @@ function ClientInboxTab() {
 }
 
 export default function InboxPage() {
+  const { can } = useAuth();
+  const showWorkers = can("inbox_workers.view");
+  const showClients = can("inbox_clients.view");
   return (
     <div className="space-y-4 max-w-3xl">
       <div>
@@ -366,17 +369,21 @@ export default function InboxPage() {
         <p className="text-sm text-muted-foreground">Worker batch verifications/queries and client questions.</p>
       </div>
 
-      <Tabs defaultValue="worker">
+      <Tabs defaultValue={showWorkers ? "worker" : "client"}>
         <TabsList>
-          <TabsTrigger value="worker">Worker</TabsTrigger>
-          <TabsTrigger value="client">Client</TabsTrigger>
+          {showWorkers && <TabsTrigger value="worker">Worker</TabsTrigger>}
+          {showClients && <TabsTrigger value="client">Client</TabsTrigger>}
         </TabsList>
-        <TabsContent value="worker" className="mt-4">
-          <WorkerInboxTab />
-        </TabsContent>
-        <TabsContent value="client" className="mt-4">
-          <ClientInboxTab />
-        </TabsContent>
+        {showWorkers && (
+          <TabsContent value="worker" className="mt-4">
+            <WorkerInboxTab />
+          </TabsContent>
+        )}
+        {showClients && (
+          <TabsContent value="client" className="mt-4">
+            <ClientInboxTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

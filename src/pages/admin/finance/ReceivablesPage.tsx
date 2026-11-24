@@ -107,7 +107,7 @@ export default function ReceivablesPage() {
                       <TableCell>
                         <div className="flex gap-1 justify-end">
                           <Button size="sm" variant="ghost" onClick={() => setClient(r.id)}>Ledger</Button>
-                          {can("finance.create") && <Button size="sm" variant="outline" onClick={() => startReceive(r.id)}><HandCoins className="w-3.5 h-3.5 mr-1" /> Receive</Button>}
+                          {can("finance_receivables.create") && <Button size="sm" variant="outline" onClick={() => startReceive(r.id)}><HandCoins className="w-3.5 h-3.5 mr-1" /> Receive</Button>}
                         </div>
                       </TableCell>
                     </TableRow>
