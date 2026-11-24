@@ -25,7 +25,7 @@ Requested 2026-11-24. Decisions confirmed with user:
 
 | # | Session | Main files | Status |
 |---|---|---|---|
-| 0 | Shared foundation | `index.css`, `AdminLayout.tsx`, `RequestAlertBanner.tsx`, `StaffAssistant.tsx`, new `components/admin/*` | ☐ |
+| 0 | Shared foundation | `index.css`, `AdminLayout.tsx`, `RequestAlertBanner.tsx`, `StaffAssistant.tsx`, new `components/admin/*` | ☑ 24-Nov-2026 |
 | 1 | Dashboard | `AdminDashboard.tsx`, `AnalyticsWidget.tsx` | ☐ |
 | 2 | RFQ Inbox | `RfqInbox.tsx` | ☐ |
 | 3 | Orders | `OrdersAdminPage.tsx`, `KanbanBoard.tsx` | ☐ |
@@ -67,6 +67,16 @@ Goal: every later page gets consistent look and behaviour by reusing these, with
 - **Buttons:** one primary per area; consistent heights, focus ring, disabled state. Use existing `button.tsx` variants; add a variant only if missing.
 - **Formatting:** one date format helper and reuse `pkr()` from `finance/shared.tsx` for money everywhere in admin.
 - Done when: Dashboard + one finance page look consistent with no per-page edits beyond the shell, typecheck/tests pass.
+
+**Built (24-Nov-2026) — use these in page sessions:**
+- `@/components/admin/StatusBadge` — `<StatusBadge status="in_production" />` (map in `STATUSES`), or `<StatusBadge tone="warning" icon={Clock}>text</StatusBadge>`. Tones: success / warning / info / neutral / danger (danger = overdue only).
+- `@/components/admin/PageHeader` (`title`, `description`, children = actions). Finance `shared.tsx` `PageHeader` now wraps it (`subtitle` → `description`).
+- `@/components/admin/EmptyState`, `TableToolbar` (search, filter children, count + noun, clear), `IconButton` (`label` required, 36px), `MoreMenu` (children = `DropdownMenuItem`s; destructive items open `useConfirm` / `DeleteConfirmDialog`).
+- `@/lib/format`: `fmtDate` → "24 Nov 2026", `fmtDateTime` → "24 Nov 2026, 3:42 PM", "—" for empty. Money: `pkr()` from `@/lib/finance`.
+- Tailwind colors `success`, `warning`, `info`, `neutral` (with `/10` etc.); type classes `admin-title`, `admin-section-title`, `admin-label`, `admin-body`, `admin-meta`. `font-wordmark` keeps Playfair for the logo.
+- Inter headings: `AdminLayout` puts `admin-ui` on `<html>` (so portalled dialogs follow), which sets `--font-heading` to Inter.
+- Request notice: compact info box, dismissible; dismissal kept in `sessionStorage` (new tab / sign-out / newer request → shows again).
+- Shell: desktop sidebar is already fixed full-height (the audit's "ends early" was a full-page-screenshot artifact); below 768px it is already a Sheet drawer (now has an sr-only title). Main has `pb-24` for the Help button; header truncates email and hides "Sign out" text below `sm`.
 
 ---
 

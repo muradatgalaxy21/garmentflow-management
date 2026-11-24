@@ -51,6 +51,13 @@
     --sidebar-border: 220 30% 24%;
     --sidebar-ring: 38 60% 52%;
 
+    /* Semantic status tones (admin UI audit). Red (--destructive) stays for
+       errors, overdue items and deletes only. */
+    --success: 152 60% 30%;
+    --warning: 30 90% 36%;
+    --info: 212 70% 40%;
+    --neutral: 220 10% 42%;
+
     /* Custom tokens */
     --navy: 220 40% 18%;
     --navy-light: 220 30% 28%;
@@ -102,6 +109,16 @@
     --sidebar-accent-foreground: 40 33% 92%;
     --sidebar-border: 220 25% 18%;
     --sidebar-ring: 38 60% 52%;
+    --success: 152 55% 55%;
+    --warning: 38 90% 60%;
+    --info: 212 85% 70%;
+    --neutral: 40 10% 68%;
+  }
+
+  /* Admin portal: headings use Inter (set on <html> by AdminLayout so dialogs
+     and the mobile sidebar sheet, which portal to <body>, follow too). */
+  .admin-ui {
+    --font-heading: var(--font-body);
   }
 }
 
@@ -132,6 +149,13 @@
 }
 
 @layer components {
+  /* Admin type scale */
+  .admin-title { @apply text-2xl font-semibold tracking-tight text-foreground; }
+  .admin-section-title { @apply text-lg font-semibold text-foreground; }
+  .admin-label { @apply text-xs font-medium uppercase tracking-wide text-muted-foreground; }
+  .admin-body { @apply text-sm text-foreground; }
+  .admin-meta { @apply text-xs text-muted-foreground; }
+
   .section-padding {
     @apply px-6 py-20 md:px-12 lg:px-24 lg:py-28;
   }

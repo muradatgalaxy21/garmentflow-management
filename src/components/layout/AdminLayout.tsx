@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch, Wallet, Store, Receipt, HandCoins, BadgeDollarSign, FileBarChart } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
@@ -56,6 +57,13 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
+  // Admin-only Inter headings (index.css .admin-ui). On <html>, not the layout
+  // root, so portalled dialogs and the mobile sidebar sheet get it too.
+  useEffect(() => {
+    document.documentElement.classList.add("admin-ui");
+    return () => document.documentElement.classList.remove("admin-ui");
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -87,7 +95,7 @@ export default function AdminLayout() {
         <Sidebar collapsible="icon">
           <SidebarContent>
             <div className="px-4 py-4 border-b border-sidebar-border">
-              <p className="font-heading font-bold text-sidebar-foreground">En En Garments</p>
+              <p className="font-wordmark font-bold text-sidebar-foreground">En En Garments</p>
               <p className="text-xs text-sidebar-foreground/60">Admin Portal</p>
             </div>
             {([["Manage", adminNav], ["Finance", financeNav]] as const).map(([label, items]) => {
@@ -122,31 +130,33 @@ export default function AdminLayout() {
           </SidebarContent>
         </Sidebar>
 
-        <div className="flex-1 flex flex-col">
-          <header className="h-14 border-b border-border bg-card flex items-center justify-between px-4">
-            <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0 flex flex-col">
+          <header className="h-14 border-b border-border bg-card flex items-center justify-between gap-2 px-4">
+            <div className="flex min-w-0 items-center gap-3">
               <SidebarTrigger />
-              <span className="text-sm text-muted-foreground">
+              <span className="truncate text-sm text-muted-foreground">
                 {isAdmin ? "Admin" : isManager ? "Manager" : "Staff"} • {user.email ?? user.phone}
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <RecentChanges />
               <NotificationBell />
               <Button
                 variant="ghost"
                 size="sm"
+                aria-label="Sign out"
                 onClick={async () => {
                   await signOut();
                   navigate("/");
                 }}
               >
-                <LogOut className="w-4 h-4 mr-2" /> Sign out
+                <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign out</span>
               </Button>
             </div>
           </header>
           <RequestAlertBanner />
-          <main className="flex-1 overflow-auto p-6">
+          {/* pb-24 keeps the fixed Help button clear of the last table row / pagination. */}
+          <main className="flex-1 min-w-0 overflow-auto p-4 pb-24 md:p-6 md:pb-24">
             <Outlet />
           </main>
           <StaffAssistant />

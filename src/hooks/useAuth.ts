@@ -94,6 +94,8 @@ export function useAuth(): AuthState & {
   };
 
   const signOut = async () => {
+    // RequestAlertBanner dismissal lasts one login: show it again next sign-in.
+    try { sessionStorage.removeItem("gf-request-alert-dismissed"); } catch { /* storage blocked */ }
     await supabase.auth.signOut();
   };
 

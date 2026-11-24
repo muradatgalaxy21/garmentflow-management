@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { downloadCsv, printTable, type Cell } from "@/lib/export";
 import { PAYMENT_METHODS, label, pkr, today } from "@/lib/finance";
+import { PageHeader as AdminPageHeader } from "@/components/admin/PageHeader";
 
 export type Vendor = Tables<"vendors">;
 export type Bill = Tables<"vendor_bills">;
@@ -99,16 +100,9 @@ export function vendorBalance(v: Vendor, bills: Bill[], payments: VendorPayment[
 
 export const orderDate = (o: Order) => o.created_at.slice(0, 10);
 
-export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
-      </div>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
+// Finance pages pass `subtitle`; they move to the shared header's `description` in their own sessions.
+export function PageHeader({ subtitle, ...p }: { title: string; subtitle?: string; children?: ReactNode }) {
+  return <AdminPageHeader description={subtitle} {...p} />;
 }
 
 export function StatCard({ label: l, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "bad" | "good" }) {
