@@ -21,6 +21,7 @@ import { ACTIONS, ACTION_LABELS, SECTIONS, type Action } from "@/lib/permissions
 import { Checkbox } from "@/components/ui/checkbox";
 import { fmtDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/admin/PageHeader";
+import { pkr } from "@/lib/finance";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { TableToolbar } from "@/components/admin/TableToolbar";
 import { MoreMenu } from "@/components/admin/MoreMenu";
@@ -798,14 +799,14 @@ export default function EmployeesPage() {
           <Card>
             <CardContent className="py-4">
               <p className="text-xs font-semibold text-muted-foreground">Total Pieces Completed</p>
-              <h3 className="text-2xl font-bold text-accent mt-1">{payouts.reduce((sum, p) => sum + p.total_pieces, 0).toLocaleString()} pcs</h3>
+              <h3 className="text-2xl font-bold text-primary mt-1">{payouts.reduce((sum, p) => sum + p.total_pieces, 0).toLocaleString()} pcs</h3>
             </CardContent>
           </Card>
           <Card className="bg-emerald-500/10 border-emerald-500/20">
             <CardContent className="py-4">
               <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">Total Calculated Payout</p>
               <h3 className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-                PKR {totalDihaariPayout.toLocaleString()}
+                {pkr(totalDihaariPayout)}
               </h3>
             </CardContent>
           </Card>
@@ -841,9 +842,9 @@ export default function EmployeesPage() {
                       </Badge>
                     </td>
                     <td className="p-3 font-mono">{p.total_pieces}</td>
-                    <td className="p-3 font-mono text-destructive">{p.total_wasted}</td>
+                    <td className="p-3 font-mono text-danger">{p.total_wasted}</td>
                     <td className="p-3 text-right font-bold text-foreground">
-                      PKR {p.calculated_payout.toLocaleString()}
+                      {pkr(p.calculated_payout)}
                     </td>
                   </tr>
                 ))}

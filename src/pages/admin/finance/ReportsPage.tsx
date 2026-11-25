@@ -245,7 +245,7 @@ export default function ReportsPage() {
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">{meta.keyLabel}</p>
-              <p className={`text-2xl font-bold tabular-nums ${keyTotal < 0 ? "text-destructive" : ""}`}>{fmtAmount(keyTotal)}</p>
+              <p className={`text-2xl font-bold tabular-nums ${keyTotal < 0 ? "text-danger" : ""}`}>{fmtAmount(keyTotal)}</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-muted/30">
@@ -275,7 +275,7 @@ export default function ReportsPage() {
                   {body.map((r, i) => (
                     <TableRow key={i} className={isTotalRow(r) ? "bg-muted/40 font-semibold" : ""}>
                       {r.map((c, j) => (
-                        <TableCell key={j} className={typeof c === "number" ? `text-right tabular-nums ${c < 0 ? "text-destructive" : ""}` : ""}>
+                        <TableCell key={j} className={typeof c === "number" ? `text-right tabular-nums ${c < 0 ? "text-danger" : ""}` : ""}>
                           {typeof c !== "number"
                             ? (j === linkCol && links[i + 1] ? <Link to={links[i + 1]!} className="text-primary underline-offset-2 hover:underline">{c}</Link> : c)
                             : isCount(j) ? c : fmtAmount(c)}

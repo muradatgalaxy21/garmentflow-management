@@ -53,6 +53,7 @@ export default {
         warning: "hsl(var(--warning))",
         info: "hsl(var(--info))",
         neutral: "hsl(var(--neutral))",
+        danger: "hsl(var(--danger))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",

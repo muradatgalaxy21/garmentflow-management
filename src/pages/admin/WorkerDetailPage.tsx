@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { fmtDate } from "@/lib/format";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, getEntryPieceCount, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -242,13 +244,13 @@ export default function WorkerDetailPage() {
               <h1 className="font-heading text-xl font-bold text-foreground">{profile.full_name ?? "Unnamed Worker"}</h1>
               {profile.employee_id && <Badge variant="secondary" className="font-mono text-xs">{profile.employee_id}</Badge>}
               {isDihaari ? (
-                <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Dihaari (Per-Piece)</Badge>
+                <StatusBadge tone="warning">Dihaari (Per-Piece)</StatusBadge>
               ) : (
-                <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">Permanent Monthly</Badge>
+                <StatusBadge tone="success">Permanent Monthly</StatusBadge>
               )}
-              {hasAdmin && <Badge className="bg-accent text-accent-foreground">Admin</Badge>}
-              {hasManager && <Badge className="bg-blue-600 text-white">Manager</Badge>}
-              {hasWorker && <Badge variant="outline">Worker</Badge>}
+              {hasAdmin && <StatusBadge tone="info">Admin</StatusBadge>}
+              {hasManager && <StatusBadge tone="info">Manager</StatusBadge>}
+              {hasWorker && <StatusBadge tone="neutral">Worker</StatusBadge>}
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
               <span>{profile.email || profile.phone || "No direct contact"}</span>
@@ -476,7 +478,7 @@ function WorkTable({ entries, onSelect }: { entries: WorkEntry[]; onSelect: (ent
       <tbody className="divide-y">
         {entries.map((e) => (
           <tr key={e.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => onSelect(e)}>
-            <td className="p-3 text-muted-foreground">{new Date(e.created_at).toLocaleDateString()}</td>
+            <td className="p-3 text-muted-foreground">{fmtDate(e.created_at)}</td>
             <td className="p-3 font-medium text-foreground">{e.style_number}</td>
             <td className="p-3">{DEPARTMENT_LABELS[e.department]}</td>
             <td className="p-3">

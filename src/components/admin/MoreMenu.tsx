@@ -8,7 +8,7 @@ import { IconButton } from "./IconButton";
  *   <MoreMenu label={`More actions for ${name}`}>
  *     <DropdownMenuItem onSelect={...}>Permissions</DropdownMenuItem>
  *     <DropdownMenuSeparator />
- *     <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={askConfirm}>Delete</DropdownMenuItem>
+ *     <DropdownMenuItem className="text-danger focus:text-danger" onSelect={askConfirm}>Delete</DropdownMenuItem>
  *   </MoreMenu>
  * Destructive items open the existing ConfirmDialog / DeleteConfirmDialog.
  */

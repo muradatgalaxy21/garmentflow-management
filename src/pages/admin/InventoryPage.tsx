@@ -344,7 +344,7 @@ export default function InventoryPage() {
         {can("inventory.delete") && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => deleteItem(item)}>
+            <DropdownMenuItem className="text-danger focus:text-danger" onSelect={() => deleteItem(item)}>
               Delete item
             </DropdownMenuItem>
           </>
