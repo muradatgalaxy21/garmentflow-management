@@ -276,7 +276,8 @@ Collected from page sessions; each item gets its own session later.
 
 - RFQ internal notes + history: timestamped, per-author notes and a status-change log per RFQ (today `rfqs.notes` is one overwritable text field, kept as-is in the detail sheet).
 - ~~Order due dates + overdue filters.~~ Not needed: orders already have `expected_delivery`; Session 3 built the Overdue quick filter from it.
-- Dispatch tracking refs + correction/cancel flow.
+- Dispatch tracking refs + correction/cancel flow. Existing undo (`change_log`, 10 min) covers cancelling a fresh mistake only; editing/cancelling an older dispatch is not covered.
+- Dispatch destination (orders only store `party_name` + `expected_delivery`, no ship-to address) and remaining cartons (no pieces-per-carton / packing record stored, so only "cartons already dispatched" is shown).
 - Vendor payment terms.
 - Expense receipt attachments.
 - Inbox conversation threads, assignment, escalation.
