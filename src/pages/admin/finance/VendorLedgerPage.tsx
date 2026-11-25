@@ -1,13 +1,19 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Loader2, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { buildLedger, label, pkr, today, type LedgerEntry } from "@/lib/finance";
-import { DateRange, ExportButtons, PageHeader, PaymentDialog, StatCard, statusTone, useFinanceData, type PaymentTarget } from "./shared";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { fmtDate } from "@/lib/format";
+import { AGING_BUCKETS } from "@/lib/finance";
+import { DateRange, DocStatusBadge, ExportButtons, PageHeader, PaymentDialog, StatCard, statusTone, useFinanceData, type PaymentTarget } from "./shared";
+import { vendorPayables } from "./vendorPayables";
+
+const BUCKET_LABEL = { current: "Not due", "1-30": "1–30 days", "31-60": "31–60 days", "61-90": "61–90 days", "90+": "90+ days" } as const;
 
 export default function VendorLedgerPage() {
   const { id } = useParams();
@@ -38,7 +44,9 @@ export default function VendorLedgerPage() {
   const ledger = buildLedger(Number(vendor.opening_balance), entries, from, to);
   const openDocs = bills
     .filter((b) => Number(b.balance) > 0)
-    .map((b) => ({ id: b.id!, label: `${b.bill_no || "Bill"} (${b.bill_date})`, balance: Number(b.balance) }));
+    .map((b) => ({ id: b.id!, label: `${b.bill_no || "Bill"} (${fmtDate(b.bill_date)}${b.due_date ? `, due ${fmtDate(b.due_date)}` : ""})`, balance: Number(b.balance) }));
+  const pp = vendorPayables(vendor, data.bills, data.vendorPayments, today());
+  const payments = data.vendorPayments.filter((p) => p.vendor_id === id);
 
   const exportRows = [
     ["Date", "Ref", "Description", "Bill (+)", "Paid (−)", "Balance"],
@@ -54,18 +62,53 @@ export default function VendorLedgerPage() {
       </Link>
       <PageHeader title={vendor.name} subtitle={[label(vendor.category), vendor.contact_person, vendor.phone, vendor.address].filter(Boolean).join(" · ")}>
         <ExportButtons title={`Vendor Ledger — ${vendor.name}`} subtitle={`${from} to ${to}`} rows={exportRows} />
-        {can("finance_purchases.create") && (
-          <Button size="sm" onClick={() => setPay({ kind: "vendor", partyId: vendor.id, partyName: vendor.name, docs: openDocs })}>
+        {can("finance_purchases.create") && (pp.balance > 0 ? (
+          <Button size="sm" onClick={() => setPay({ kind: "vendor", partyId: vendor.id, partyName: vendor.name, docs: openDocs, summary: `Owed: ${pkr(pp.balance)}${pp.overdueAmount > 0 ? ` · ${pkr(pp.overdueAmount)} overdue` : ""}` })}>
             <Wallet className="w-4 h-4 mr-1" /> Pay
           </Button>
-        )}
+        ) : (
+          <span className="text-sm text-muted-foreground">No payment due — nothing owed</span>
+        ))}
       </PageHeader>
+
+      <Card className="mb-6">
+        <CardContent className="py-4 grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ["Category", label(vendor.category)],
+            ["Contact", vendor.contact_person],
+            ["Phone", vendor.phone],
+            ["Address", vendor.address],
+          ] as const).map(([k, val]) => (
+            <div key={k}>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{k}</p>
+              <p className={val ? "" : "text-muted-foreground"}>{val || (k === "Category" ? "—" : `No ${k.toLowerCase()} added`)}</p>
+            </div>
+          ))}
+          {vendor.notes && <div className="sm:col-span-2 lg:col-span-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">Notes</p><p>{vendor.notes}</p></div>}
+          {!vendor.is_active && <div><StatusBadge tone="neutral">Inactive vendor</StatusBadge></div>}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <StatCard label="Opening (period)" value={pkr(ledger.opening)} />
         <StatCard label="Closing balance" value={pkr(ledger.closing)} tone={ledger.closing > 0 ? "bad" : undefined} />
         <StatCard label="Open bills" value={String(openDocs.length)} hint={pkr(openDocs.reduce((s, d) => s + d.balance, 0))} />
       </div>
+
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <CardTitle className="text-base">Payable aging (as of today)</CardTitle>
+          {pp.status === "overdue" && <StatusBadge tone="danger" icon={AlertTriangle}>Overdue {pp.daysOverdue} {pp.daysOverdue === 1 ? "day" : "days"}</StatusBadge>}
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {AGING_BUCKETS.map((k) => (
+            <div key={k}>
+              <p className="text-xs text-muted-foreground">{BUCKET_LABEL[k]}</p>
+              <p className={`font-semibold tabular-nums ${k !== "current" && pp.aging[k] > 0 ? "text-destructive" : ""}`}>{pkr(pp.aging[k])}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader className="flex flex-row flex-wrap items-end justify-between gap-3">
@@ -84,7 +127,7 @@ export default function VendorLedgerPage() {
               <TableRow className="bg-muted/40"><TableCell colSpan={5}>Opening balance</TableCell><TableCell className="text-right tabular-nums">{pkr(ledger.opening)}</TableCell></TableRow>
               {ledger.rows.map((r, i) => (
                 <TableRow key={i}>
-                  <TableCell>{r.date}</TableCell><TableCell>{r.ref}</TableCell><TableCell>{r.description}</TableCell>
+                  <TableCell>{fmtDate(r.date)}</TableCell><TableCell>{r.ref}</TableCell><TableCell>{r.description}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.plus ? pkr(r.plus) : ""}</TableCell>
                   <TableCell className="text-right tabular-nums">{r.minus ? pkr(r.minus) : ""}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{pkr(r.balance)}</TableCell>
@@ -110,11 +153,36 @@ export default function VendorLedgerPage() {
               {bills.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No bills.</TableCell></TableRow>}
               {bills.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell>{b.bill_no || "—"}</TableCell><TableCell>{b.bill_date}</TableCell><TableCell>{b.due_date || "—"}</TableCell>
+                  <TableCell>{b.bill_no || "—"}</TableCell><TableCell>{fmtDate(b.bill_date)}</TableCell><TableCell>{b.due_date ? fmtDate(b.due_date) : "No due date"}</TableCell>
                   <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
                   <TableCell className="text-right tabular-nums">{pkr(Number(b.paid_amount))}</TableCell>
                   <TableCell className="text-right tabular-nums">{pkr(Number(b.balance))}</TableCell>
                   <TableCell><Badge variant="outline" className={statusTone[b.status!]}>{label(b.status!)}</Badge></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader><CardTitle className="text-base">Payments</CardTitle></CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead><TableHead>Method</TableHead><TableHead>Reference</TableHead><TableHead>Against</TableHead>
+                <TableHead className="text-right">Amount</TableHead><TableHead>State</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No payments yet.</TableCell></TableRow>}
+              {payments.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>{fmtDate(p.paid_on)}</TableCell><TableCell>{label(p.method)}</TableCell><TableCell>{p.reference || "—"}</TableCell>
+                  <TableCell>{p.bill_id ? billNo.get(p.bill_id) ?? "Bill" : "On account"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{pkr(Number(p.amount))}</TableCell>
+                  <TableCell><DocStatusBadge row={p} /></TableCell>
                 </TableRow>
               ))}
             </TableBody>
