@@ -309,11 +309,12 @@ export function DocStatusBadge({ row }: { row: LifecycleRow }) {
 const TEN_MIN = 10 * 60 * 1000;
 
 // Approve (maker-checker) / Undo (draft) / Void (posted) with confirmations.
-export function LifecycleActions({ table, row, summary, onChanged }: {
+export function LifecycleActions({ table, row, summary, onChanged, toastDetail }: {
   table: FinanceTable;
   row: LifecycleRow;
   summary: [string, string][];
   onChanged: () => void;
+  toastDetail?: string; // optional: names the entry in the Approve/Undo/Void toast
 }) {
   const { user, isAdmin, can } = useAuth();
   const confirm = useConfirm();
@@ -325,7 +326,7 @@ export function LifecycleActions({ table, row, summary, onChanged }: {
   const run = async (fn: () => PromiseLike<{ error: { message: string } | null }>, done: string) => {
     const { error } = await fn();
     if (error) return toast({ title: "Could not complete", description: error.message, variant: "destructive" });
-    toast({ title: done });
+    toast({ title: done, description: toastDetail });
     onChanged();
   };
 
