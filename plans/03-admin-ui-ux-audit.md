@@ -27,10 +27,10 @@ Requested 2026-11-24. Decisions confirmed with user:
 |---|---|---|---|
 | 0 | Shared foundation | `index.css`, `AdminLayout.tsx`, `RequestAlertBanner.tsx`, `StaffAssistant.tsx`, new `components/admin/*` | ☑ 24-Nov-2026 |
 | 1 | Dashboard | `AdminDashboard.tsx`, `AnalyticsWidget.tsx`, `lib/dashboardMetrics.ts` | ☑ 24-Nov-2026 |
-| 2 | RFQ Inbox | `RfqInbox.tsx` | ☐ |
-| 3 | Orders | `OrdersAdminPage.tsx`, `KanbanBoard.tsx` | ☐ |
-| 4 | Production Batches | `BatchManagementPage.tsx` | ☐ |
-| 5 | Pipeline Status | `BatchPipelineStatusPage.tsx` | ☐ |
+| 2 | RFQ Inbox | `RfqInbox.tsx` | ☑ 25-Nov-2026 |
+| 3 | Orders | `OrdersAdminPage.tsx`, `KanbanBoard.tsx` | ☑ 25-Nov-2026 |
+| 4 | Production Batches | `BatchManagementPage.tsx` | ☑ 25-Nov-2026 |
+| 5 | Pipeline Status | `BatchPipelineStatusPage.tsx` | ☑ 25-Nov-2026 |
 | 6 | Inventory | `InventoryPage.tsx` | ☐ |
 | 7 | Dispatch | `DispatchPage.tsx` | ☐ |
 | 8 | Finance Overview | `finance/FinanceDashboard.tsx`, `finance/ApprovalsAndPeriods.tsx` | ☐ |
