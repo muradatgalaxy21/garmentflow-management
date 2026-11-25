@@ -31,10 +31,10 @@ Requested 2026-11-24. Decisions confirmed with user:
 | 3 | Orders | `OrdersAdminPage.tsx`, `KanbanBoard.tsx` | ☑ 25-Nov-2026 |
 | 4 | Production Batches | `BatchManagementPage.tsx` | ☑ 25-Nov-2026 |
 | 5 | Pipeline Status | `BatchPipelineStatusPage.tsx` | ☑ 25-Nov-2026 |
-| 6 | Inventory | `InventoryPage.tsx` | ☐ |
-| 7 | Dispatch | `DispatchPage.tsx` | ☐ |
-| 8 | Finance Overview | `finance/FinanceDashboard.tsx`, `finance/ApprovalsAndPeriods.tsx` | ☐ |
-| 9 | Vendors | `finance/VendorsPage.tsx`, `finance/VendorLedgerPage.tsx` | ☐ |
+| 6 | Inventory | `InventoryPage.tsx` | ☑ 25-Nov-2026 |
+| 7 | Dispatch | `DispatchPage.tsx` | ☑ 25-Nov-2026 |
+| 8 | Finance Overview | `finance/FinanceDashboard.tsx`, `finance/ApprovalsAndPeriods.tsx` | ☑ 25-Nov-2026 |
+| 9 | Vendors | `finance/VendorsPage.tsx`, `finance/VendorLedgerPage.tsx` | ☑ 25-Nov-2026 |
 | 10 | Purchases | `finance/PurchasesPage.tsx` | ☐ |
 | 11 | Receivables | `finance/ReceivablesPage.tsx` | ☐ |
 | 12 | Expenses | `finance/ExpensesPage.tsx` | ☐ |
