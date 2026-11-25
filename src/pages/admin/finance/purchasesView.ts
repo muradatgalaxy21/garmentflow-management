@@ -1,4 +1,5 @@
 import { daysBetween } from "@/lib/finance";
+import { fmtDate } from "@/lib/format";
 import type { Bill, BillBalance, VendorPayment } from "./shared";
 
 export type BillSortKey = "bill_date" | "due_date" | "vendor" | "total" | "balance";
@@ -49,7 +50,7 @@ export function billHistory(bill: Bill, payments: VendorPayment[], reversal?: Bi
   if (edited && !bill.posted_at) ev.push({ at: bill.modified_at, text: "Draft edited" });
   if (bill.posted_at) ev.push({ at: bill.posted_at, text: bill.self_approved ? "Posted (approved by its creator)" : "Posted (approved)" });
   for (const p of payments) {
-    ev.push({ at: p.posted_at ?? p.paid_on, text: `${Number(p.amount) < 0 ? "Payment reversed" : "Payment"} ${p.status === "draft" ? "(draft) " : ""}of ${Math.abs(Number(p.amount)).toLocaleString("en-PK")} on ${p.paid_on}` });
+    ev.push({ at: p.posted_at ?? p.paid_on, text: `${Number(p.amount) < 0 ? "Payment reversed" : "Payment"} ${p.status === "draft" ? "(draft) " : ""}of ${Math.abs(Number(p.amount)).toLocaleString("en-PK")} on ${fmtDate(p.paid_on)}` });
   }
   if (bill.voided_by_id) ev.push({ at: reversal?.created_at ?? bill.modified_at, text: `Voided${bill.void_reason ? `: ${bill.void_reason}` : ""}` });
   return ev.sort((a, b) => a.at.localeCompare(b.at));
