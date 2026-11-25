@@ -35,11 +35,11 @@ Requested 2026-11-24. Decisions confirmed with user:
 | 7 | Dispatch | `DispatchPage.tsx` | ☑ 25-Nov-2026 |
 | 8 | Finance Overview | `finance/FinanceDashboard.tsx`, `finance/ApprovalsAndPeriods.tsx` | ☑ 25-Nov-2026 |
 | 9 | Vendors | `finance/VendorsPage.tsx`, `finance/VendorLedgerPage.tsx` | ☑ 25-Nov-2026 |
-| 10 | Purchases | `finance/PurchasesPage.tsx` | ☐ |
-| 11 | Receivables | `finance/ReceivablesPage.tsx` | ☐ |
-| 12 | Expenses | `finance/ExpensesPage.tsx` | ☐ |
-| 13 | Finance Reports | `finance/ReportsPage.tsx` | ☐ |
-| 14 | Employees | `EmployeesPage.tsx` (+ `WorkerDetailPage.tsx` links) | ☐ |
+| 10 | Purchases | `finance/PurchasesPage.tsx` | ☑ 25-Nov-2026 |
+| 11 | Receivables | `finance/ReceivablesPage.tsx` | ☑ 25-Nov-2026 |
+| 12 | Expenses | `finance/ExpensesPage.tsx` | ☑ 25-Nov-2026 |
+| 13 | Finance Reports | `finance/ReportsPage.tsx` | ☑ 25-Nov-2026 |
+| 14 | Employees | `EmployeesPage.tsx` (+ `WorkerDetailPage.tsx` links) | ☑ 25-Nov-2026 |
 | 15 | Clients | `ClientsPage.tsx` | ☐ |
 | 16 | Inbox | `InboxPage.tsx` | ☐ |
 | 17 | Final validation pass | all admin pages | ☐ |
@@ -283,5 +283,5 @@ Collected from page sessions; each item gets its own session later.
 - Inbox conversation threads, assignment, escalation.
 - Inventory: supplier + usage context on item detail (no supplier column on `inventory_items`; usage would need a batch_id column on `inventory_movements`, today the batch ref only lives in the free-text reason). Also: DB-level block on deleting items with movement history (today only the UI blocks it; FK is ON DELETE CASCADE).
 - Purchases: field-level bill change history. `vendor_bills` has no `log_change` trigger, so the bill detail history is built from stored timestamps (created / edited / posted / voided) and payments, without actor names or old/new values. Needs a trigger migration + a readable view of actor names (`change_log` is only visible to admins and the author).
-- (add more as sessions find them)
 - Receivables: invoice-level payment due dates / client payment terms (orders store only `expected_delivery`, a delivery date, not a payment due date). Until then aging runs from order date, matching Reports; once a due date exists, switch `clientReceivable` and the Reports receivables case together.
+- (add more as sessions find them)
