@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
-import { Plus, Loader2, LayoutList, Kanban, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Plus, Loader2, LayoutList, Kanban, Trash2, ChevronRight, ClipboardList } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -34,8 +35,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
 import KanbanBoard from "@/components/KanbanBoard";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
-
-type OrderStatus = "pending" | "in_production" | "qc" | "shipped" | "delivered" | "cancelled";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { TableToolbar } from "@/components/admin/TableToolbar";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { fmtDate } from "@/lib/format";
+import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
+import OrderDetailSections, { type DetailBatch } from "./OrderDetailSections";
+import {
+  DEFAULT_FILTERS,
+  ORDER_STATUSES,
+  RECENT_DAYS,
+  STATUS_LABEL,
+  blockReason,
+  filterOrders,
+  isOverdue,
+  matchesQuick,
+  stageText,
+  type DeptStatusRow,
+  type OrderFilters,
+  type OrderSignals,
+  type OrderStatus,
+  type QuickFilter,
+} from "@/lib/orderFilters";
 
 interface Order {
   id: string;
@@ -49,7 +71,9 @@ interface Order {
   status: OrderStatus;
   expected_delivery: string | null;
   tracking_number: string | null;
+  color_breakdown: unknown;
   created_at: string;
+  updated_at: string;
 }
 
 interface ClientUser {
@@ -57,6 +81,15 @@ interface ClientUser {
   full_name: string | null;
   company: string | null;
   email: string | null;
+}
+
+interface BatchRow {
+  id: string;
+  order_id: string;
+  style_number: string;
+  total_quantity: number;
+  status: string;
+  created_at: string;
 }
 
 const orderSchema = z.object({
@@ -69,18 +102,17 @@ const orderSchema = z.object({
   expected_delivery: z.string().optional(),
 });
 
-const statusColors: Record<OrderStatus, string> = {
-  pending: "bg-slate-500/15 text-slate-600",
-  in_production: "bg-blue-500/15 text-blue-600",
-  qc: "bg-purple-500/15 text-purple-600",
-  shipped: "bg-amber-500/15 text-amber-600",
-  delivered: "bg-emerald-500/15 text-emerald-600",
-  cancelled: "bg-red-500/15 text-red-600",
-};
+const QUICK: { key: QuickFilter; label: string; hint: string }[] = [
+  { key: "blocked", label: "Blocked", hint: "A batch is waiting on a supervisor to verify (or was denied) a department start/end" },
+  { key: "overdue", label: "Overdue", hint: "Expected delivery has passed and the order isn't shipped yet" },
+  { key: "recent", label: "Recently changed", hint: `Created or updated in the last ${RECENT_DAYS} days` },
+];
 
 export default function OrdersAdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<ClientUser[]>([]);
+  const [batches, setBatches] = useState<BatchRow[]>([]);
+  const [deptRows, setDeptRows] = useState<DeptStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [selected, setSelected] = useState<Order | null>(null);
@@ -96,22 +128,42 @@ export default function OrdersAdminPage() {
   const [issuingCode, setIssuingCode] = useState(false);
   const [issuedCode, setIssuedCode] = useState<{ code: string; email: string } | null>(null);
 
+  // Other pages can link to a filtered view: /admin/orders?status=pending or ?quick=blocked
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState<OrderFilters>(() => {
+    const status = params.get("status");
+    const quick = params.get("quick");
+    return {
+      ...DEFAULT_FILTERS,
+      status: status === "all" || ORDER_STATUSES.includes(status as OrderStatus) ? (status as OrderFilters["status"]) : "active",
+      quick: QUICK.some((q) => q.key === quick) ? (quick as QuickFilter) : null,
+    };
+  });
+  const setFilter = (patch: Partial<OrderFilters>) => setFilters((f) => ({ ...f, ...patch }));
+
   const load = async () => {
     setLoading(true);
-    const [ordersRes, profilesRes, rolesRes] = await Promise.all([
+    const [ordersRes, profilesRes, rolesRes, batchesRes, deptRes] = await Promise.all([
       supabase.from("orders").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, full_name, company, email"),
       supabase.from("user_roles").select("user_id, role").eq("role", "client"),
+      supabase.from("production_batches").select("id, order_id, style_number, total_quantity, status, created_at"),
+      supabase.from("batch_department_status").select("batch_id, department, status, start_verification_status, end_verification_status, opened_at"),
     ]);
     if (ordersRes.error) {
       toast({ title: "Failed to load orders", description: ordersRes.error.message, variant: "destructive" });
     } else {
-      setOrders((ordersRes.data ?? []) as Order[]);
+      const list = (ordersRes.data ?? []) as Order[];
+      setOrders(list);
+      // keep the open panel in sync after a save / undo
+      setSelected((s) => (s ? list.find((o) => o.id === s.id) ?? null : s));
     }
     if (!profilesRes.error && !rolesRes.error) {
       const clientIds = new Set((rolesRes.data ?? []).map((r) => r.user_id));
       setClients((profilesRes.data ?? []).filter((p) => clientIds.has(p.id)) as ClientUser[]);
     }
+    setBatches((batchesRes.data ?? []) as BatchRow[]);
+    setDeptRows((deptRes.data ?? []) as DeptStatusRow[]);
     setLoading(false);
   };
 
@@ -124,6 +176,65 @@ export default function OrdersAdminPage() {
     if (!c) return id.slice(0, 8);
     return c.company ? `${c.full_name ?? "—"} (${c.company})` : c.full_name ?? id.slice(0, 8);
   };
+  // Short client name for rows/cards: company if set, else person.
+  const clientShort = (o: Order) => {
+    const c = clients.find((x) => x.id === o.client_id);
+    return c?.company || o.party_name || c?.full_name || o.client_id.slice(0, 8);
+  };
+
+  // Per-batch detail + per-order summary (stage text, blocked reasons).
+  const { batchesByOrder, signals, blocked } = useMemo(() => {
+    const rowsByBatch = new Map<string, DeptStatusRow[]>();
+    for (const r of deptRows) rowsByBatch.set(r.batch_id, [...(rowsByBatch.get(r.batch_id) ?? []), r]);
+
+    const batchesByOrder = new Map<string, DetailBatch[]>();
+    const latestOpen = new Map<string, string>(); // order -> opened_at of its most recent activity
+    for (const b of [...batches].sort((a, z) => a.created_at.localeCompare(z.created_at))) {
+      const rows = rowsByBatch.get(b.id) ?? [];
+      const detail: DetailBatch = {
+        id: b.id,
+        style_number: b.style_number,
+        total_quantity: b.total_quantity,
+        status: b.status,
+        stage: stageText(rows),
+        done: rows.filter((r) => r.status === "closed").map((r) => DEPARTMENT_LABELS[r.department as Department] ?? r.department),
+        blocked: rows.map(blockReason).filter((x): x is string => !!x),
+      };
+      batchesByOrder.set(b.order_id, [...(batchesByOrder.get(b.order_id) ?? []), detail]);
+      const last = rows.reduce((m, r) => (r.opened_at > m ? r.opened_at : m), "");
+      if (last > (latestOpen.get(b.order_id) ?? "")) latestOpen.set(b.order_id, last);
+    }
+
+    const signals = new Map<string, OrderSignals>();
+    const blocked = new Set<string>();
+    for (const [orderId, list] of batchesByOrder) {
+      const reasons = list.flatMap((b) => b.blocked);
+      if (reasons.length) blocked.add(orderId);
+      // stage of the batch that moved most recently
+      const active = list.find((b) => (rowsByBatch.get(b.id) ?? []).some((r) => r.opened_at === latestOpen.get(orderId))) ?? list[0];
+      signals.set(orderId, {
+        stage: list.length === 1 ? `Batch #${active.style_number} · ${active.stage}` : `${list.length} batches · ${active.stage}`,
+        blocked: reasons,
+      });
+    }
+    return { batchesByOrder, signals, blocked };
+  }, [batches, deptRows]);
+
+  const signalFor = (id: string): OrderSignals => signals.get(id) ?? { stage: "No batch yet", blocked: [] };
+
+  const visible = useMemo(
+    () => filterOrders(orders, filters, { blocked, clientLabel }),
+    [orders, filters, blocked, clients],
+  );
+  // Quick-filter counts follow the other filters, so the chip number matches what clicking it shows.
+  const quickCount = (key: QuickFilter) =>
+    filterOrders(orders, { ...filters, quick: null }, { blocked, clientLabel }).filter((o) => matchesQuick(o, key, blocked)).length;
+  const orderClients = useMemo(
+    () => [...new Set(orders.map((o) => o.client_id))].sort((a, z) => clientLabel(a).localeCompare(clientLabel(z))),
+    [orders, clients],
+  );
+  const filtersActive =
+    filters.status !== "active" || filters.client !== "all" || filters.period !== "any" || filters.quick !== null;
 
   const handleCreate = async (form: HTMLFormElement) => {
     const fd = new FormData(form);
@@ -207,44 +318,51 @@ export default function OrdersAdminPage() {
     setUpdateNote("");
   };
 
-  const saveOrderUpdate = async () => {
-    if (!selected) return;
+  // One path for every status change (detail panel and Kanban "Move to"):
+  // confirm → update + client timeline entry → 10-minute undo.
+  const updateOrder = async (order: Order, status: OrderStatus, tracking: string, note: string) => {
     const ok = await confirm({
-      title: `Update order ${selected.order_number}?`,
+      title: `Update order ${order.order_number}?`,
       description: "The client sees this update. You can undo it for 10 minutes.",
       details: [
-        ["Status", selected.status === draftStatus ? draftStatus : `${selected.status} → ${draftStatus}`],
-        ["Tracking", draftTracking || "—"],
-        ["Note to client", updateNote || "—"],
+        ["Status", order.status === status ? STATUS_LABEL[status] : `${STATUS_LABEL[order.status]} → ${STATUS_LABEL[status]}`],
+        ["Tracking", tracking || "—"],
+        ["Note to client", note || "—"],
       ],
     });
-    if (!ok) return;
-    setSaving(true);
+    if (!ok) return false;
     const { data: userData } = await supabase.auth.getUser();
 
-    const orderError = await withUndo(`Order ${selected.order_number} updated`, async () => {
+    const orderError = await withUndo(`Order ${order.order_number} updated`, async () => {
       const { error } = await supabase
         .from("orders")
-        .update({ status: draftStatus, tracking_number: draftTracking || null })
-        .eq("id", selected.id);
-      if (!error && (draftStatus !== selected.status || updateNote)) {
+        .update({ status, tracking_number: tracking || null })
+        .eq("id", order.id);
+      if (!error && (status !== order.status || note)) {
         // Push a timeline entry so the client sees the update history
         await supabase.from("order_updates").insert({
-          order_id: selected.id,
-          status: draftStatus,
-          note: updateNote || null,
+          order_id: order.id,
+          status,
+          note: note || null,
           created_by: userData.user?.id ?? null,
         });
       }
       return error;
     }, load);
-    setSaving(false);
     if (orderError) {
       toast({ title: "Update failed", description: orderError.message, variant: "destructive" });
-      return;
+      return false;
     }
-    setSelected(null);
     load();
+    return true;
+  };
+
+  const saveOrderUpdate = async () => {
+    if (!selected) return;
+    setSaving(true);
+    const ok = await updateOrder(selected, draftStatus, draftTracking, updateNote);
+    setSaving(false);
+    if (ok) setSelected(null);
   };
 
   // §7: issue a one-time client-portal access code tied to this order.
@@ -270,72 +388,153 @@ export default function OrdersAdminPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Orders</h1>
-          <p className="text-sm text-muted-foreground">Manage active production and shipping.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === "list" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("list")}
-          >
-            <LayoutList className="w-4 h-4 mr-1" /> List
+    <div>
+      <PageHeader title="Orders" description="Client orders from pending through delivery. Open an order for batches, payments and dispatches.">
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          value={viewMode}
+          onValueChange={(v) => v && setViewMode(v as "list" | "kanban")}
+          aria-label="View"
+        >
+          <ToggleGroupItem value="list" className="gap-1 px-3">
+            <LayoutList className="h-4 w-4" aria-hidden /> List
+          </ToggleGroupItem>
+          <ToggleGroupItem value="kanban" className="gap-1 px-3">
+            <Kanban className="h-4 w-4" aria-hidden /> Kanban
+          </ToggleGroupItem>
+        </ToggleGroup>
+        {can("orders.create") && (
+          <Button onClick={() => setCreating(true)}>
+            <Plus className="w-4 h-4 mr-2" /> New Order
           </Button>
-          <Button
-            variant={viewMode === "kanban" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("kanban")}
-          >
-            <Kanban className="w-4 h-4 mr-1" /> Kanban
-          </Button>
-          {can("orders.create") && (
-            <Button onClick={() => setCreating(true)}>
-              <Plus className="w-4 h-4 mr-2" /> New Order
+        )}
+      </PageHeader>
+
+      <TableToolbar
+        search={filters.q}
+        onSearch={(q) => setFilter({ q })}
+        placeholder="Search order, client, product…"
+        count={loading ? undefined : visible.length}
+        noun="order"
+        filtersActive={filtersActive}
+        onClear={() => setFilters(DEFAULT_FILTERS)}
+      >
+        <Select value={filters.status} onValueChange={(v) => setFilter({ status: v as OrderFilters["status"] })}>
+          <SelectTrigger className="w-full sm:w-44" aria-label="Status">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">All but cancelled</SelectItem>
+            <SelectItem value="all">All incl. cancelled</SelectItem>
+            {ORDER_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.client} onValueChange={(client) => setFilter({ client })}>
+          <SelectTrigger className="w-full sm:w-48" aria-label="Client">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All clients</SelectItem>
+            {orderClients.map((id) => (
+              <SelectItem key={id} value={id}>{clientLabel(id)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filters.period} onValueChange={(v) => setFilter({ period: v as OrderFilters["period"] })}>
+          <SelectTrigger className="w-full sm:w-40" aria-label="Created">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Created any time</SelectItem>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableToolbar>
+
+      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Quick filters">
+        {QUICK.map((q) => {
+          const on = filters.quick === q.key;
+          return (
+            <Button
+              key={q.key}
+              size="sm"
+              variant={on ? "default" : "outline"}
+              aria-pressed={on}
+              title={q.hint}
+              onClick={() => setFilter({ quick: on ? null : q.key })}
+            >
+              {q.label} <span className="tabular-nums opacity-80">{loading ? "" : quickCount(q.key)}</span>
             </Button>
-          )}
-        </div>
+          );
+        })}
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-accent" />
+          <Loader2 className="w-6 h-6 animate-spin text-accent" aria-label="Loading orders" />
         </div>
-      ) : viewMode === "kanban" ? (
-        <KanbanBoard />
       ) : orders.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            No orders yet. Create one for a client to start tracking production.
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={ClipboardList}
+          title="No orders yet"
+          description="Create one for a client to start tracking production."
+          action={can("orders.create") && <Button onClick={() => setCreating(true)}><Plus className="w-4 h-4 mr-2" /> New Order</Button>}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          title="No orders match these filters"
+          description={filters.status === "active" ? "Cancelled orders are hidden by default." : undefined}
+          action={<Button variant="outline" onClick={() => setFilters(DEFAULT_FILTERS)}>Clear filters</Button>}
+        />
+      ) : viewMode === "kanban" ? (
+        <KanbanBoard
+          orders={visible}
+          signalFor={signalFor}
+          clientName={clientShort}
+          onOpen={openDetail}
+          onMove={can("orders.update") ? (o, s) => updateOrder(o, s, o.tracking_number ?? "", "") : undefined}
+        />
       ) : (
-        <div className="space-y-2">
-          {orders.map((o) => (
-            <Card key={o.id} className="cursor-pointer hover:border-accent" onClick={() => openDetail(o)}>
-              <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-semibold text-foreground">
-                      #{o.order_number}{o.party_name ? ` · ${o.party_name}` : ""}
-                    </h3>
-                    <Badge variant="outline" className={statusColors[o.status]}>
-                      {o.status.replace("_", " ")}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {o.product_summary} • {o.quantity} pcs • Client: {clientLabel(o.client_id)}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground self-start">
-                  {new Date(o.created_at).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ul className="space-y-2">
+          {visible.map((o) => {
+            const sig = signalFor(o.id);
+            return (
+              <li key={o.id}>
+                <button
+                  type="button"
+                  onClick={() => openDetail(o)}
+                  className="grid w-full grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left transition-colors hover:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-foreground">#{o.order_number}</span>
+                      <span className="truncate text-foreground">{clientShort(o)}</span>
+                      <StatusBadge status={o.status} />
+                      {isOverdue(o) && <StatusBadge status="overdue" />}
+                      {sig.blocked.length > 0 && <StatusBadge tone="warning">Blocked</StatusBadge>}
+                    </span>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      {o.product_summary} · {o.quantity.toLocaleString()} pcs · {sig.stage}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">
+                      Created {fmtDate(o.created_at)}
+                      {o.expected_delivery && ` · Due ${fmtDate(o.expected_delivery)}`}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <span className="hidden sm:inline">Open</span>
+                    <ChevronRight className="h-4 w-4" aria-hidden />
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       <Dialog open={creating} onOpenChange={setCreating}>
@@ -388,69 +587,76 @@ export default function OrdersAdminPage() {
       </Dialog>
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           {selected && (
             <>
               <SheetHeader>
-                <SheetTitle>
-                  Order #{selected.order_number}{selected.party_name ? ` · ${selected.party_name}` : ""}
+                <SheetTitle className="flex flex-wrap items-center gap-2 pr-6">
+                  Order #{selected.order_number} <StatusBadge status={selected.status} />
                 </SheetTitle>
+                <SheetDescription>{clientShort(selected)}</SheetDescription>
               </SheetHeader>
-              <div className="space-y-4 mt-6 text-sm">
-                <p className="text-foreground">{selected.product_summary}</p>
-                <p className="text-muted-foreground">
-                  {selected.quantity} pcs • {selected.currency} {selected.total_amount ?? "—"}
-                </p>
-                <div>
-                  <Label className="text-xs">Status</Label>
-                  <Select value={draftStatus} onValueChange={(v) => setDraftStatus(v as OrderStatus)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_production">In Production</SelectItem>
-                      <SelectItem value="qc">Quality Check</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Tracking Number</Label>
-                  <Input
-                    value={draftTracking}
-                    onChange={(e) => setDraftTracking(e.target.value)}
-                    placeholder="e.g. DHL1234567"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Update Note (optional)</Label>
-                  <Textarea
-                    value={updateNote}
-                    onChange={(e) => setUpdateNote(e.target.value)}
-                    rows={3}
-                    placeholder="Note shown to the client..."
-                    className="mt-1"
-                  />
-                </div>
-                {can("orders.update") && (
-                  <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
-                    {saving ? "Saving..." : "Save Update"}
-                  </Button>
-                )}
-                {(can("clients.create") || can("orders.create")) && (
-                  <Button variant="outline" className="w-full" onClick={issueAccessCode} disabled={issuingCode}>
-                    {issuingCode ? "Issuing..." : "Issue Client Access Code"}
-                  </Button>
-                )}
-                {can("orders.delete") && (
-                  <Button variant="outline" className="w-full text-red-500 hover:text-red-600 border-red-500/30" onClick={requestDeleteOrder}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Delete Order
-                  </Button>
-                )}
+              <div className="mt-6 space-y-6">
+                <OrderDetailSections
+                  order={selected}
+                  clientLabel={clientLabel(selected.client_id)}
+                  batches={batchesByOrder.get(selected.id) ?? []}
+                />
+
+                <section className="space-y-4 border-t border-border pt-4 text-sm">
+                  <h3 className="admin-section-title text-sm">Update order</h3>
+                  <div>
+                    <Label className="text-xs" htmlFor="order-status">Status</Label>
+                    <Select value={draftStatus} onValueChange={(v) => setDraftStatus(v as OrderStatus)} disabled={!can("orders.update")}>
+                      <SelectTrigger id="order-status" className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ORDER_STATUSES.map((s) => (
+                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs" htmlFor="order-tracking">Tracking Number</Label>
+                    <Input
+                      id="order-tracking"
+                      value={draftTracking}
+                      onChange={(e) => setDraftTracking(e.target.value)}
+                      placeholder="e.g. DHL1234567"
+                      className="mt-1"
+                      disabled={!can("orders.update")}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs" htmlFor="order-note">Update Note (optional)</Label>
+                    <Textarea
+                      id="order-note"
+                      value={updateNote}
+                      onChange={(e) => setUpdateNote(e.target.value)}
+                      rows={3}
+                      placeholder="Note shown to the client..."
+                      className="mt-1"
+                      disabled={!can("orders.update")}
+                    />
+                  </div>
+                  {can("orders.update") && (
+                    <Button className="w-full" onClick={saveOrderUpdate} disabled={saving}>
+                      {saving ? "Saving..." : "Save Update"}
+                    </Button>
+                  )}
+                  {(can("clients.create") || can("orders.create")) && (
+                    <Button variant="outline" className="w-full" onClick={issueAccessCode} disabled={issuingCode}>
+                      {issuingCode ? "Issuing..." : "Issue Client Access Code"}
+                    </Button>
+                  )}
+                  {can("orders.delete") && (
+                    <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/30" onClick={requestDeleteOrder}>
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete Order
+                    </Button>
+                  )}
+                </section>
               </div>
             </>
           )}
