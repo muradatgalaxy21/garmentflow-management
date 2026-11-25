@@ -171,6 +171,8 @@ export interface PaymentTarget {
   partyName: string;
   docs: { id: string; label: string; balance: number }[]; // bills or orders still open
   docId?: string;
+  /** Optional context line shown under the dialog title (e.g. "Owed: PKR 5,000 · 2 open bills"). */
+  summary?: string;
 }
 
 export function PaymentDialog({ target, onClose, onSaved }: { target: PaymentTarget | null; onClose: () => void; onSaved: () => void }) {
@@ -229,6 +231,7 @@ export function PaymentDialog({ target, onClose, onSaved }: { target: PaymentTar
         <DialogHeader>
           <DialogTitle>{isVendor ? "Pay vendor" : "Receive payment"} — {target.partyName}</DialogTitle>
         </DialogHeader>
+        {target.summary && <p className="text-sm text-muted-foreground -mt-2">{target.summary}</p>}
         <div className="grid gap-3">
           <div>
             <Label>{isVendor ? "Against bill" : "Against order"}</Label>
