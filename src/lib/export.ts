@@ -25,7 +25,7 @@ export function downloadCsv(filename: string, rows: Cell[][]) {
 const esc = (v: Cell) =>
   String(v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-export function printTable(title: string, subtitle: string, rows: Cell[][]) {
+export function printTable(title: string, subtitle: string, rows: Cell[][], fmt?: (n: number) => string) {
   const [head, ...body] = rows;
   const w = window.open("", "_blank");
   if (!w) return;
@@ -40,7 +40,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 </style></head><body>
 <h1>En En Garments — ${esc(title)}</h1><p>${esc(subtitle)}</p>
 <table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead>
-<tbody>${body.map((r) => `<tr>${r.map((c) => `<td${num(c)}>${esc(typeof c === "number" ? c.toLocaleString("en-PK", { maximumFractionDigits: 2 }) : c)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+<tbody>${body.map((r) => `<tr>${r.map((c) => `<td${num(c)}>${esc(typeof c === "number" ? (fmt ? fmt(c) : c.toLocaleString("en-PK", { maximumFractionDigits: 2 })) : c)}</td>`).join("")}</tr>`).join("")}</tbody></table>
 <script>window.onload=()=>window.print()</script></body></html>`);
   w.document.close();
 }
