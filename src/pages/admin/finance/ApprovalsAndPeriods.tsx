@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Lock, LockOpen } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ClipboardCheck, Lock, LockOpen } from "lucide-react";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { fmtDate } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +19,13 @@ import { LifecycleActions, useFinanceData, type LifecycleRow } from "./shared";
 type Data = ReturnType<typeof useFinanceData>;
 
 // Drafts waiting for a checker (plans/02 part A, maker-checker).
+const KIND_LINK: Record<FinanceTable, string> = {
+  vendor_bills: "/admin/finance/purchases",
+  vendor_payments: "/admin/finance/vendors",
+  client_payments: "/admin/finance/receivables",
+  expenses: "/admin/finance/expenses",
+};
+
 export function PendingApprovals({ data }: { data: Data }) {
   const vendorName = new Map(data.vendors.map((v) => [v.id, v.name]));
   const client = (id: string) => data.clientNames.get(id) ?? "Client";
@@ -27,26 +37,30 @@ export function PendingApprovals({ data }: { data: Data }) {
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">Pending approval</CardTitle>
-        <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">{rows.length} draft(s)</Badge>
+    <Card className="mb-6 border-warning/40 border-l-4 border-l-warning" aria-labelledby="approvals-h">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+        <div>
+          <CardTitle id="approvals-h" className="text-base flex items-center gap-2"><ClipboardCheck className="w-4 h-4 text-warning" aria-hidden /> Needs your approval</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">Action area: drafts are counted in totals but are not final until approved. You cannot approve an entry you created or edited (admins can; it is logged as self-approved).</p>
+        </div>
+        <StatusBadge tone="warning">{rows.length} draft{rows.length === 1 ? "" : "s"} · {pkr(rows.reduce((s, r) => s + r.amount, 0))}</StatusBadge>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Party</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0" /></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Type</TableHead><TableHead>Party</TableHead><TableHead>Date</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className="w-0"><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
           <TableBody>
             {rows.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nothing waiting for approval.</TableCell></TableRow>}
             {rows.map((r) => (
               <TableRow key={r.table + r.row.id}>
-                <TableCell>{r.kind}</TableCell>
+                <TableCell><Link to={KIND_LINK[r.table]} className="hover:underline">{r.kind}</Link></TableCell>
                 <TableCell className="font-medium">{r.party}</TableCell>
-                <TableCell>{r.date}</TableCell>
+                <TableCell className="whitespace-nowrap">{fmtDate(r.date)}</TableCell>
                 <TableCell className="text-right tabular-nums">{pkr(r.amount)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1 justify-end">
                     <LifecycleActions table={r.table} row={r.row} onChanged={data.reload}
-                      summary={[["Type", r.kind], ["Party", r.party], ["Date", r.date], ["Amount", pkr(r.amount)]]} />
+                      toastDetail={`${r.kind} · ${r.party} · ${pkr(r.amount)}`}
+                      summary={[["Type", r.kind], ["Party", r.party], ["Date", fmtDate(r.date)], ["Amount", pkr(r.amount)]]} />
                   </div>
                 </TableCell>
               </TableRow>
