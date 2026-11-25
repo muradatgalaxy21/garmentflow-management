@@ -135,6 +135,7 @@ export default function OrdersAdminPage() {
     const quick = params.get("quick");
     return {
       ...DEFAULT_FILTERS,
+      q: params.get("q") ?? "",
       status: status === "all" || ORDER_STATUSES.includes(status as OrderStatus) ? (status as OrderFilters["status"]) : "active",
       quick: QUICK.some((q) => q.key === quick) ? (quick as QuickFilter) : null,
     };
