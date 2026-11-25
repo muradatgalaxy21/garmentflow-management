@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
-import { Loader2, Plus, Trash2, Eye, Wallet, Pencil } from "lucide-react";
+import { Loader2, Plus, Trash2, Eye, Wallet, Pencil, Ban, Clock, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { offerFinanceUndo } from "@/lib/undo";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { TableToolbar } from "@/components/admin/TableToolbar";
+import { IconButton } from "@/components/admin/IconButton";
+import { MoreMenu } from "@/components/admin/MoreMenu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { fmtDate, fmtDateTime } from "@/lib/format";
+import { FINANCE_AREA } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { inRange, label, monthStart, pkr, today } from "@/lib/finance";
+import { billHistory, daysToDue, filterSortBills, isDueSoon, isLiveBill, type BillSortKey, type BillStatusFilter } from "./purchasesView";
 import {
   DateRange, DocStatusBadge, ExportButtons, LifecycleActions, OptionSelect, PageHeader, PaymentDialog, statusTone, useFinanceData,
   type BillBalance, type PaymentTarget,
@@ -37,7 +45,10 @@ export default function PurchasesPage() {
   const confirm = useConfirm();
   const [items, setItems] = useState<Item[]>([]);
   const [vendorFilter, setVendorFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("open");
+  const [statusFilter, setStatusFilter] = useState<BillStatusFilter>("open");
+  const [tab, setTab] = useState("bills");
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState<{ key: BillSortKey; dir: "asc" | "desc" }>({ key: "bill_date", dir: "desc" });
   const [from, setFrom] = useState(today().slice(0, 4) + "-01-01");
   const [to, setTo] = useState(today());
   const [draft, setDraft] = useState<BillDraft | null>(null);
@@ -55,11 +66,25 @@ export default function PurchasesPage() {
   const itemById = new Map(items.map((i) => [i.id, i]));
   const vendorOpts = [{ value: "all", label: "All vendors" }, ...data.vendors.map((v) => ({ value: v.id, label: v.name }))];
 
-  const bills = data.balances
+  const asOf = today();
+  const inScope = data.balances
     .filter((b) => vendorFilter === "all" || b.vendor_id === vendorFilter)
-    .filter((b) => statusFilter === "all" || (statusFilter === "open" ? b.status !== "paid" : b.status === statusFilter))
-    .filter((b) => inRange(b.bill_date!, from, to))
-    .sort((a, b) => b.bill_date!.localeCompare(a.bill_date!));
+    .filter((b) => inRange(b.bill_date!, from, to));
+  const dueSoonCount = inScope.filter((b) => isDueSoon(b, asOf)).length;
+  const bills = filterSortBills(inScope, { q, status: statusFilter, ...sort, vendorName: (id) => vendorName.get(id) ?? "", asOf });
+  const toggleSort = (key: BillSortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: key === "vendor" || key === "due_date" ? "asc" : "desc" }));
+  const SortHead = ({ k, children, right }: { k: BillSortKey; children: string; right?: boolean }) => {
+    const on = sort.key === k;
+    const Icon = !on ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <TableHead className={right ? "text-right" : ""} aria-sort={on ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
+        <button type="button" onClick={() => toggleSort(k)} className={`inline-flex items-center gap-1 hover:text-foreground ${on ? "text-foreground" : ""}`}>
+          {children}<Icon className={`w-3 h-3 ${on ? "" : "opacity-40"}`} aria-hidden />
+        </button>
+      </TableHead>
+    );
+  };
 
   const payments = data.vendorPayments
     .filter((p) => vendorFilter === "all" || p.vendor_id === vendorFilter)
@@ -167,6 +192,29 @@ export default function PurchasesPage() {
     ...payments.map((p) => [p.paid_on, vendorName.get(p.vendor_id) ?? "", p.bill_id ? billNo.get(p.bill_id) ?? "" : "On account", label(p.method), p.reference ?? "", Number(p.amount)]),
   ];
 
+  const voidBill = async (b: BillBalance) => {
+    const paid = Number(b.paid_amount);
+    const ok = await confirm({
+      title: "Void this posted bill?",
+      description: "Voiding does not delete the bill. A credit note for the full amount is posted today and both stay in the ledger."
+        + (paid > 0 ? ` ${pkr(paid)} already paid against this bill is NOT reversed; void those payments separately if they were a mistake.` : "")
+        + " Stock added by this bill's lines is taken back out.",
+      details: [["Vendor", vendorName.get(b.vendor_id!) ?? ""], ["Bill", b.bill_no || "—"], ["Total", pkr(Number(b.total_amount))], ["Paid so far", pkr(paid)]],
+      requireReason: "Reason (required)", confirmLabel: "Void bill", destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.rpc("void_finance_entry", { _table: "vendor_bills", _id: b.id!, _reason: ok.reason! });
+    if (error) return toast({ title: "Could not void bill", description: error.message, variant: "destructive" });
+    toast({ title: "Bill voided", description: "Credit note posted." });
+    data.reload();
+  };
+  const voidBlockedReason = (b: BillBalance): string | null =>
+    b.reverses_id ? "this is a credit note."
+    : b.voided_by_id ? "already voided."
+    : !can(`${FINANCE_AREA.vendor_bills}.delete`) ? "needs Finance > Delete/Void permission."
+    : null;
+  const openBill = async (b: BillBalance) => setViewing({ bill: b, lines: await loadLines(b.id!) });
+
   const setLine = (i: number, patch: Partial<LineDraft>) =>
     setDraft((d) => d && { ...d, lines: d.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
 
@@ -186,65 +234,87 @@ export default function PurchasesPage() {
         <Button size="sm" variant="ghost" onClick={() => { setFrom(monthStart()); setTo(today()); }}>This month</Button>
       </div>
 
-      <Tabs defaultValue="bills">
-        <TabsList>
-          <TabsTrigger value="bills">Bills ({bills.length})</TabsTrigger>
-          <TabsTrigger value="payments">Payments ({payments.length})</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="h-11 p-1">
+          <TabsTrigger value="bills" className="px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Bills ({bills.length})</TabsTrigger>
+          <TabsTrigger value="payments" className="px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Payments ({payments.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="bills">
-          <div className="flex flex-wrap items-end justify-between gap-3 my-3">
-            <div className="w-44">
-              <OptionSelect value={statusFilter} onChange={setStatusFilter} options={[
-                { value: "open", label: "Pending (not paid)" }, { value: "overdue", label: "Overdue" }, { value: "partial", label: "Partial" },
-                { value: "unpaid", label: "Unpaid" }, { value: "paid", label: "Paid" }, { value: "all", label: "All" },
-              ]} />
-            </div>
-            <div className="flex gap-2"><ExportButtons title="Purchase Bills" subtitle={`${from} to ${to}`} rows={billExport} /></div>
+          <div className="mt-3">
+            <TableToolbar search={q} onSearch={setQ} placeholder="Search bill no. or vendor…" count={bills.length} noun="bill"
+              filtersActive={statusFilter !== "open"} onClear={() => { setQ(""); setStatusFilter("open"); }}>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs text-muted-foreground">Payment state</Label>
+                <div className="w-44">
+                  <OptionSelect value={statusFilter} onChange={(v) => setStatusFilter(v as BillStatusFilter)} options={[
+                    { value: "open", label: "Not fully paid" }, { value: "due", label: "Due soon / overdue" }, { value: "overdue", label: "Overdue" },
+                    { value: "partial", label: "Partly paid" }, { value: "unpaid", label: "Unpaid" }, { value: "paid", label: "Paid" }, { value: "all", label: "All" },
+                  ]} />
+                </div>
+              </div>
+              <Button size="sm" variant={statusFilter === "due" ? "default" : "outline"} onClick={() => setStatusFilter(statusFilter === "due" ? "open" : "due")}>
+                <Clock className="w-3.5 h-3.5 mr-1" /> Due in 7 days or late ({dueSoonCount})
+              </Button>
+              <ExportButtons title="Purchase Bills" subtitle={`${from} to ${to}`} rows={billExport} />
+            </TableToolbar>
           </div>
           <Card>
             <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Bill</TableHead><TableHead>Vendor</TableHead><TableHead>Date</TableHead><TableHead>Due</TableHead>
-                    <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Paid</TableHead><TableHead className="text-right">Balance</TableHead><TableHead>Status</TableHead><TableHead className="w-0" />
+                    <TableHead>Bill</TableHead><SortHead k="vendor">Vendor</SortHead><SortHead k="bill_date">Date</SortHead><SortHead k="due_date">Due</SortHead>
+                    <SortHead k="total" right>Total</SortHead><TableHead className="text-right">Paid</TableHead><SortHead k="balance" right>Balance</SortHead>
+                    <TableHead>Bill status</TableHead><TableHead>Payment state</TableHead><TableHead className="text-right w-[11rem]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bills.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-10">No bills match.</TableCell></TableRow>}
-                  {bills.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell>{b.bill_no || "—"}</TableCell>
-                      <TableCell className="font-medium">{vendorName.get(b.vendor_id!)}</TableCell>
-                      <TableCell>{b.bill_date}</TableCell>
-                      <TableCell>{b.due_date || "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
-                      <TableCell className="text-right tabular-nums">{pkr(Number(b.paid_amount))}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{pkr(Number(b.balance))}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {full(b) && <DocStatusBadge row={full(b)!} />}
-                          {!b.reverses_id && !b.voided_by_id && <Badge variant="outline" className={statusTone[b.status!]}>{label(b.status!)}</Badge>}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 justify-end">
-                          <Button size="icon" variant="ghost" aria-label="View bill" onClick={async () => setViewing({ bill: b, lines: await loadLines(b.id!) })}><Eye className="w-4 h-4" /></Button>
-                          {canCreate && Number(b.balance) > 0 && (
-                            <Button size="sm" variant="outline" onClick={() => setPay({ kind: "vendor", partyId: b.vendor_id!, partyName: vendorName.get(b.vendor_id!) ?? "", docs: openDocs(b.vendor_id!), docId: b.id! })}>
-                              <Wallet className="w-3.5 h-3.5 mr-1" /> Pay
-                            </Button>
-                          )}
-                          {canUpdate && b.doc_status === "draft" && <Button size="icon" variant="ghost" aria-label="Edit bill" onClick={() => openEdit(b)}><Pencil className="w-4 h-4" /></Button>}
-                          {full(b) && (
-                            <LifecycleActions table="vendor_bills" row={full(b)!} onChanged={data.reload}
-                              summary={[["Vendor", vendorName.get(b.vendor_id!) ?? ""], ["Bill", b.bill_no || "—"], ["Total", pkr(Number(b.total_amount))]]} />
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {bills.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">No bills match. Try clearing the search or changing the payment state filter.</TableCell></TableRow>}
+                  {bills.map((b) => {
+                    const f = full(b);
+                    const days = isLiveBill(b) && Number(b.balance) > 0 ? daysToDue(b.due_date, asOf) : null;
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>{b.bill_no || "—"}</TableCell>
+                        <TableCell className="font-medium">{vendorName.get(b.vendor_id!)}</TableCell>
+                        <TableCell className="whitespace-nowrap">{fmtDate(b.bill_date)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {b.due_date ? fmtDate(b.due_date) : "—"}
+                          {days !== null && days < 0 && <div className="text-xs text-destructive">{-days} day{days === -1 ? "" : "s"} late</div>}
+                          {days !== null && days >= 0 && days <= 7 && <div className="text-xs text-warning">{days === 0 ? "due today" : `in ${days} day${days === 1 ? "" : "s"}`}</div>}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
+                        <TableCell className="text-right tabular-nums">{pkr(Number(b.paid_amount))}</TableCell>
+                        <TableCell className="text-right tabular-nums font-semibold">{pkr(Number(b.balance))}</TableCell>
+                        <TableCell>
+                          {b.reverses_id ? <StatusBadge status="credit_note" /> : b.voided_by_id ? <StatusBadge status="voided" />
+                            : <StatusBadge status={b.doc_status ?? "posted"}>{b.doc_status === "draft" ? "Draft" : `Posted${f?.self_approved ? " (self)" : ""}`}</StatusBadge>}
+                        </TableCell>
+                        <TableCell>{isLiveBill(b) ? <StatusBadge status={b.status!} /> : <span className="text-muted-foreground">—</span>}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1 justify-end">
+                            {canCreate && Number(b.balance) > 0 && isLiveBill(b) && (
+                              <Button size="sm" variant="outline" onClick={() => setPay({ kind: "vendor", partyId: b.vendor_id!, partyName: vendorName.get(b.vendor_id!) ?? "", docs: openDocs(b.vendor_id!), docId: b.id! })}>
+                                <Wallet className="w-3.5 h-3.5 mr-1" /> Pay
+                              </Button>
+                            )}
+                            {f && b.doc_status === "draft" && <LifecycleActions table="vendor_bills" row={f} onChanged={data.reload}
+                              summary={[["Vendor", vendorName.get(b.vendor_id!) ?? ""], ["Bill", b.bill_no || "—"], ["Total", pkr(Number(b.total_amount))]]} />}
+                            <IconButton label="View bill" onClick={() => openBill(b)}><Eye /></IconButton>
+                            {canUpdate && b.doc_status === "draft" && <IconButton label="Edit draft bill" onClick={() => openEdit(b)}><Pencil /></IconButton>}
+                            {b.doc_status !== "draft" && (
+                              <MoreMenu label="More actions">
+                                {voidBlockedReason(b)
+                                  ? <DropdownMenuItem disabled className="max-w-56 whitespace-normal text-xs">Void unavailable: {voidBlockedReason(b)}</DropdownMenuItem>
+                                  : <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => voidBill(b)}><Ban className="w-3.5 h-3.5 mr-2" /> Void bill…</DropdownMenuItem>}
+                              </MoreMenu>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
@@ -290,27 +360,74 @@ export default function PurchasesPage() {
 
       <PaymentDialog target={pay} onClose={() => setPay(null)} onSaved={data.reload} />
 
-      {viewing && (
-        <Dialog open onOpenChange={(o) => !o && setViewing(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader><DialogTitle>Bill {viewing.bill.bill_no || ""} — {vendorName.get(viewing.bill.vendor_id!)}</DialogTitle></DialogHeader>
-            <Table>
-              <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Rate</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {viewing.lines.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell>{l.description}{l.inventory_item_id && <Badge variant="outline" className="ml-2 text-xs">stock</Badge>}</TableCell>
-                    <TableCell className="text-right tabular-nums">{Number(l.quantity)} {l.unit}</TableCell>
-                    <TableCell className="text-right tabular-nums">{pkr(Number(l.unit_price))}</TableCell>
-                    <TableCell className="text-right tabular-nums">{pkr(Number(l.amount))}</TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="font-semibold"><TableCell colSpan={3}>Total · paid {pkr(Number(viewing.bill.paid_amount))}</TableCell><TableCell className="text-right">{pkr(Number(viewing.bill.total_amount))}</TableCell></TableRow>
-              </TableBody>
-            </Table>
-          </DialogContent>
-        </Dialog>
-      )}
+      {viewing && (() => {
+        const vb = viewing.bill;
+        const f = full(vb);
+        const billPays = data.vendorPayments.filter((p) => p.bill_id === vb.id);
+        const reversal = f?.voided_by_id ? data.bills.find((x) => x.id === f.voided_by_id) : undefined;
+        const history = f ? billHistory(f, billPays, reversal) : [];
+        const days = isLiveBill(vb) && Number(vb.balance) > 0 ? daysToDue(vb.due_date, asOf) : null;
+        return (
+          <Dialog open onOpenChange={(o) => !o && setViewing(null)}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Bill {vb.bill_no || ""} — {vendorName.get(vb.vendor_id!)}</DialogTitle></DialogHeader>
+              <div className="flex flex-wrap gap-2">
+                {vb.reverses_id ? <StatusBadge status="credit_note" /> : vb.voided_by_id ? <StatusBadge status="voided" />
+                  : <StatusBadge status={vb.doc_status ?? "posted"}>{vb.doc_status === "draft" ? "Draft (not approved)" : `Posted${f?.self_approved ? " (self-approved)" : ""}`}</StatusBadge>}
+                {isLiveBill(vb) && <StatusBadge status={vb.status!} />}
+              </div>
+              <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                <div><dt className="text-muted-foreground">Bill date</dt><dd>{fmtDate(vb.bill_date)}</dd></div>
+                <div><dt className="text-muted-foreground">Due date</dt><dd>{fmtDate(vb.due_date)}{days !== null && <span className={days < 0 ? " text-destructive" : ""}> ({days < 0 ? `${-days}d late` : days === 0 ? "today" : `in ${days}d`})</span>}</dd></div>
+                <div><dt className="text-muted-foreground">Total / paid</dt><dd className="tabular-nums">{pkr(Number(vb.total_amount))} / {pkr(Number(vb.paid_amount))}</dd></div>
+                <div><dt className="text-muted-foreground">Balance</dt><dd className="font-semibold tabular-nums">{pkr(Number(vb.balance))}</dd></div>
+                {f?.notes && <div className="col-span-2 sm:col-span-4"><dt className="text-muted-foreground">Notes</dt><dd>{f.notes}</dd></div>}
+              </dl>
+
+              <h3 className="text-sm font-semibold">Lines</h3>
+              <Table>
+                <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Rate</TableHead><TableHead className="text-right">Amount</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {viewing.lines.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell>{l.description}{l.inventory_item_id && <Badge variant="outline" className="ml-2 text-xs">stock</Badge>}</TableCell>
+                      <TableCell className="text-right tabular-nums">{Number(l.quantity)} {l.unit}</TableCell>
+                      <TableCell className="text-right tabular-nums">{pkr(Number(l.unit_price))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{pkr(Number(l.amount))}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-semibold"><TableCell colSpan={3}>Total</TableCell><TableCell className="text-right tabular-nums">{pkr(Number(vb.total_amount))}</TableCell></TableRow>
+                </TableBody>
+              </Table>
+
+              <h3 className="text-sm font-semibold">Payments</h3>
+              {billPays.length === 0 ? <p className="text-sm text-muted-foreground">No payments recorded against this bill.</p> : (
+                <ul className="text-sm divide-y border rounded-md">
+                  {billPays.map((p) => (
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                      <span>{fmtDate(p.paid_on)} · {label(p.method)}{p.reference ? ` · ${p.reference}` : ""}</span>
+                      <span className="flex items-center gap-2"><StatusBadge status={p.reverses_id ? "reversal" : p.voided_by_id ? "voided" : p.status} /><span className="tabular-nums">{pkr(Number(p.amount))}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3 className="text-sm font-semibold">History</h3>
+              <ol className="text-sm space-y-1">
+                {history.map((h, i) => <li key={i} className="flex gap-3"><span className="text-muted-foreground w-40 shrink-0">{fmtDateTime(h.at)}</span><span>{h.text}</span></li>)}
+              </ol>
+              <DialogFooter>
+                {canCreate && Number(vb.balance) > 0 && isLiveBill(vb) && (
+                  <Button onClick={() => { setViewing(null); setPay({ kind: "vendor", partyId: vb.vendor_id!, partyName: vendorName.get(vb.vendor_id!) ?? "", docs: openDocs(vb.vendor_id!), docId: vb.id! }); }}>
+                    <Wallet className="w-4 h-4 mr-1" /> Pay
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setViewing(null)}>Close</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {draft && (
         <Dialog open onOpenChange={(o) => !o && setDraft(null)}>

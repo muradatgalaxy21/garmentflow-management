@@ -282,4 +282,5 @@ Collected from page sessions; each item gets its own session later.
 - Expense receipt attachments.
 - Inbox conversation threads, assignment, escalation.
 - Inventory: supplier + usage context on item detail (no supplier column on `inventory_items`; usage would need a batch_id column on `inventory_movements`, today the batch ref only lives in the free-text reason). Also: DB-level block on deleting items with movement history (today only the UI blocks it; FK is ON DELETE CASCADE).
+- Purchases: field-level bill change history. `vendor_bills` has no `log_change` trigger, so the bill detail history is built from stored timestamps (created / edited / posted / voided) and payments, without actor names or old/new values. Needs a trigger migration + a readable view of actor names (`change_log` is only visible to admins and the author).
 - (add more as sessions find them)
