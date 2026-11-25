@@ -282,4 +282,5 @@ Collected from page sessions; each item gets its own session later.
 - Expense receipt attachments.
 - Inbox conversation threads, assignment, escalation.
 - Inventory: supplier + usage context on item detail (no supplier column on `inventory_items`; usage would need a batch_id column on `inventory_movements`, today the batch ref only lives in the free-text reason). Also: DB-level block on deleting items with movement history (today only the UI blocks it; FK is ON DELETE CASCADE).
+- Receivables: invoice-level payment due dates / client payment terms (orders store only `expected_delivery`, a delivery date, not a payment due date). Until then aging runs from order date, matching Reports; once a due date exists, switch `clientReceivable` and the Reports receivables case together.
 - (add more as sessions find them)
