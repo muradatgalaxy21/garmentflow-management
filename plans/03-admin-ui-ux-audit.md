@@ -40,8 +40,8 @@ Requested 2026-11-24. Decisions confirmed with user:
 | 12 | Expenses | `finance/ExpensesPage.tsx` | ☑ 25-Nov-2026 |
 | 13 | Finance Reports | `finance/ReportsPage.tsx` | ☑ 25-Nov-2026 |
 | 14 | Employees | `EmployeesPage.tsx` (+ `WorkerDetailPage.tsx` links) | ☑ 25-Nov-2026 |
-| 15 | Clients | `ClientsPage.tsx` | ☐ |
-| 16 | Inbox | `InboxPage.tsx` | ☐ |
+| 15 | Clients | `ClientsPage.tsx` | ☑ 25-Nov-2026 |
+| 16 | Inbox | `InboxPage.tsx` | ☑ 25-Nov-2026 |
 | 17 | Final validation pass | all admin pages | ☐ |
 
 Large files likely to need two sessions: Batches (845 lines), Employees (792), Inventory (567).
