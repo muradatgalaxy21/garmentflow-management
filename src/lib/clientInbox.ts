@@ -59,3 +59,18 @@ export async function resolveClientQuery(msg: ClientInboxMessage, adminId: strin
     .eq("id", msg.id);
   if (error) throw error;
 }
+
+/** Admin: save a reply on a client query without resolving it. */
+export async function replyClientQuery(msg: ClientInboxMessage, note: string) {
+  const { error } = await supabase.from("client_inbox_messages").update({ resolution_note: note }).eq("id", msg.id);
+  if (error) throw error;
+}
+
+/** Admin: put a resolved client query back to pending (keeps the earlier reply). */
+export async function reopenClientQuery(msg: ClientInboxMessage) {
+  const { error } = await supabase
+    .from("client_inbox_messages")
+    .update({ status: "pending", resolved_by: null, resolved_at: null })
+    .eq("id", msg.id);
+  if (error) throw error;
+}

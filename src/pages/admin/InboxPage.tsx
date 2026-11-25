@@ -1,46 +1,278 @@
-import { useEffect, useState } from "react";
-import { Loader2, PlayCircle, CheckCircle2, MessageSquare, RotateCcw } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Loader2, PlayCircle, CheckCircle2, MessageSquare, RotateCcw, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { TableToolbar } from "@/components/admin/TableToolbar";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { withUndo } from "@/lib/undo";
+import { fmtDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS } from "@/lib/departmentEntries";
 import {
   fetchInboxMessages,
+  replyWorkerQuery,
+  reopenWorkerQuery,
   resolveEndVerification,
   resolveStartVerification,
   resolveWorkerQuery,
   type InboxMessage,
 } from "@/lib/workerInbox";
-import { fetchClientInboxMessages, resolveClientQuery, type ClientInboxMessage } from "@/lib/clientInbox";
+import {
+  fetchClientInboxMessages,
+  replyClientQuery,
+  reopenClientQuery,
+  resolveClientQuery,
+  type ClientInboxMessage,
+} from "@/lib/clientInbox";
 
-const typeConfig: Record<InboxMessage["type"], { label: string; icon: typeof PlayCircle; color: string }> = {
-  batch_start_verification: { label: "Batch Start", icon: PlayCircle, color: "text-blue-600" },
-  batch_end_verification: { label: "Batch End", icon: CheckCircle2, color: "text-emerald-600" },
-  worker_query: { label: "Query", icon: MessageSquare, color: "text-slate-500" },
+const typeConfig: Record<InboxMessage["type"], { label: string; icon: typeof PlayCircle }> = {
+  batch_start_verification: { label: "Batch start", icon: PlayCircle },
+  batch_end_verification: { label: "Batch end", icon: CheckCircle2 },
+  worker_query: { label: "Query", icon: MessageSquare },
 };
 
-const statusColors: Record<InboxMessage["status"], string> = {
-  pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  accepted: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-  denied: "bg-red-500/15 text-red-600 border-red-500/30",
-  reprocess: "bg-purple-500/15 text-purple-600 border-purple-500/30",
-  resolved: "bg-slate-500/15 text-slate-600 border-slate-500/30",
-};
+const DAY = 86_400_000;
+// No read-tracking column exists, so "New" = still pending and under 24h old.
+const isNew = (status: string, createdAt: string) => status === "pending" && Date.now() - new Date(createdAt).getTime() < DAY;
+
+/** One queue row, whichever tab it came from. */
+interface Row {
+  id: string;
+  label: string;
+  icon: typeof PlayCircle;
+  status: string;
+  sender: string;
+  context: { label: string; value: string }[];
+  message: string;
+  reply: string | null;
+  created_at: string;
+  updated_at: string;
+  open: boolean;
+}
+
+type Status = "open" | "closed" | "all";
+type Age = "any" | "1" | "7" | "30";
+
+/** Queue list + selected-message panel; stacks on narrow screens. */
+function InboxLayout({ rows, noun, loading, renderDetail }: {
+  rows: Row[];
+  noun: string;
+  loading: boolean;
+  renderDetail: (id: string) => ReactNode;
+}) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<Status>("open");
+  const [age, setAge] = useState<Age>("any");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (status === "open" && !r.open) return false;
+      if (status === "closed" && r.open) return false;
+      if (age !== "any" && Date.now() - new Date(r.created_at).getTime() > Number(age) * DAY) return false;
+      if (!q) return true;
+      return [r.sender, r.message, r.label, ...r.context.map((c) => c.value)].some((s) => s.toLowerCase().includes(q));
+    });
+  }, [rows, search, status, age]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const current = rows.find((r) => r.id === selected) ?? null;
+  const filtersActive = status !== "open" || age !== "any";
+
+  return (
+    <div>
+      <TableToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search sender, message, order…"
+        count={visible.length}
+        noun={noun}
+        filtersActive={filtersActive}
+        onClear={() => { setSearch(""); setStatus("open"); setAge("any"); }}
+      >
+        <Select value={status} onValueChange={(v) => setStatus(v as Status)}>
+          <SelectTrigger className="w-[130px]" aria-label="Status"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="open">Needs action</SelectItem>
+            <SelectItem value="closed">Done</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={age} onValueChange={(v) => setAge(v as Age)}>
+          <SelectTrigger className="w-[140px]" aria-label="Age"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="any">Any age</SelectItem>
+            <SelectItem value="1">Last 24 hours</SelectItem>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </TableToolbar>
+
+      {visible.length === 0 && !current ? (
+        <EmptyState
+          icon={Inbox}
+          title={rows.length === 0 ? "No messages yet" : "No messages match"}
+          description={rows.length === 0 ? undefined : "Try clearing the search or filters."}
+        />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+          <ul className="space-y-2 lg:max-h-[70vh] lg:overflow-y-auto lg:pr-1" aria-label={`${noun} queue`}>
+            {visible.length === 0 && <li className="p-3 text-sm text-muted-foreground">No messages match.</li>}
+            {visible.map((r) => {
+              const Icon = r.icon;
+              const sel = r.id === current?.id;
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    aria-current={sel ? "true" : undefined}
+                    onClick={() => setSelected(r.id)}
+                    className={cn(
+                      "w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      sel && "border-primary bg-primary/5 ring-1 ring-primary",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+                        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <span className="truncate">{r.sender}</span>
+                      </span>
+                      <span className="flex shrink-0 items-center gap-1.5">
+                        {isNew(r.status, r.created_at) && <StatusBadge tone="info">New</StatusBadge>}
+                        <StatusBadge status={r.status} />
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.message}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {r.label} · Updated {fmtDateTime(r.updated_at)}
+                    </p>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="min-w-0 rounded-lg border bg-card p-4 lg:sticky lg:top-4 lg:self-start">
+            {current ? (
+              <div className="space-y-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-semibold">{current.sender}</h2>
+                    <StatusBadge status={current.status} />
+                    {isNew(current.status, current.created_at) && <StatusBadge tone="info">New</StatusBadge>}
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {current.label} · Received {fmtDateTime(current.created_at)} · Updated {fmtDateTime(current.updated_at)}
+                  </p>
+                </div>
+                {current.context.length > 0 && (
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                    {current.context.map((c) => (
+                      <div key={c.label} className="contents">
+                        <dt className="text-muted-foreground">{c.label}</dt>
+                        <dd>{c.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-3 text-sm">{current.message}</p>
+                {current.reply && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Reply sent</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm">{current.reply}</p>
+                  </div>
+                )}
+                {renderDetail(current.id)}
+              </div>
+            ) : (
+              <p className="py-10 text-center text-sm text-muted-foreground">Select a message to read and act on it.</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type Names = Record<string, string>;
+
+/** Look up display names for the ids found in messages. */
+async function lookupNames(table: "profiles" | "orders" | "production_batches", ids: string[]): Promise<Names> {
+  if (ids.length === 0) return {};
+  const col = table === "profiles" ? "id, full_name, company, email" : table === "orders" ? "id, order_number" : "id, style_number";
+  const { data } = await supabase.from(table).select(col).in("id", ids);
+  const out: Names = {};
+  for (const r of (data ?? []) as any[]) {
+    out[r.id] = table === "profiles" ? r.full_name || r.company || r.email || "Unknown" : table === "orders" ? r.order_number : r.style_number;
+  }
+  return out;
+}
+
+const uniq = (xs: (string | null | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))];
+
+/** Reply / resolve / reopen controls shared by worker queries and client questions. */
+function QueryActions({ open, canAct, busy, draft, setDraft, onReply, onResolve, onReopen, replyHint }: {
+  open: boolean;
+  canAct: boolean;
+  busy: boolean;
+  draft: string;
+  setDraft: (v: string) => void;
+  onReply: () => void;
+  onResolve: () => void;
+  onReopen: () => void;
+  replyHint: string;
+}) {
+  if (!canAct) return null;
+  if (!open) {
+    return (
+      <div className="border-t pt-3">
+        <Button size="sm" variant="outline" disabled={busy} onClick={onReopen}>
+          <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reopen
+        </Button>
+      </div>
+    );
+  }
+  const hasText = draft.trim().length > 0;
+  return (
+    <div className="space-y-2 border-t pt-3">
+      <Label htmlFor="inbox-reply">Reply</Label>
+      <Textarea id="inbox-reply" value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} placeholder="Type your reply…" />
+      <p className="text-xs text-muted-foreground">{replyHint}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" disabled={busy || !hasText} onClick={onReply}>Send reply</Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={onResolve}>
+          {hasText ? "Resolve & send reply" : "Mark resolved"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function WorkerInboxTab() {
   const { user, can } = useAuth();
   const { toast } = useToast();
   const confirm = useConfirm();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
+  const [names, setNames] = useState<{ p: Names; b: Names }>({ p: {}, b: {} });
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -48,6 +280,11 @@ function WorkerInboxTab() {
     try {
       const data = await fetchInboxMessages(100);
       setMessages(data);
+      const [p, b] = await Promise.all([
+        lookupNames("profiles", uniq(data.map((m) => m.worker_id))),
+        lookupNames("production_batches", uniq(data.map((m) => m.batch_id))),
+      ]);
+      setNames({ p, b });
     } catch (err: any) {
       toast({ title: "Failed to load inbox", description: err.message, variant: "destructive" });
     } finally {
@@ -66,12 +303,13 @@ function WorkerInboxTab() {
     };
   }, []);
 
-  const act = async (fn: () => Promise<void>, id: string) => {
+  const run = async (id: string, label: string, fn: () => Promise<void>, ask?: { title: string; description: string }) => {
     if (!user) return;
-    if (!(await confirm({ title: "Apply this decision?", description: "The worker is notified. You can undo it for 10 minutes." }))) return;
+    if (ask && !(await confirm(ask))) return;
     setBusyId(id);
     try {
-      await withUndo("Inbox decision applied", fn, load);
+      await withUndo(label, fn, load);
+      setNotes((s) => ({ ...s, [id]: "" }));
       await load();
     } catch (err: any) {
       toast({ title: "Action failed", description: err.message, variant: "destructive" });
@@ -80,165 +318,98 @@ function WorkerInboxTab() {
     }
   };
 
-  const visible = messages.filter((m) => (filter === "pending" ? m.status === "pending" : true));
+  const rows: Row[] = messages.map((m) => {
+    const cfg = typeConfig[m.type];
+    const context = [];
+    if (m.batch_id) context.push({ label: "Batch", value: names.b[m.batch_id] ?? "—" });
+    if (m.department) context.push({ label: "Department", value: DEPARTMENT_LABELS[m.department] });
+    return {
+      id: m.id,
+      label: cfg.label,
+      icon: cfg.icon,
+      status: m.status,
+      sender: names.p[m.worker_id] ?? "Worker",
+      context,
+      message: m.message,
+      reply: m.resolution_note,
+      created_at: m.created_at,
+      updated_at: m.resolved_at ?? m.created_at,
+      open: m.status === "pending",
+    };
+  });
 
-  if (loading) {
+  const detail = (id: string) => {
+    const m = messages.find((x) => x.id === id);
+    if (!m || !user) return null;
+    const busy = busyId === m.id;
+    const note = notes[m.id] ?? "";
+    const canAct = can("inbox_workers.update");
+    if (m.type === "worker_query") {
+      return (
+        <QueryActions
+          open={m.status === "pending"}
+          canAct={canAct}
+          busy={busy}
+          draft={note}
+          setDraft={(v) => setNotes((s) => ({ ...s, [m.id]: v }))}
+          replyHint="Send reply saves your answer and keeps the query pending. Mark resolved closes it."
+          onReply={() => run(m.id, "Reply saved", () => replyWorkerQuery(m, note.trim()))}
+          onResolve={() =>
+            run(m.id, "Worker query resolved", () => resolveWorkerQuery(m, user.id, note.trim() || m.resolution_note || undefined), {
+              title: "Mark this query resolved?",
+              description: "The worker is notified. You can undo it for 10 minutes.",
+            })
+          }
+          onReopen={() => run(m.id, "Worker query reopened", () => reopenWorkerQuery(m))}
+        />
+      );
+    }
+    if (m.status !== "pending" || !canAct) return null;
+    const decide = (fn: () => Promise<void>) =>
+      run(m.id, "Inbox decision applied", fn, { title: "Apply this decision?", description: "The worker is notified. You can undo it for 10 minutes." });
+    const n = note.trim() || undefined;
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="space-y-2 border-t pt-3">
+        <Label htmlFor="inbox-note">Note to worker (optional)</Label>
+        <Textarea id="inbox-note" value={note} onChange={(e) => setNotes((s) => ({ ...s, [m.id]: e.target.value }))} rows={2} />
+        <div className="flex flex-wrap gap-2">
+          {m.type === "batch_start_verification" ? (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => decide(() => resolveStartVerification(m, "accepted", user.id, n))}>
+                Accept (enable End QR)
+              </Button>
+              <Button size="sm" variant="destructive" disabled={busy} onClick={() => decide(() => resolveStartVerification(m, "denied", user.id, n))}>
+                Deny
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => decide(() => resolveEndVerification(m, "accepted", user.id, n))}>
+                Accept & Close
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => decide(() => resolveEndVerification(m, "reprocess", user.id, n))}>
+                <RotateCcw className="mr-1 h-3.5 w-3.5" /> Reprocess
+              </Button>
+              <Button size="sm" variant="destructive" disabled={busy} onClick={() => decide(() => resolveEndVerification(m, "denied", user.id, n))}>
+                Deny
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     );
-  }
+  };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Batch start/end verifications take priority over worker queries.
-        </p>
-        <div className="flex gap-2">
-          <Button size="sm" variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")}>
-            Pending
-          </Button>
-          <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>
-            All
-          </Button>
-        </div>
-      </div>
-
-      {visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            {filter === "pending" ? "No pending items." : "No messages yet."}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {visible.map((m) => {
-            const config = typeConfig[m.type];
-            const Icon = config.icon;
-            const isPending = m.status === "pending";
-            return (
-              <Card key={m.id}>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${config.color}`} />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-medium">{config.label}</span>
-                          {m.department && (
-                            <Badge variant="outline" className="text-[10px] capitalize">
-                              {DEPARTMENT_LABELS[m.department]}
-                            </Badge>
-                          )}
-                          <Badge className={`text-[10px] ${statusColors[m.status]}`}>{m.status}</Badge>
-                        </div>
-                        <p className="text-sm text-foreground mt-1">{m.message}</p>
-                        {m.resolution_note && (
-                          <p className="text-xs text-muted-foreground mt-1">Note: {m.resolution_note}</p>
-                        )}
-                        <p className="text-[11px] text-muted-foreground/70 mt-1">
-                          {new Date(m.created_at).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {isPending && can("inbox_workers.update") && (
-                    <div className="space-y-2 border-t pt-3">
-                      <Textarea
-                        placeholder="Optional note..."
-                        value={notes[m.id] ?? ""}
-                        onChange={(e) => setNotes((s) => ({ ...s, [m.id]: e.target.value }))}
-                        rows={2}
-                        className="text-xs"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {m.type === "batch_start_verification" && (
-                          <>
-                            <Button
-                              size="sm"
-                              disabled={busyId === m.id}
-                              onClick={() =>
-                                act(() => resolveStartVerification(m, "accepted", user!.id, notes[m.id]), m.id)
-                              }
-                            >
-                              Accept (enable End QR)
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              disabled={busyId === m.id}
-                              onClick={() =>
-                                act(() => resolveStartVerification(m, "denied", user!.id, notes[m.id]), m.id)
-                              }
-                            >
-                              Deny
-                            </Button>
-                          </>
-                        )}
-                        {m.type === "batch_end_verification" && (
-                          <>
-                            <Button
-                              size="sm"
-                              disabled={busyId === m.id}
-                              onClick={() => act(() => resolveEndVerification(m, "accepted", user!.id, notes[m.id]), m.id)}
-                            >
-                              Accept & Close
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={busyId === m.id}
-                              onClick={() => act(() => resolveEndVerification(m, "reprocess", user!.id, notes[m.id]), m.id)}
-                            >
-                              <RotateCcw className="w-3.5 h-3.5 mr-1" /> Reprocess
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              disabled={busyId === m.id}
-                              onClick={() => act(() => resolveEndVerification(m, "denied", user!.id, notes[m.id]), m.id)}
-                            >
-                              Deny
-                            </Button>
-                          </>
-                        )}
-                        {m.type === "worker_query" && (
-                          <Button
-                            size="sm"
-                            disabled={busyId === m.id}
-                            onClick={() => act(() => resolveWorkerQuery(m, user!.id, notes[m.id]), m.id)}
-                          >
-                            Mark Resolved
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  return <InboxLayout rows={rows} noun="message" loading={loading} renderDetail={detail} />;
 }
-
-const clientStatusColors: Record<ClientInboxMessage["status"], string> = {
-  pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-  resolved: "bg-slate-500/15 text-slate-600 border-slate-500/30",
-};
 
 function ClientInboxTab() {
   const { user, can } = useAuth();
   const { toast } = useToast();
   const confirm = useConfirm();
   const [messages, setMessages] = useState<ClientInboxMessage[]>([]);
+  const [names, setNames] = useState<{ p: Names; o: Names }>({ p: {}, o: {} });
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"pending" | "all">("pending");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
@@ -246,6 +417,11 @@ function ClientInboxTab() {
     try {
       const data = await fetchClientInboxMessages(100);
       setMessages(data);
+      const [p, o] = await Promise.all([
+        lookupNames("profiles", uniq(data.map((m) => m.client_id))),
+        lookupNames("orders", uniq(data.map((m) => m.order_id))),
+      ]);
+      setNames({ p, o });
     } catch (err: any) {
       toast({ title: "Failed to load inbox", description: err.message, variant: "destructive" });
     } finally {
@@ -264,12 +440,13 @@ function ClientInboxTab() {
     };
   }, []);
 
-  const act = async (m: ClientInboxMessage) => {
+  const run = async (id: string, label: string, fn: () => Promise<void>, ask?: { title: string; description: string }) => {
     if (!user) return;
-    if (!(await confirm({ title: "Mark this query resolved?", description: "The client sees your reply. You can undo it for 10 minutes." }))) return;
-    setBusyId(m.id);
+    if (ask && !(await confirm(ask))) return;
+    setBusyId(id);
     try {
-      await withUndo("Client query resolved", () => resolveClientQuery(m, user.id, notes[m.id]), load);
+      await withUndo(label, fn, load);
+      setNotes((s) => ({ ...s, [id]: "" }));
       await load();
     } catch (err: any) {
       toast({ title: "Action failed", description: err.message, variant: "destructive" });
@@ -278,84 +455,45 @@ function ClientInboxTab() {
     }
   };
 
-  const visible = messages.filter((m) => (filter === "pending" ? m.status === "pending" : true));
+  const rows: Row[] = messages.map((m) => ({
+    id: m.id,
+    label: m.type === "order_question" ? "Order question" : "Query",
+    icon: MessageSquare,
+    status: m.status,
+    sender: names.p[m.client_id] ?? "Client",
+    context: m.order_id ? [{ label: "Order", value: names.o[m.order_id] ?? "—" }] : [],
+    message: m.message,
+    reply: m.resolution_note,
+    created_at: m.created_at,
+    updated_at: m.resolved_at ?? m.created_at,
+    open: m.status === "pending",
+  }));
 
-  if (loading) {
+  const detail = (id: string) => {
+    const m = messages.find((x) => x.id === id);
+    if (!m || !user) return null;
+    const note = notes[m.id] ?? "";
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
+      <QueryActions
+        open={m.status === "pending"}
+        canAct={can("inbox_clients.update")}
+        busy={busyId === m.id}
+        draft={note}
+        setDraft={(v) => setNotes((s) => ({ ...s, [m.id]: v }))}
+        replyHint="The client sees your reply. Send reply keeps the question pending; Mark resolved closes it."
+        onReply={() => run(m.id, "Reply sent", () => replyClientQuery(m, note.trim()))}
+        onResolve={() =>
+          run(m.id, "Client query resolved", () => resolveClientQuery(m, user.id, note.trim() || m.resolution_note || undefined), {
+            title: "Mark this query resolved?",
+            description: "The client sees your reply. You can undo it for 10 minutes.",
+          })
+        }
+        onReopen={() => run(m.id, "Client query reopened", () => reopenClientQuery(m))}
+      />
     );
-  }
+  };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Free-text questions clients send about their account or orders.</p>
-        <div className="flex gap-2">
-          <Button size="sm" variant={filter === "pending" ? "default" : "outline"} onClick={() => setFilter("pending")}>
-            Pending
-          </Button>
-          <Button size="sm" variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")}>
-            All
-          </Button>
-        </div>
-      </div>
-
-      {visible.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            {filter === "pending" ? "No pending items." : "No messages yet."}
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {visible.map((m) => {
-            const isPending = m.status === "pending";
-            return (
-              <Card key={m.id}>
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <MessageSquare className="w-4 h-4 mt-0.5 shrink-0 text-slate-500" />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium">
-                          {m.type === "order_question" ? "Order Question" : "Query"}
-                        </span>
-                        <Badge className={`text-[10px] ${clientStatusColors[m.status]}`}>{m.status}</Badge>
-                      </div>
-                      <p className="text-sm text-foreground mt-1">{m.message}</p>
-                      {m.resolution_note && (
-                        <p className="text-xs text-muted-foreground mt-1">Note: {m.resolution_note}</p>
-                      )}
-                      <p className="text-[11px] text-muted-foreground/70 mt-1">
-                        {new Date(m.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {isPending && can("inbox_clients.update") && (
-                    <div className="space-y-2 border-t pt-3">
-                      <Textarea
-                        placeholder="Reply (optional)..."
-                        value={notes[m.id] ?? ""}
-                        onChange={(e) => setNotes((s) => ({ ...s, [m.id]: e.target.value }))}
-                        rows={2}
-                        className="text-xs"
-                      />
-                      <Button size="sm" disabled={busyId === m.id} onClick={() => act(m)}>
-                        Mark Resolved
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
+  return <InboxLayout rows={rows} noun="message" loading={loading} renderDetail={detail} />;
 }
 
 export default function InboxPage() {
@@ -363,12 +501,8 @@ export default function InboxPage() {
   const showWorkers = can("inbox_workers.view");
   const showClients = can("inbox_clients.view");
   return (
-    <div className="space-y-4 max-w-3xl">
-      <div>
-        <h1 className="font-heading text-2xl">Inbox</h1>
-        <p className="text-sm text-muted-foreground">Worker batch verifications/queries and client questions.</p>
-      </div>
-
+    <div>
+      <PageHeader title="Inbox" description="Worker batch verifications and queries, and client questions." />
       <Tabs defaultValue={showWorkers ? "worker" : "client"}>
         <TabsList>
           {showWorkers && <TabsTrigger value="worker">Worker</TabsTrigger>}

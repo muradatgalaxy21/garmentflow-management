@@ -154,3 +154,18 @@ export async function resolveWorkerQuery(msg: InboxMessage, adminId: string, not
     .eq("id", msg.id);
   if (error) throw error;
 }
+
+/** Admin: save a reply on a worker query without resolving it. */
+export async function replyWorkerQuery(msg: InboxMessage, note: string) {
+  const { error } = await supabase.from("worker_inbox_messages").update({ resolution_note: note }).eq("id", msg.id);
+  if (error) throw error;
+}
+
+/** Admin: put a resolved worker query back to pending (keeps the earlier reply). */
+export async function reopenWorkerQuery(msg: InboxMessage) {
+  const { error } = await supabase
+    .from("worker_inbox_messages")
+    .update({ status: "pending", resolved_by: null, resolved_at: null })
+    .eq("id", msg.id);
+  if (error) throw error;
+}
