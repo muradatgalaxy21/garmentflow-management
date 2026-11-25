@@ -52,7 +52,7 @@ export default function FinanceDashboard() {
 
   const t = today();
   const { from, to } = periodRange(periodKey, t);
-  const periodLabel = `${PERIOD_OPTIONS.find((p) => p.value === periodKey)!.label} (${fmtDate(from)} – ${fmtDate(to)})`;
+  const periodLabel = `${PERIOD_OPTIONS.find((p) => p.value === periodKey)!.label.toLowerCase()} (${fmtDate(from)} – ${fmtDate(to)})`;
   const vendorName = new Map(data.vendors.map((v) => [v.id, v.name]));
   const inP = (d: string) => inRange(d, from, to);
 
@@ -131,7 +131,7 @@ export default function FinanceDashboard() {
 
       <Section id="owed-h" title="Owed and overdue" hint="As of today. Not affected by the period.">
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
-          <Kpi label="We owe vendors" value={pkr(payable)} note={draftBills || draftVPay ? `incl. drafts: ${pkr(draftBills)} bills, ${pkr(draftVPay)} payments` : "all posted"} definition="Opening balances plus bills minus payments, all vendors." />
+          <Kpi label="We owe vendors" value={pkr(payable)} note={draftBills || draftVPay ? `incl. drafts: ${[draftBills && `${pkr(draftBills)} bills`, draftVPay && `${pkr(draftVPay)} payments`].filter(Boolean).join(", ")}` : "all posted"} definition="Opening balances plus bills minus payments, all vendors." />
           <Kpi label="Clients owe us" value={pkr(receivable)} note={`${draftNote(receiptsAll.draft)} receipts`} definition="Order value minus receipts. Client due dates are not tracked, so no overdue split." />
           <Card className={overdue.length ? "border-destructive/40" : undefined}>
             <CardContent className="py-4">
