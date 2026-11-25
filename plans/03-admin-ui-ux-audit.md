@@ -279,7 +279,7 @@ Collected from page sessions; each item gets its own session later.
 - Dispatch tracking refs + correction/cancel flow. Existing undo (`change_log`, 10 min) covers cancelling a fresh mistake only; editing/cancelling an older dispatch is not covered.
 - Dispatch destination (orders only store `party_name` + `expected_delivery`, no ship-to address) and remaining cartons (no pieces-per-carton / packing record stored, so only "cartons already dispatched" is shown).
 - Vendor payment terms.
-- Expense receipt attachments.
+- Expense receipt attachments (needs storage + column). Also: expenses have no `log_change` trigger, so the detail history is built from the row's own created/modified/posted/void columns (edits to a draft before approval are not itemised); add the trigger if a full edit trail is wanted.
 - Inbox conversation threads, assignment, escalation.
 - Inventory: supplier + usage context on item detail (no supplier column on `inventory_items`; usage would need a batch_id column on `inventory_movements`, today the batch ref only lives in the free-text reason). Also: DB-level block on deleting items with movement history (today only the UI blocks it; FK is ON DELETE CASCADE).
 - Purchases: field-level bill change history. `vendor_bills` has no `log_change` trigger, so the bill detail history is built from stored timestamps (created / edited / posted / voided) and payments, without actor names or old/new values. Needs a trigger migration + a readable view of actor names (`change_log` is only visible to admins and the author).
