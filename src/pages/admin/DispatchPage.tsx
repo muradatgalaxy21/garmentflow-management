@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Truck, FileText, Loader2 } from "lucide-react";
+import { Truck, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +14,9 @@ import { withUndo } from "@/lib/undo";
 import { useAuth } from "@/hooks/useAuth";
 import { DEPARTMENT_LABELS, QUALITY_VERDICT_LABELS, generateBatchReport, type BatchReport } from "@/lib/departmentEntries";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
+import { fmtDate } from "@/lib/format";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { EmptyState } from "@/components/admin/EmptyState";
 
 interface Batch {
   id: string;
@@ -21,6 +24,7 @@ interface Batch {
   total_quantity: number;
   order_number: string | null;
   party_name: string | null;
+  expected_delivery: string | null;
 }
 
 interface Dispatch {
@@ -47,6 +51,8 @@ export default function DispatchPage() {
   const [cartonCount, setCartonCount] = useState<number>(0);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [reportBatchId, setReportBatchId] = useState("");
   const [report, setReport] = useState<BatchReport | null>(null);
@@ -55,7 +61,7 @@ export default function DispatchPage() {
   const load = async () => {
     setLoading(true);
     const [batchRes, dispatchRes] = await Promise.all([
-      supabase.from("production_batches").select("id, style_number, total_quantity, orders(order_number, party_name)").order("created_at", { ascending: false }),
+      supabase.from("production_batches").select("id, style_number, total_quantity, orders(order_number, party_name, expected_delivery)").order("created_at", { ascending: false }),
       supabase.from("batch_dispatches").select("*").order("created_at", { ascending: false }),
     ]);
     setBatches(((batchRes.data as any[]) ?? []).map((b) => ({
@@ -64,6 +70,7 @@ export default function DispatchPage() {
       total_quantity: b.total_quantity,
       order_number: b.orders?.order_number ?? null,
       party_name: b.orders?.party_name ?? null,
+      expected_delivery: b.orders?.expected_delivery ?? null,
     })));
     setDispatches((dispatchRes.data as Dispatch[]) ?? []);
     setLoading(false);
@@ -76,18 +83,29 @@ export default function DispatchPage() {
     return b ? formatBatchIdentity(b.order_number, b.style_number, b.party_name) : id.slice(0, 8);
   };
 
+  const selected = batches.find((b) => b.id === batchId);
+  const batchDispatches = dispatches.filter((d) => d.batch_id === batchId);
+  const dispatchedCartons = batchDispatches.reduce((n, d) => n + d.carton_count, 0);
+  const errors = {
+    batch: batchId ? "" : "Select a batch.",
+    date: dispatchDate ? "" : "Choose a dispatch date.",
+    cartons: cartonCount >= 1 ? "" : "Enter a whole number of cartons, at least 1.",
+  };
+  const valid = !errors.batch && !errors.date && !errors.cartons;
+
   const handleCreate = async () => {
-    if (!batchId || !dispatchDate || cartonCount <= 0) {
-      toast({ title: "Select a batch, date, and carton count", variant: "destructive" });
-      return;
-    }
+    if (saving) return;
+    setTouched(true);
+    setSuccess(null);
+    if (!valid) return;
+    setSaving(true); // lock the button while the confirm dialog is open too
     const ok = await confirm({
       title: "Log this dispatch?",
       description: "You can undo it for 10 minutes.",
-      details: [["Date", dispatchDate], ["Cartons", String(cartonCount)], ["Carrier", carrier.trim() || "—"]],
+      details: [["Batch", batchLabel(batchId)], ["Date", fmtDate(dispatchDate)], ["Cartons", String(cartonCount)], ["Carrier", carrier.trim() || "—"]],
     });
-    if (!ok) return;
-    setSaving(true);
+    if (!ok) { setSaving(false); return; }
+    const doneLabel = `${batchLabel(batchId)} · ${cartonCount} carton${cartonCount === 1 ? "" : "s"}`;
     const error = await withUndo("Dispatch logged", async () => (await supabase.from("batch_dispatches").insert({
       batch_id: batchId,
       dispatch_date: dispatchDate,
@@ -101,7 +119,8 @@ export default function DispatchPage() {
       toast({ title: "Failed to log dispatch", description: error.message, variant: "destructive" });
       return;
     }
-    setBatchId(""); setCarrier(""); setCartonCount(0); setNote("");
+    setBatchId(""); setCarrier(""); setCartonCount(0); setNote(""); setTouched(false);
+    setSuccess(doneLabel);
     load();
   };
 
@@ -115,19 +134,16 @@ export default function DispatchPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-foreground">Dispatch</h1>
-        <p className="text-sm text-muted-foreground">Log outbound shipments and view the auto-generated per-batch pipeline report.</p>
-      </div>
+      <PageHeader title="Dispatch" description="Log outbound shipments and view the auto-generated per-batch pipeline report." />
 
       <Card>
         <CardContent className="py-5 space-y-4">
           <h3 className="font-semibold text-foreground flex items-center gap-2"><Truck className="w-4 h-4 text-accent" /> Log Dispatch</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Batch</Label>
-              <Select value={batchId} onValueChange={setBatchId}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Select batch" /></SelectTrigger>
+              <Label className="text-xs">Batch <span className="text-destructive" aria-hidden>*</span></Label>
+              <Select value={batchId} onValueChange={(v) => { setBatchId(v); setSuccess(null); if (v !== reportBatchId) loadReport(v); }}>
+                <SelectTrigger className="mt-1" aria-required aria-invalid={touched && !!errors.batch}><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
                   {batches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
@@ -136,25 +152,44 @@ export default function DispatchPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {touched && errors.batch && <p className="text-xs text-destructive mt-1">{errors.batch}</p>}
             </div>
             <div>
-              <Label className="text-xs">Dispatch Date</Label>
-              <Input type="date" value={dispatchDate} onChange={(e) => setDispatchDate(e.target.value)} className="mt-1" />
+              <Label className="text-xs" htmlFor="dispatch-date">Dispatch Date <span className="text-destructive" aria-hidden>*</span></Label>
+              <Input id="dispatch-date" type="date" required value={dispatchDate} onChange={(e) => setDispatchDate(e.target.value)} className="mt-1" />
+              {touched && errors.date && <p className="text-xs text-destructive mt-1">{errors.date}</p>}
             </div>
             <div>
               <Label className="text-xs">Carrier / Vehicle</Label>
               <Input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="e.g. TCS, Truck #123" className="mt-1" />
             </div>
             <div>
-              <Label className="text-xs">Carton Count</Label>
-              <Input type="number" min="1" value={cartonCount || ""} onChange={(e) => setCartonCount(Math.max(0, parseInt(e.target.value) || 0))} className="mt-1" />
+              <Label className="text-xs" htmlFor="dispatch-cartons">Carton Count <span className="text-destructive" aria-hidden>*</span></Label>
+              <Input id="dispatch-cartons" type="number" min="1" step="1" required inputMode="numeric" aria-invalid={touched && !!errors.cartons} value={cartonCount || ""} onChange={(e) => setCartonCount(Math.max(0, parseInt(e.target.value) || 0))} className="mt-1" />
+              {touched && errors.cartons
+                ? <p className="text-xs text-destructive mt-1">{errors.cartons}</p>
+                : <p className="text-xs text-muted-foreground mt-1">Number of cartons leaving in this shipment. Not linked to a packing record, so count what is physically loaded.</p>}
             </div>
           </div>
           <div>
             <Label className="text-xs">Dispatch Note</Label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="mt-1" />
           </div>
-          <Button onClick={handleCreate} disabled={saving || !can("dispatch.create")} className="bg-accent text-accent-foreground">
+          {selected && (
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
+              <p className="font-medium text-foreground">{formatBatchIdentity(selected.order_number, selected.style_number, selected.party_name)}</p>
+              <p className="text-muted-foreground">
+                {selected.total_quantity} pcs in batch · {dispatchedCartons} carton{dispatchedCartons === 1 ? "" : "s"} already dispatched in {batchDispatches.length} shipment{batchDispatches.length === 1 ? "" : "s"}
+              </p>
+              <p className="text-muted-foreground">Customer: {selected.party_name ?? "—"} · Expected delivery: {fmtDate(selected.expected_delivery)}</p>
+            </div>
+          )}
+          {success && (
+            <div role="status" className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 p-3 text-sm text-success">
+              <CheckCircle2 className="w-4 h-4 shrink-0" /> Dispatch logged: {success}. You can undo it for 10 minutes.
+            </div>
+          )}
+          <Button onClick={handleCreate} disabled={saving || !valid || !can("dispatch.create")} className="bg-accent text-accent-foreground">
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Truck className="w-4 h-4 mr-2" />} Log Dispatch
           </Button>
         </CardContent>
@@ -220,16 +255,15 @@ export default function DispatchPage() {
           {loading ? (
             <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
           ) : dispatches.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">No dispatches logged yet.</p>
+            <EmptyState icon={Truck} title="No dispatches logged yet" description="Shipments you log above will appear here." />
           ) : (
             <div className="space-y-2">
               {dispatches.map((d) => (
-                <div key={d.id} className="p-3 rounded-lg border border-border flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <span className="text-sm font-semibold text-foreground">{batchLabel(d.batch_id)}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{d.dispatch_date} {d.carrier ? `• ${d.carrier}` : ""}</span>
-                  </div>
-                  <Badge variant="outline">{d.carton_count} cartons</Badge>
+                <div key={d.id} className="p-3 rounded-lg border border-border grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_7rem_10rem_6rem] items-center gap-x-4 gap-y-1">
+                  <span className="text-sm font-semibold text-foreground min-w-0 break-words">{batchLabel(d.batch_id)}</span>
+                  <span className="text-sm text-muted-foreground text-right sm:text-left">{fmtDate(d.dispatch_date)}</span>
+                  <span className="text-sm text-muted-foreground min-w-0 truncate">{d.carrier || "No carrier"}</span>
+                  <Badge variant="outline" className="justify-self-end">{d.carton_count} carton{d.carton_count === 1 ? "" : "s"}</Badge>
                 </div>
               ))}
             </div>

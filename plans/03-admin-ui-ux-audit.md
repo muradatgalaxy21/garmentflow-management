@@ -276,7 +276,8 @@ Collected from page sessions; each item gets its own session later.
 
 - RFQ internal notes + history.
 - Order due dates + overdue filters.
-- Dispatch tracking refs + correction/cancel flow.
+- Dispatch tracking refs + correction/cancel flow. Existing undo (`change_log`, 10 min) covers cancelling a fresh mistake only; editing/cancelling an older dispatch is not covered.
+- Dispatch destination (orders only store `party_name` + `expected_delivery`, no ship-to address) and remaining cartons (no pieces-per-carton / packing record stored, so only "cartons already dispatched" is shown).
 - Vendor payment terms.
 - Expense receipt attachments.
 - Inbox conversation threads, assignment, escalation.
