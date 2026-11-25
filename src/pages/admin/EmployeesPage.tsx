@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Loader2, Shield, User as UserIcon, HardHat, UserPlus, Wrench, Briefcase, Download, KeyRound } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Loader2, Shield, HardHat, UserPlus, Briefcase, Download, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePkPhone } from "@/lib/phone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,15 @@ import { downloadCsv } from "@/lib/export";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
 import { ACTIONS, ACTION_LABELS, SECTIONS, type Action } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
+import { fmtDateTime } from "@/lib/format";
+import { PageHeader } from "@/components/admin/PageHeader";
+import { StatusBadge } from "@/components/admin/StatusBadge";
+import { TableToolbar } from "@/components/admin/TableToolbar";
+import { MoreMenu } from "@/components/admin/MoreMenu";
+import { EmptyState } from "@/components/admin/EmptyState";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DEFAULT_EMPLOYEE_FILTERS, filterEmployees, paginate, type EmployeeFilters } from "@/lib/employeeFilters";
 
 type AppRole = "admin" | "staff" | "client" | "worker" | "manager";
 
@@ -68,7 +77,10 @@ export default function EmployeesPage() {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [payouts, setPayouts] = useState<WorkerPayoutSummary[]>([]);
   const [loadingPayouts, setLoadingPayouts] = useState(false);
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<EmployeeFilters>(DEFAULT_EMPLOYEE_FILTERS);
+  const [page, setPage] = useState(1);
+  const [createOpen, setCreateOpen] = useState(false);
+  const setFilter = (patch: Partial<EmployeeFilters>) => { setFilters((f) => ({ ...f, ...patch })); setPage(1); };
   const [permEdit, setPermEdit] = useState<{ profile: Profile; granted: Set<string>; original: Set<string> } | null>(null);
 
   // IMP-13: permanent change history (RLS: admins, or the member themself).
@@ -91,6 +103,20 @@ export default function EmployeesPage() {
     const uid = permEdit.profile.id;
     const added = [...permEdit.granted].filter((x) => !permEdit.original.has(x));
     const removed = [...permEdit.original].filter((x) => !permEdit.granted.has(x));
+    if (!added.length && !removed.length) return setPermEdit(null);
+    const ok = await confirm({
+      title: `Change permissions for ${permEdit.profile.full_name ?? "this person"}?`,
+      description: "Takes effect next time they open or refresh the portal. The change is logged.",
+      details: [
+        ["Currently", `${permEdit.original.size} permission${permEdit.original.size === 1 ? "" : "s"}`],
+        ["After saving", `${permEdit.granted.size} permission${permEdit.granted.size === 1 ? "" : "s"}`],
+        ["Added", added.length ? added.join(", ") : "none"],
+        ["Removed", removed.length ? removed.join(", ") : "none"],
+      ],
+      confirmLabel: "Save permissions",
+      destructive: removed.length > 0,
+    });
+    if (!ok) return;
     setBusy("saving_perms");
     const results = await Promise.all([
       added.length ? supabase.from("user_permissions").insert(added.map((permission) => ({ user_id: uid, permission }))) : null,
@@ -214,15 +240,9 @@ export default function EmployeesPage() {
   const rolesFor = (id: string) => roles.filter((r) => r.user_id === id).map((r) => r.role);
 
   const workerProfiles = profiles.filter((p) => !rolesFor(p.id).includes("client"));
-  // IMP-12: match name / phone / department / sub-department / role / employee ID.
-  const q = search.trim().toLowerCase();
-  const qDigits = q.replace(/\D/g, "");
-  const shownWorkers = !q ? workerProfiles : workerProfiles.filter((p) =>
-    [p.full_name, p.email, p.employee_id, p.department?.replace("_", " "), p.sub_department?.replace("_", " "), ...rolesFor(p.id)]
-      .some((v) => v?.toLowerCase().includes(q))
-    // Phone: digits only, so "0300 123" finds +92300123... too.
-    || (qDigits.length >= 3 && !!p.phone && (p.phone.replace(/\D/g, "").includes(qDigits) || p.phone.replace(/\D/g, "").includes(qDigits.replace(/^0/, "92")))),
-  );
+  const filteredWorkers = filterEmployees(workerProfiles, filters, (p) => rolesFor(p.id));
+  const paged = paginate(filteredWorkers, page);
+  const filtersActive = filters.role !== "all" || filters.department !== "all" || filters.pay !== "all";
 
   const nextEmployeeId = () => {
     const maxNum = profiles.reduce((max, p) => {
@@ -237,7 +257,16 @@ export default function EmployeesPage() {
   };
 
   const toggleRole = async (userId: string, role: AppRole, hasIt: boolean) => {
-    if (hasIt && !(await confirm({ title: `Remove the ${role} role from this person?`, confirmLabel: "Remove", destructive: true }))) return;
+    const person = profiles.find((p) => p.id === userId);
+    const current = rolesFor(userId);
+    const next = hasIt ? current.filter((r) => r !== role) : [...current, role];
+    const list = (r: string[]) => (r.length ? r.join(", ") : "none");
+    if (!(await confirm({
+      title: hasIt ? `Remove the ${role} role?` : `Grant the ${role} role?`,
+      details: [["Person", person?.full_name ?? "Unnamed"], ["Current roles", list(current)], ["New roles", list(next)]],
+      confirmLabel: hasIt ? "Remove" : "Grant",
+      destructive: hasIt,
+    }))) return;
     setBusy(userId + role);
     const { error } = hasIt
       ? await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role)
@@ -304,43 +333,37 @@ export default function EmployeesPage() {
       return;
     }
     toast({ title: "Employee account created" });
-    (e.target as HTMLFormElement).reset();
+    setCreateOpen(false);
     load();
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Employee Center</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage permanent &amp; dihaari (per-piece) workers, assign manager roles, and view weekly payout ledgers.
-          </p>
-        </div>
-      </div>
+      <PageHeader title="Employee Center" description="Manage permanent & dihaari (per-piece) workers, assign manager roles, and view weekly payout ledgers.">
+        {can("employees.create") && (
+          <Button onClick={() => setCreateOpen(true)}><UserPlus /> Add employee</Button>
+        )}
+      </PageHeader>
 
-      {can("employees.create") && (
-        <Card className="border-accent/20 bg-accent/5">
-          <CardContent className="py-4">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-              <UserPlus className="w-4 h-4 text-accent" /> Create New Employee Account
-            </h2>
-            <form onSubmit={createWorker} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2 items-end">
-              <div>
-                <Label htmlFor="worker-name" className="text-xs">Full Name</Label>
-                <Input id="worker-name" name="fullName" placeholder="e.g. Tariq Mehmood" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="worker-phone" className="text-xs">Mobile Number</Label>
-                <Input id="worker-phone" name="phone" type="tel" required placeholder="03001234567" className="mt-1" />
-              </div>
-              <Button type="submit" size="sm" disabled={creatingWorker} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                {creatingWorker ? "Creating..." : "Create Account"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Create new employee account</DialogTitle></DialogHeader>
+          <form onSubmit={createWorker} className="space-y-3">
+            <div>
+              <Label htmlFor="worker-name" className="text-xs">Full Name</Label>
+              <Input id="worker-name" name="fullName" placeholder="e.g. Tariq Mehmood" className="mt-1" />
+            </div>
+            <div>
+              <Label htmlFor="worker-phone" className="text-xs">Mobile Number</Label>
+              <Input id="worker-phone" name="phone" type="tel" required placeholder="03001234567" className="mt-1" />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={creatingWorker}>{creatingWorker ? "Creating..." : "Create Account"}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -354,15 +377,43 @@ export default function EmployeesPage() {
           </TabsList>
 
           <TabsContent value="workers" className="mt-4 space-y-3">
-            <Input
-              type="search"
-              placeholder="Search name, phone, department, role…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-md"
-              aria-label="Search employees"
-            />
-            {renderWorkerList(shownWorkers)}
+            <TableToolbar
+              search={filters.q}
+              onSearch={(q) => setFilter({ q })}
+              placeholder="Search name, phone, skill, role…"
+              count={filteredWorkers.length}
+              noun="employee"
+              filtersActive={filtersActive}
+              onClear={() => { setFilters(DEFAULT_EMPLOYEE_FILTERS); setPage(1); }}
+            >
+              <Select value={filters.role} onValueChange={(role) => setFilter({ role })}>
+                <SelectTrigger className="w-[130px]" aria-label="Filter by role"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All roles</SelectItem>
+                  {["admin", "manager", "staff", "worker"].map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+                  <SelectItem value="none">No role</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filters.department} onValueChange={(department) => setFilter({ department })}>
+                <SelectTrigger className="w-[150px]" aria-label="Filter by department"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All departments</SelectItem>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {DEPARTMENTS.map((d) => <SelectItem key={d} value={d} className="capitalize">{d.replace("_", " ")}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {can("payroll.view") && (
+                <Select value={filters.pay} onValueChange={(pay) => setFilter({ pay: pay as EmployeeFilters["pay"] })}>
+                  <SelectTrigger className="w-[150px]" aria-label="Filter by pay type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All pay types</SelectItem>
+                    <SelectItem value="piece_rate">Dihaari (per piece)</SelectItem>
+                    <SelectItem value="monthly_salary">Permanent monthly</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </TableToolbar>
+            {renderWorkerList(paged.rows)}
           </TabsContent>
 
           {can("payroll.view") && (
@@ -437,7 +488,7 @@ export default function EmployeesPage() {
                 <ul className="text-xs space-y-1 max-h-48 overflow-y-auto">
                   {permHistory.map((h) => (
                     <li key={h.id} className="flex gap-2">
-                      <span className="text-muted-foreground shrink-0">{new Date(h.changed_at).toLocaleString()}</span>
+                      <span className="text-muted-foreground shrink-0">{fmtDateTime(h.changed_at)}</span>
                       <span>
                         {h.changed_by_name ?? "System"}: <span className="font-mono">{h.permission}</span>{" "}
                         {h.old_value ? "on" : "off"} → <span className={h.new_value ? "text-emerald-600" : "text-red-600"}>{h.new_value ? "on" : "off"}</span>
@@ -612,92 +663,106 @@ export default function EmployeesPage() {
 
   function renderWorkerList(list: Profile[]) {
     if (list.length === 0) {
-      return (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">No workers or staff found.</CardContent>
-        </Card>
-      );
+      return <EmptyState title="No workers or staff found" description="Try a different search or clear the filters." />;
     }
+    const showPay = can("payroll.view");
     return (
       <div className="space-y-3">
-        {list.map((p) => {
-          const userRoles = rolesFor(p.id);
-          const hasAdmin = userRoles.includes("admin");
-          const hasStaff = userRoles.includes("staff");
-          const hasManager = userRoles.includes("manager");
-          const hasWorker = userRoles.includes("worker");
-          const isDihaari = p.wage_type !== "monthly_salary";
+        <div className="rounded-md border border-border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead className="hidden sm:table-cell">Contact</TableHead>
+                <TableHead>Role</TableHead>
+                {showPay && <TableHead className="hidden md:table-cell">Pay type</TableHead>}
+                <TableHead className="hidden lg:table-cell">Department / skills</TableHead>
+                <TableHead className="w-px"><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((p) => {
+                const userRoles = rolesFor(p.id);
+                const hasAdmin = userRoles.includes("admin");
+                const hasStaff = userRoles.includes("staff");
+                const hasManager = userRoles.includes("manager");
+                const hasWorker = userRoles.includes("worker");
+                const isDihaari = p.wage_type !== "monthly_salary";
+                const canEdit = !hasAdmin && can("employees.update");
+                const wage = isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`;
+                const dept = [p.department?.replace("_", " "), p.sub_department?.replace("_", " ")].filter(Boolean).join(" · ");
 
-          return (
-            <Card
-              key={p.id}
-              className="hover:border-accent/30 transition-colors cursor-pointer"
-              onClick={() => navigate(`/admin/employees/${p.id}`)}
-            >
-              <CardContent className="py-4 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <UserIcon className="w-4 h-4 text-muted-foreground" />
-                    <h3 className="font-semibold text-foreground">{p.full_name ?? (hasAdmin ? "Admin" : "Unnamed Worker")}</h3>
-                    {p.employee_id && <Badge variant="secondary" className="font-mono text-xs">{p.employee_id}</Badge>}
-                    {hasAdmin || !can("payroll.view") ? null : isDihaari ? (
-                      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">Dihaari (Per-Piece)</Badge>
-                    ) : (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">Permanent Monthly</Badge>
+                return (
+                  <TableRow key={p.id} className="cursor-pointer" onClick={() => navigate(`/admin/employees/${p.id}`)}>
+                    <TableCell>
+                      <Link to={`/admin/employees/${p.id}`} onClick={(e) => e.stopPropagation()} className="min-w-[7rem] inline-block font-medium text-foreground hover:underline">
+                        {p.full_name ?? (hasAdmin ? "Admin" : "Unnamed Worker")}
+                      </Link>
+                      {p.employee_id && <div className="font-mono text-xs text-muted-foreground">{p.employee_id}</div>}
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-xs text-muted-foreground">{p.email || p.phone || "No direct contact"}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {hasAdmin && <StatusBadge tone="info">Admin</StatusBadge>}
+                        {hasManager && <StatusBadge tone="info">Manager</StatusBadge>}
+                        {hasStaff && <StatusBadge>Staff</StatusBadge>}
+                        {hasWorker && <StatusBadge>Worker</StatusBadge>}
+                        {userRoles.length === 0 && <span className="text-xs text-muted-foreground">No role</span>}
+                      </div>
+                    </TableCell>
+                    {showPay && (
+                      <TableCell className="hidden md:table-cell">
+                        {hasAdmin ? <span className="text-xs text-muted-foreground">—</span> : (<>
+                          {isDihaari ? <StatusBadge tone="warning">Dihaari (per piece)</StatusBadge> : <StatusBadge tone="success">Permanent monthly</StatusBadge>}
+                          <div className="text-xs text-muted-foreground mt-1">{wage}</div>
+                        </>)}
+                      </TableCell>
                     )}
-                    {hasAdmin && <Badge className="bg-accent text-accent-foreground">Admin</Badge>}
-                    {hasManager && <Badge className="bg-blue-600 text-white">Manager</Badge>}
-                    {hasStaff && <Badge variant="outline">Staff</Badge>}
-                    {hasWorker && <Badge variant="outline">Worker</Badge>}
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
-                    <span>{p.email || p.phone || "No direct contact"}</span>
-                    {!hasAdmin && can("payroll.view") && <span>• Wage: {isDihaari ? `Default ${p.default_piece_rate || 0}/pc` : `Salary ${p.base_salary || 0}/mo`}</span>}
-                    {p.skills && p.skills.length > 0 && (
-                      <span className="flex items-center gap-1"><Wrench className="w-3 h-3 text-accent" /> {p.skills.join(", ")}</span>
-                    )}
-                  </div>
-                </div>
-
-                {!hasAdmin && (isAdmin || can("employees.update")) && (
-                  <div className="flex flex-wrap gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                    {!hasAdmin && can("employees.update") && (
-                      <Button size="sm" variant="outline" onClick={() => openEditProfile(p)}>
-                        <Briefcase className="w-3.5 h-3.5 mr-1" /> Edit Dihaari/Skills
-                      </Button>
-                    )}
-                    {isAdmin && (<>
-                    <Button
-                      size="sm"
-                      variant={hasManager ? "default" : "outline"}
-                      className={hasManager ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
-                      disabled={busy === p.id + "manager"}
-                      onClick={() => toggleRole(p.id, "manager", hasManager)}
-                    >
-                      <Shield className="w-3.5 h-3.5 mr-1" />
-                      {hasManager ? "Manager" : "+ Grant Manager"}
-                    </Button>
-                    {(hasManager || hasStaff) && !hasAdmin && (
-                      <Button size="sm" variant="outline" onClick={() => openPermissions(p)}>
-                        <KeyRound className="w-3.5 h-3.5 mr-1" /> Permissions
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant={hasWorker ? "secondary" : "outline"}
-                      disabled={busy === p.id + "worker"}
-                      onClick={() => toggleRole(p.id, "worker", hasWorker)}
-                    >
-                      <HardHat className="w-3.5 h-3.5 mr-1" />
-                      {hasWorker ? "Worker Role" : "+ Worker Role"}
-                    </Button>
-                    </>)}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
+                      <div className="capitalize">{dept || "Unassigned"}</div>
+                      {p.skills && p.skills.length > 0 && <div>{p.skills.join(", ")}</div>}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {!hasAdmin && (
+                        <div className="flex items-center justify-end gap-1">
+                          {canEdit && (
+                            <Button size="sm" variant="outline" aria-label={`Edit ${p.full_name ?? "employee"}`} onClick={() => openEditProfile(p)}>
+                              <Briefcase /> <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                          )}
+                          {isAdmin && (
+                            <MoreMenu label={`More actions for ${p.full_name ?? "employee"}`}>
+                              <DropdownMenuItem disabled={busy === p.id + "manager"} onSelect={() => toggleRole(p.id, "manager", hasManager)}>
+                                <Shield className="mr-2 h-4 w-4" /> {hasManager ? "Remove Manager" : "Grant Manager"}
+                              </DropdownMenuItem>
+                              {(hasManager || hasStaff) && (
+                                <DropdownMenuItem onSelect={() => openPermissions(p)}>
+                                  <KeyRound className="mr-2 h-4 w-4" /> Permissions
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem disabled={busy === p.id + "worker"} onSelect={() => toggleRole(p.id, "worker", hasWorker)}>
+                                <HardHat className="mr-2 h-4 w-4" /> {hasWorker ? "Remove Worker Role" : "Add Worker Role"}
+                              </DropdownMenuItem>
+                            </MoreMenu>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+        {paged.pages > 1 && (
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Page {paged.page} of {paged.pages}</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={paged.page <= 1} onClick={() => setPage(paged.page - 1)}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={paged.page >= paged.pages} onClick={() => setPage(paged.page + 1)}>Next</Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
