@@ -3,6 +3,7 @@ import { Truck, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,7 +142,7 @@ export default function DispatchPage() {
           <h3 className="font-semibold text-foreground flex items-center gap-2"><Truck className="w-4 h-4 text-accent" /> Log Dispatch</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Batch <span className="text-destructive" aria-hidden>*</span></Label>
+              <Label className="text-xs">Batch <span className="text-danger" aria-hidden>*</span></Label>
               <Select value={batchId} onValueChange={(v) => { setBatchId(v); setSuccess(null); if (v !== reportBatchId) loadReport(v); }}>
                 <SelectTrigger className="mt-1" aria-required aria-invalid={touched && !!errors.batch}><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
@@ -152,28 +153,28 @@ export default function DispatchPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {touched && errors.batch && <p className="text-xs text-destructive mt-1">{errors.batch}</p>}
+              {touched && errors.batch && <p className="text-xs text-danger mt-1">{errors.batch}</p>}
             </div>
             <div>
-              <Label className="text-xs" htmlFor="dispatch-date">Dispatch Date <span className="text-destructive" aria-hidden>*</span></Label>
+              <Label className="text-xs" htmlFor="dispatch-date">Dispatch Date <span className="text-danger" aria-hidden>*</span></Label>
               <Input id="dispatch-date" type="date" required value={dispatchDate} onChange={(e) => setDispatchDate(e.target.value)} className="mt-1" />
-              {touched && errors.date && <p className="text-xs text-destructive mt-1">{errors.date}</p>}
+              {touched && errors.date && <p className="text-xs text-danger mt-1">{errors.date}</p>}
             </div>
             <div>
               <Label className="text-xs">Carrier / Vehicle</Label>
               <Input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="e.g. TCS, Truck #123" className="mt-1" />
             </div>
             <div>
-              <Label className="text-xs" htmlFor="dispatch-cartons">Carton Count <span className="text-destructive" aria-hidden>*</span></Label>
+              <Label className="text-xs" htmlFor="dispatch-cartons">Carton Count <span className="text-danger" aria-hidden>*</span></Label>
               <Input id="dispatch-cartons" type="number" min="1" step="1" required inputMode="numeric" aria-invalid={touched && !!errors.cartons} value={cartonCount || ""} onChange={(e) => setCartonCount(Math.max(0, parseInt(e.target.value) || 0))} className="mt-1" />
               {touched && errors.cartons
-                ? <p className="text-xs text-destructive mt-1">{errors.cartons}</p>
+                ? <p className="text-xs text-danger mt-1">{errors.cartons}</p>
                 : <p className="text-xs text-muted-foreground mt-1">Number of cartons leaving in this shipment. Not linked to a packing record, so count what is physically loaded.</p>}
             </div>
           </div>
           <div>
             <Label className="text-xs">Dispatch Note</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="mt-1" />
+            <Textarea aria-label="Dispatch note" value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="mt-1" />
           </div>
           {selected && (
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
@@ -215,15 +216,15 @@ export default function DispatchPage() {
             <div className="space-y-3">
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="outline">{report.bundleCount} bundles</Badge>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                <StatusBadge tone="success">
                   {report.qualityVerdicts.confirm} confirmed
-                </Badge>
-                <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                </StatusBadge>
+                <StatusBadge tone="warning">
                   {report.qualityVerdicts.alter} altered
-                </Badge>
-                <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/30">
+                </StatusBadge>
+                <StatusBadge tone="danger">
                   {report.qualityVerdicts.reject} rejected
-                </Badge>
+                </StatusBadge>
               </div>
               {report.departments.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">No stage entries logged yet for this batch.</p>

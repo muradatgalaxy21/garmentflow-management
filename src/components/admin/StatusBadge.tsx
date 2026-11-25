@@ -9,7 +9,7 @@ const TONE_CLASS: Record<Tone, string> = {
   warning: "border-warning/30 bg-warning/10 text-warning",
   info: "border-info/30 bg-info/10 text-info",
   neutral: "border-border bg-muted text-neutral",
-  danger: "border-destructive/30 bg-destructive/10 text-destructive",
+  danger: "border-destructive/30 bg-destructive/10 text-danger",
 };
 
 // Every status stored across the admin pages -> tone + display text.

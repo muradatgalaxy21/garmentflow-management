@@ -28,7 +28,7 @@
     --secondary-foreground: 220 30% 12%;
 
     --muted: 40 20% 93%;
-    --muted-foreground: 220 10% 46%;
+    --muted-foreground: 220 10% 42%;
 
     --accent: 38 60% 52%;
     --accent-foreground: 220 40% 10%;
@@ -53,10 +53,11 @@
 
     /* Semantic status tones (admin UI audit). Red (--destructive) stays for
        errors, overdue items and deletes only. */
-    --success: 152 60% 30%;
-    --warning: 30 90% 36%;
+    --success: 152 60% 27%;
+    --warning: 30 90% 31%;
     --info: 212 70% 40%;
     --neutral: 220 10% 42%;
+    --danger: 0 72% 42%;
 
     /* Custom tokens */
     --navy: 220 40% 18%;
@@ -113,6 +114,7 @@
     --warning: 38 90% 60%;
     --info: 212 85% 70%;
     --neutral: 40 10% 68%;
+    --danger: 0 85% 72%;
   }
 
   /* Admin portal: headings use Inter (set on <html> by AdminLayout so dialogs

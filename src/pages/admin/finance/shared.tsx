@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Download, Printer, CheckCircle2, Undo2, Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/admin/StatusBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { offerFinanceUndo, type FinanceTable } from "@/lib/undo";
@@ -106,7 +107,7 @@ export function PageHeader({ subtitle, ...p }: { title: string; subtitle?: strin
 }
 
 export function StatCard({ label: l, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "bad" | "good" }) {
-  const color = tone === "bad" ? "text-destructive" : tone === "good" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground";
+  const color = tone === "bad" ? "text-danger" : tone === "good" ? "text-emerald-600 dark:text-emerald-400" : "text-foreground";
   return (
     <Card>
       <CardContent className="py-4">
@@ -137,11 +138,11 @@ export function DateRange({ from, to, onChange }: { from: string; to: string; on
     <div className="flex items-end gap-2">
       <div>
         <Label className="text-xs">From</Label>
-        <Input type="date" value={from} max={to} onChange={(e) => onChange(e.target.value, to)} className="h-9 w-40" />
+        <Input type="date" aria-label="From date" value={from} max={to} onChange={(e) => onChange(e.target.value, to)} className="h-9 w-40" />
       </div>
       <div>
         <Label className="text-xs">To</Label>
-        <Input type="date" value={to} min={from} onChange={(e) => onChange(from, e.target.value)} className="h-9 w-40" />
+        <Input type="date" aria-label="To date" value={to} min={from} onChange={(e) => onChange(from, e.target.value)} className="h-9 w-40" />
       </div>
     </div>
   );
@@ -283,7 +284,7 @@ export const statusTone: Record<string, string> = {
   paid: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
   partial: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   unpaid: "bg-muted text-muted-foreground",
-  overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  overdue: "bg-destructive/10 text-danger border-destructive/20",
   void: "text-muted-foreground line-through",
   credit_note: "border-violet-500/30 text-violet-600 dark:text-violet-400",
 };
@@ -303,10 +304,10 @@ export interface LifecycleRow {
 }
 
 export function DocStatusBadge({ row }: { row: LifecycleRow }) {
-  if (row.reverses_id) return <Badge variant="outline" className="border-violet-500/30 text-violet-600 dark:text-violet-400">Reversal</Badge>;
-  if (row.voided_by_id) return <Badge variant="outline" className="line-through text-muted-foreground">Voided</Badge>;
-  if (row.status === "draft") return <Badge variant="outline" className="border-amber-500/40 text-amber-600 dark:text-amber-400">Draft</Badge>;
-  return <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">Posted{row.self_approved ? " (self)" : ""}</Badge>;
+  if (row.reverses_id) return <StatusBadge tone="info">Reversal</StatusBadge>;
+  if (row.voided_by_id) return <StatusBadge tone="neutral" className="line-through">Voided</StatusBadge>;
+  if (row.status === "draft") return <StatusBadge tone="warning">Draft</StatusBadge>;
+  return <StatusBadge tone="success">Posted{row.self_approved ? " (self)" : ""}</StatusBadge>;
 }
 
 const TEN_MIN = 10 * 60 * 1000;
@@ -366,7 +367,7 @@ export function LifecycleActions({ table, row, summary, onChanged, toastDetail }
   }
   if (row.reverses_id || row.voided_by_id || !can(`${FINANCE_AREA[table]}.delete`)) return null;
   return (
-    <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+    <Button size="sm" variant="ghost" className="text-danger" onClick={async () => {
       const ok = await confirm({
         title: "Void this posted entry?",
         description: "A reversal entry with the opposite amount is posted today. Both stay in the ledger.",

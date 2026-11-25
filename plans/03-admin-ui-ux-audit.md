@@ -42,7 +42,7 @@ Requested 2026-11-24. Decisions confirmed with user:
 | 14 | Employees | `EmployeesPage.tsx` (+ `WorkerDetailPage.tsx` links) | ☑ 25-Nov-2026 |
 | 15 | Clients | `ClientsPage.tsx` | ☑ 25-Nov-2026 |
 | 16 | Inbox | `InboxPage.tsx` | ☑ 25-Nov-2026 |
-| 17 | Final validation pass | all admin pages | ☐ |
+| 17 | Final validation pass | all admin pages | ☑ 25-Nov-2026 |
 
 Large files likely to need two sessions: Batches (845 lines), Employees (792), Inventory (567).
 
@@ -285,4 +285,5 @@ Collected from page sessions; each item gets its own session later.
 - Purchases: field-level bill change history. `vendor_bills` has no `log_change` trigger, so the bill detail history is built from stored timestamps (created / edited / posted / voided) and payments, without actor names or old/new values. Needs a trigger migration + a readable view of actor names (`change_log` is only visible to admins and the author).
 - Receivables: invoice-level payment due dates / client payment terms (orders store only `expected_delivery`, a delivery date, not a payment due date). Until then aging runs from order date, matching Reports; once a due date exists, switch `clientReceivable` and the Reports receivables case together.
 - Clients: client status field (active / on hold / inactive) + status filter. `profiles` has no status column; the list shows a plain "Client" account label until one exists. Also: RFQs have no `client_id`, so the client detail matches them by email (a client who submitted an RFQ with a different email won't see it).
+- Final pass leftovers (small, not fixed): (a) pages show a blank main area for ~2 s while data loads (RFQ Inbox, Purchases) - add skeleton/loading rows; (b) after a dialog closes with Esc, focus lands on the page body instead of the button that opened it (Purchases "New bill"); (c) RFQ "Convert to Production Order" and real deletes were not exercised (no convertible RFQ in test data; no destructive actions run); (d) `tsc -p tsconfig.app.json` still reports 5 old errors in `MultiWorkerLogModal.tsx`, `departmentEntries.ts`, `AdminAuthPage.tsx`.
 - (add more as sessions find them)

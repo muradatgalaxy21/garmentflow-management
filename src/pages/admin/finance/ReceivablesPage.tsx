@@ -160,7 +160,7 @@ export default function ReceivablesPage() {
                       <TableCell className="font-medium">{r.name}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(r.billed)}</TableCell>
                       <TableCell className="text-right tabular-nums">{pkr(r.received)}</TableCell>
-                      <TableCell className={`text-right tabular-nums font-semibold ${r.due > 0 ? "text-destructive" : ""}`}>{pkr(r.due)}</TableCell>
+                      <TableCell className={`text-right tabular-nums font-semibold ${r.due > 0 ? "text-danger" : ""}`}>{pkr(r.due)}</TableCell>
                       <TableCell className={`text-right tabular-nums ${over30(r) > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>{pkr(over30(r))}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">{r.open.length ? `${r.oldestDays}d` : "—"}</TableCell>
                       <TableCell>
@@ -184,7 +184,7 @@ export default function ReceivablesPage() {
               <button key={k} type="button" aria-pressed={bucket === k} onClick={() => setBucket(bucket === k ? null : k)}
                 className={`rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/50 ${bucket === k ? "ring-2 ring-primary" : ""}`}>
                 <span className="block text-xs uppercase tracking-wide text-muted-foreground">{bucketName(k)}</span>
-                <span className={`block text-lg font-bold tabular-nums ${k === "90+" && agingTotals[k] > 0 ? "text-destructive" : ""}`}>{pkr(agingTotals[k])}</span>
+                <span className={`block text-lg font-bold tabular-nums ${k === "90+" && agingTotals[k] > 0 ? "text-danger" : ""}`}>{pkr(agingTotals[k])}</span>
               </button>
             ))}
           </div>

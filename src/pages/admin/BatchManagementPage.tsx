@@ -746,7 +746,7 @@ export default function BatchManagementPage() {
                             <DropdownMenuItem onSelect={() => cancelBatch(b)}><Ban /> Cancel batch</DropdownMenuItem>
                           )}
                           {can("batches.delete") && (
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => requestDeleteBatch(b)}>
+                            <DropdownMenuItem className="text-danger focus:text-danger" onSelect={() => requestDeleteBatch(b)}>
                               <Trash2 /> Delete batch…
                             </DropdownMenuItem>
                           )}

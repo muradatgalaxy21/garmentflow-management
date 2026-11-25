@@ -24,7 +24,7 @@ const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 const draftNote = (d: number) => (d > 0 ? `incl. ${pkr(d)} draft` : "all posted");
 
 function Kpi({ label: l, value, tone, definition, note }: { label: string; value: string; tone?: "bad" | "good"; definition: string; note?: ReactNode }) {
-  const color = tone === "bad" ? "text-destructive" : tone === "good" ? "text-success" : "text-foreground";
+  const color = tone === "bad" ? "text-danger" : tone === "good" ? "text-success" : "text-foreground";
   return (
     <Card>
       <CardContent className="py-4">
@@ -137,11 +137,11 @@ export default function FinanceDashboard() {
             <CardContent className="py-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Overdue bills</p>
               <p className="text-2xl font-bold tabular-nums mt-1 flex items-center gap-2">
-                {overdue.length > 0 && <AlertTriangle className="w-5 h-5 text-destructive" aria-hidden />}
+                {overdue.length > 0 && <AlertTriangle className="w-5 h-5 text-danger" aria-hidden />}
                 {overdue.length} <span className="text-base font-medium text-muted-foreground">bill{overdue.length === 1 ? "" : "s"}</span>
               </p>
               <p className="text-xs text-foreground/80 mt-1">{overdue.length ? `${pkr(overdueTotal)} past due date` : "Nothing past due"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Unpaid vendor bills whose due date has passed. <Link to="/admin/finance/purchases" className="text-accent hover:underline">See bills</Link></p>
+              <p className="text-xs text-muted-foreground mt-1">Unpaid vendor bills whose due date has passed. <Link to="/admin/finance/purchases" className="text-primary underline-offset-2 hover:underline">See bills</Link></p>
             </CardContent>
           </Card>
         </div>
@@ -192,7 +192,7 @@ export default function FinanceDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Latest entries</CardTitle>
-            <Link to="/admin/finance/reports" className="text-sm text-accent hover:underline">Reports</Link>
+            <Link to="/admin/finance/reports" className="text-sm text-primary underline-offset-2 hover:underline">Reports</Link>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>
@@ -221,7 +221,7 @@ export default function FinanceDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Bills due (next 14 days + overdue)</CardTitle>
-            <Link to="/admin/finance/purchases" className="text-sm text-accent hover:underline">All bills</Link>
+            <Link to="/admin/finance/purchases" className="text-sm text-primary underline-offset-2 hover:underline">All bills</Link>
           </CardHeader>
           <CardContent className="p-0 overflow-x-auto">
             <Table>
@@ -248,7 +248,7 @@ export default function FinanceDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Biggest vendor dues</CardTitle>
-            <Link to="/admin/finance/vendors" className="text-sm text-accent hover:underline">All vendors</Link>
+            <Link to="/admin/finance/vendors" className="text-sm text-primary underline-offset-2 hover:underline">All vendors</Link>
           </CardHeader>
           <CardContent className="p-0">
             <Table>

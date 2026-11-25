@@ -104,7 +104,7 @@ export default function VendorLedgerPage() {
           {AGING_BUCKETS.map((k) => (
             <div key={k}>
               <p className="text-xs text-muted-foreground">{BUCKET_LABEL[k]}</p>
-              <p className={`font-semibold tabular-nums ${k !== "current" && pp.aging[k] > 0 ? "text-destructive" : ""}`}>{pkr(pp.aging[k])}</p>
+              <p className={`font-semibold tabular-nums ${k !== "current" && pp.aging[k] > 0 ? "text-danger" : ""}`}>{pkr(pp.aging[k])}</p>
             </div>
           ))}
         </CardContent>

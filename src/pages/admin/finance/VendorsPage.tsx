@@ -93,7 +93,7 @@ export default function VendorsPage() {
   return (
     <div>
       <PageHeader title="Vendors" subtitle="Suppliers of fabric, accessories and services, with what we owe each.">
-        <ExportButtons title="Vendor Balances" subtitle={`As of ${new Date().toLocaleDateString()}`} rows={exportRows} />
+        <ExportButtons title="Vendor Balances" subtitle={`As of ${fmtDate(new Date())}`} rows={exportRows} />
         {canCreate && <Button size="sm" onClick={() => setEditing({ form: { ...blank } })}><Plus className="w-4 h-4 mr-1" /> Add vendor</Button>}
       </PageHeader>
 
@@ -150,7 +150,7 @@ export default function VendorsPage() {
                   <TableCell>{label(v.category)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{[v.contact_person, v.phone].filter(Boolean).join(" · ") || "No contact added"}</TableCell>
                   <TableCell className="text-right">
-                    <div className={`tabular-nums font-semibold ${balance > 0 ? "text-destructive" : ""}`}>{pkr(balance)}</div>
+                    <div className={`tabular-nums font-semibold ${balance > 0 ? "text-danger" : ""}`}>{pkr(balance)}</div>
                     <div className="mt-1 flex justify-end">
                       {p.status === "overdue" ? (
                         <StatusBadge tone="danger" icon={AlertTriangle}>Overdue {p.daysOverdue} {p.daysOverdue === 1 ? "day" : "days"}</StatusBadge>

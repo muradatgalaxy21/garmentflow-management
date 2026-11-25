@@ -653,7 +653,7 @@ export default function OrdersAdminPage() {
                     </Button>
                   )}
                   {can("orders.delete") && (
-                    <Button variant="outline" className="w-full text-destructive hover:text-destructive border-destructive/30" onClick={requestDeleteOrder}>
+                    <Button variant="outline" className="w-full text-danger hover:text-danger border-destructive/30" onClick={requestDeleteOrder}>
                       <Trash2 className="w-4 h-4 mr-2" /> Delete Order
                     </Button>
                   )}

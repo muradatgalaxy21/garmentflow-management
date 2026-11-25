@@ -281,7 +281,7 @@ export default function PurchasesPage() {
                         <TableCell className="whitespace-nowrap">{fmtDate(b.bill_date)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           {b.due_date ? fmtDate(b.due_date) : "—"}
-                          {days !== null && days < 0 && <div className="text-xs text-destructive">{-days} day{days === -1 ? "" : "s"} late</div>}
+                          {days !== null && days < 0 && <div className="text-xs text-danger">{-days} day{days === -1 ? "" : "s"} late</div>}
                           {days !== null && days >= 0 && days <= 7 && <div className="text-xs text-warning">{days === 0 ? "due today" : `in ${days} day${days === 1 ? "" : "s"}`}</div>}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{pkr(Number(b.total_amount))}</TableCell>
@@ -307,7 +307,7 @@ export default function PurchasesPage() {
                               <MoreMenu label="More actions">
                                 {voidBlockedReason(b)
                                   ? <DropdownMenuItem disabled className="max-w-56 whitespace-normal text-xs">Void unavailable: {voidBlockedReason(b)}</DropdownMenuItem>
-                                  : <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => voidBill(b)}><Ban className="w-3.5 h-3.5 mr-2" /> Void bill…</DropdownMenuItem>}
+                                  : <DropdownMenuItem className="text-danger focus:text-danger" onSelect={() => voidBill(b)}><Ban className="w-3.5 h-3.5 mr-2" /> Void bill…</DropdownMenuItem>}
                               </MoreMenu>
                             )}
                           </div>
@@ -378,7 +378,7 @@ export default function PurchasesPage() {
               </div>
               <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <div><dt className="text-muted-foreground">Bill date</dt><dd>{fmtDate(vb.bill_date)}</dd></div>
-                <div><dt className="text-muted-foreground">Due date</dt><dd>{fmtDate(vb.due_date)}{days !== null && <span className={days < 0 ? " text-destructive" : ""}> ({days < 0 ? `${-days}d late` : days === 0 ? "today" : `in ${days}d`})</span>}</dd></div>
+                <div><dt className="text-muted-foreground">Due date</dt><dd>{fmtDate(vb.due_date)}{days !== null && <span className={days < 0 ? " text-danger" : ""}> ({days < 0 ? `${-days}d late` : days === 0 ? "today" : `in ${days}d`})</span>}</dd></div>
                 <div><dt className="text-muted-foreground">Total / paid</dt><dd className="tabular-nums">{pkr(Number(vb.total_amount))} / {pkr(Number(vb.paid_amount))}</dd></div>
                 <div><dt className="text-muted-foreground">Balance</dt><dd className="font-semibold tabular-nums">{pkr(Number(vb.balance))}</dd></div>
                 {f?.notes && <div className="col-span-2 sm:col-span-4"><dt className="text-muted-foreground">Notes</dt><dd>{f.notes}</dd></div>}

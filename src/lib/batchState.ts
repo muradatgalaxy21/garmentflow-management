@@ -1,22 +1,12 @@
 // Pure helpers for the Batches page: where a batch is in the pipeline, whether it's
 // blocked, and the list filters. Kept out of the page so they can be tested.
 import type { Department } from "@/lib/departmentEntries";
+import { STAGE_GROUPS } from "@/lib/pipelineStatus";
 
-// department_sequence order_index groups — sticker/printing/embroidery share
-// order_index 3 as alternatives, so they're collapsed into one stage.
-export const STAGES: { key: string; label: string; departments: Department[] }[] = [
-  { key: "accessories", label: "Accessories", departments: ["accessories"] },
-  { key: "cutting", label: "Cutting", departments: ["cutting"] },
-  { key: "decoration", label: "Sticker/Print/Embroidery", departments: ["sticker", "printing", "embroidery"] },
-  { key: "quality", label: "Quality", departments: ["quality"] },
-  { key: "lot_bundling", label: "Lot Bundling", departments: ["lot_bundling"] },
-  { key: "stitching", label: "Stitching Hall", departments: ["stitching"] },
-  { key: "button_ops", label: "Button Ops", departments: ["button_ops"] },
-  { key: "clipping", label: "Clipping", departments: ["clipping"] },
-  { key: "press", label: "Press", departments: ["press"] },
-  { key: "quality_final", label: "Quality (Final)", departments: ["quality_final"] },
-  { key: "packing", label: "Packing", departments: ["packing"] },
-];
+// One stage list, owned by pipelineStatus.ts (STAGE_GROUPS); flattened here for the Batches page.
+export const STAGES: { key: string; label: string; departments: Department[] }[] = STAGE_GROUPS.flatMap((g) =>
+  g.stages.map((s) => ({ key: s.key, label: s.full, departments: s.departments })),
+);
 
 /** One batch_department_status row. */
 export interface DeptRow {
