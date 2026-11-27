@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { getEntryPieceCount } from "@/lib/departmentEntries";
+import { entryCost, entryPieces, type Department, type EntryStage } from "@/lib/departmentEntries";
 import { downloadCsv } from "@/lib/export";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
 import { ACTIONS, ACTION_LABELS, SECTIONS, type Action } from "@/lib/permissions";
@@ -170,7 +170,7 @@ export default function EmployeesPage() {
 
     const { data: deptEntries, error: dErr } = await supabase
       .from("department_entries")
-      .select("worker_id, department, payload, total_cost")
+      .select("worker_id, department, stage, payload, total_cost")
       .in("department", WAGE_BEARING_DEPARTMENTS);
 
     if (tErr || rErr || prErr || dErr) {
@@ -217,16 +217,16 @@ export default function EmployeesPage() {
       }
     });
 
-    // Real worker QR-logged work — department_entries.total_cost is already
-    // rate × pieces at the rate live when the entry was submitted (historical
-    // integrity, same pattern as the printing/embroidery/clipping forms).
+    // Real worker QR-logged work — total_cost is rate × END completed pieces,
+    // stamped when admin accepts the END (unaccepted ENDs have null cost). START
+    // rows carry no quantity/cost, and legacy START cost is ignored (BUG-6).
     deptEntries?.forEach((e) => {
+      const row = { department: e.department as Department, stage: e.stage as EntryStage };
       const summary = summaryMap.get(e.worker_id);
       if (!summary) return;
-      const pieces = getEntryPieceCount((e.payload as Record<string, unknown>) ?? {}) ?? 0;
-      summary.total_pieces += pieces;
+      summary.total_pieces += entryPieces({ ...row, payload: (e.payload as Record<string, unknown>) ?? {} }) ?? 0;
       if (summary.wage_type.includes("Dihaari")) {
-        summary.calculated_payout += Number(e.total_cost || 0);
+        summary.calculated_payout += Number(entryCost({ ...row, total_cost: e.total_cost }) || 0);
       }
     });
 

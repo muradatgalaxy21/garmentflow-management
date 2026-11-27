@@ -22,6 +22,7 @@ import {
   replyWorkerQuery,
   reopenWorkerQuery,
   resolveEndVerification,
+  resolveEntryApproval,
   resolveStartVerification,
   resolveWorkerQuery,
   type InboxMessage,
@@ -37,6 +38,7 @@ import {
 const typeConfig: Record<InboxMessage["type"], { label: string; icon: typeof PlayCircle }> = {
   batch_start_verification: { label: "Batch start", icon: PlayCircle },
   batch_end_verification: { label: "Batch end", icon: CheckCircle2 },
+  entry_approval: { label: "Entry approval", icon: CheckCircle2 },
   worker_query: { label: "Query", icon: MessageSquare },
 };
 
@@ -379,6 +381,15 @@ function WorkerInboxTab() {
                 Accept (enable End QR)
               </Button>
               <Button size="sm" variant="destructive" disabled={busy} onClick={() => decide(() => resolveStartVerification(m, "denied", user.id, n))}>
+                Deny
+              </Button>
+            </>
+          ) : m.type === "entry_approval" ? (
+            <>
+              <Button size="sm" disabled={busy} onClick={() => decide(() => resolveEntryApproval(m, "accepted", user.id, n))}>
+                Accept (deduct stock)
+              </Button>
+              <Button size="sm" variant="destructive" disabled={busy} onClick={() => decide(() => resolveEntryApproval(m, "denied", user.id, n))}>
                 Deny
               </Button>
             </>

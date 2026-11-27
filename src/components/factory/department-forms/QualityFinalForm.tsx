@@ -82,7 +82,6 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
   const selectedStatus = bundleId ? statuses.get(bundleId) : null;
-  const totalCost = ratePerPiece !== null && selectedBundle ? ratePerPiece * selectedBundle.pcs_count : null;
 
   const canSubmit =
     !!bundleId &&
@@ -116,13 +115,13 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
           bundle_id: bundleId,
           lot_no: selectedBundle?.lot_no ?? null,
           bundle_no: selectedBundle?.bundle_no ?? null,
-          pcs_count: selectedBundle?.pcs_count ?? null,
+          // Pay is recorded at END (rate x completed); START only keeps the rate.
+          rate_per_piece: ratePerPiece,
           verdict,
           routed_to_department: verdict === "alter" ? routedTo : null,
           alter_reason: verdict === "alter" ? alterReason.trim() : null,
           reject_reason: verdict === "reject" ? rejectReason.trim() : null,
         },
-        totalCost,
       });
       toast({ title: t("factory.forms.qualityFinal.qualityCheckSaved") });
       onSubmitted();
@@ -221,13 +220,6 @@ export default function QualityFinalForm({ batchId, workerId, onSubmitted }: Dep
               </div>
             )}
           </>
-        )}
-
-        {totalCost !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
-          </div>
         )}
 
         <Button

@@ -166,6 +166,7 @@
       "sendFailed": "بھیجنے میں ناکامی",
       "typeBatchStart": "بیچ شروع",
       "typeBatchEnd": "بیچ ختم",
+      "typeEntryApproval": "اندراج کی منظوری",
       "typeMyQuery": "میرا سوال"
     },
     "restock": {

@@ -24,7 +24,6 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
   const [bundles, setBundles] = useState<BundleOption[]>([]);
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [bundleId, setBundleId] = useState("");
-  const [pcsPressed, setPcsPressed] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
   const [ratePerPiece, setRatePerPiece] = useState<number | null>(null);
 
@@ -52,10 +51,9 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
   }, []);
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
-  const totalCost = ratePerPiece !== null ? ratePerPiece * pcsPressed : null;
 
   const handleSubmit = async () => {
-    if (!bundleId || pcsPressed <= 0) {
+    if (!bundleId) {
       toast({ title: t("factory.forms.press.selectBundlePieces"), variant: "destructive" });
       return;
     }
@@ -69,9 +67,9 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
           bundle_id: bundleId,
           lot_no: selectedBundle?.lot_no ?? null,
           bundle_no: selectedBundle?.bundle_no ?? null,
-          pcs_pressed: pcsPressed,
+          // Quantity and cost are recorded at END (rate x completed); START only keeps the rate.
+          rate_per_piece: ratePerPiece,
         },
-        totalCost,
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -109,25 +107,11 @@ export default function PressForm({ batchId, workerId, onSubmitted }: Department
           )}
         </div>
 
-        <div>
-          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.press.piecesPressed")}</Label>
-          <Input type="number" min="0" value={pcsPressed}
-            onChange={(e) => setPcsPressed(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
-        </div>
-
-        {totalCost !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
-          </div>
-        )}
-
         <Button
           size="lg"
           className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl"
           onClick={handleSubmit}
-          disabled={submitting || !bundleId || pcsPressed <= 0}
+          disabled={submitting || !bundleId}
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>

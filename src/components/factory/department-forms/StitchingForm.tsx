@@ -70,7 +70,6 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
   const toOptions = ALL_SUB_DEPARTMENTS.filter((d) => d !== fromSubDept);
-  const totalCost = ratePerPiece !== null ? ratePerPiece * pcs : null;
 
   const handleSubmit = async () => {
     if (!bundleId || !toSubDept || pcs <= 0) {
@@ -98,9 +97,10 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
           bundle_no: selectedBundle?.bundle_no ?? null,
           from_sub_dept: fromSubDept,
           to_sub_dept: toSubDept,
+          // pcs here is only the bundle-transfer record; pay is recorded at END (rate x completed).
           pcs,
+          rate_per_piece: ratePerPiece,
         },
-        totalCost,
       });
       toast({ title: t("factory.forms.stitching.transferLogged") });
       onSubmitted();
@@ -175,13 +175,6 @@ export default function StitchingForm({ batchId, workerId, onSubmitted }: Depart
             onChange={(e) => setPcs(Math.max(0, parseInt(e.target.value) || 0))}
             className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
         </div>
-
-        {totalCost !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
-          </div>
-        )}
 
         <Button
           size="lg"

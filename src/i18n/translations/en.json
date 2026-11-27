@@ -166,6 +166,7 @@
       "sendFailed": "Failed to send",
       "typeBatchStart": "Batch Start",
       "typeBatchEnd": "Batch End",
+      "typeEntryApproval": "Entry Approval",
       "typeMyQuery": "My Query"
     },
     "restock": {

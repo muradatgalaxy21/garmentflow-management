@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
-import { insertDepartmentEntry, submitEndForVerification, type Department } from "@/lib/departmentEntries";
+import { getStartRate, insertDepartmentEntry, submitEndForVerification, type Department } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 interface EndConfirmationFormProps extends DepartmentFormProps {
@@ -29,6 +29,8 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
     }
     setSubmitting(true);
     try {
+      // Pay = rate (chosen at START) x completed; cost is stamped when admin accepts this END.
+      const ratePerPiece = await getStartRate(batchId, department, workerId);
       await insertDepartmentEntry({
         department,
         batchId,
@@ -37,6 +39,7 @@ export default function EndConfirmationForm({ department, batchId, workerId, sty
         payload: {
           quantity_completed: quantityCompleted,
           quantity_wasted: quantityWasted,
+          rate_per_piece: ratePerPiece,
           notes: notes || null,
         },
       });

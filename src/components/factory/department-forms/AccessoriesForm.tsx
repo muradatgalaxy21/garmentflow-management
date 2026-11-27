@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
-import { insertDepartmentEntry, recordInventoryMovement } from "@/lib/departmentEntries";
+import { insertDepartmentEntry, requestEntryApproval } from "@/lib/departmentEntries";
 import { UNITS, UNIT_LABELS, unitsAreConvertible, convertUnit, type Unit } from "@/lib/units";
 import { ACCESSORY_GROUPS } from "@/lib/accessoryTypes";
 import type { DepartmentFormProps } from "./types";
@@ -26,7 +26,7 @@ interface InventoryMatch {
   attributes: Record<string, unknown>;
 }
 
-export default function AccessoriesForm({ batchId, workerId, onSubmitted }: DepartmentFormProps) {
+export default function AccessoriesForm({ batchId, styleNumber, workerId, onSubmitted }: DepartmentFormProps) {
   const { toast } = useToast();
   const { t } = useTranslation();
   const [accessoryType, setAccessoryType] = useState<string>("");
@@ -101,12 +101,13 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
     }
     setSubmitting(true);
     try {
-      await insertDepartmentEntry({
+      const entryId = await insertDepartmentEntry({
         department: "accessories",
         batchId,
         workerId,
         inventoryItemId: selectedItem?.id ?? null,
         payload: {
+          stock_status: selectedItem ? "pending" : "n/a", // stock is deducted when admin approves (BUG-7)
           accessory_type: accessoryType,
           quantity: stockQuantity,
           entry_quantity: quantity,
@@ -116,9 +117,14 @@ export default function AccessoriesForm({ batchId, workerId, onSubmitted }: Depa
         },
         totalCost,
       });
-      if (selectedItem) {
-        await recordInventoryMovement(selectedItem.id, stockQuantity, "out", workerId, `Used in accessories entry for batch ${batchId}`);
-      }
+      await requestEntryApproval({
+        entryId,
+        department: "accessories",
+        batchId,
+        workerId,
+        styleNumber,
+        description: `${accessoryType} x ${quantity} ${entryUnit}`,
+      });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {

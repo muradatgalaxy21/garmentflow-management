@@ -27,7 +27,6 @@ export default function ClippingForm({ batchId, workerId, onSubmitted }: Departm
   const [loadingBundles, setLoadingBundles] = useState(true);
   const [bundleId, setBundleId] = useState("");
   const [garmentType, setGarmentType] = useState<string>("");
-  const [pcsCompleted, setPcsCompleted] = useState<number>(0);
   const [ratePerPcs, setRatePerPcs] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,10 +52,9 @@ export default function ClippingForm({ batchId, workerId, onSubmitted }: Departm
   }, [batchId]);
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
-  const totalPay = ratePerPcs !== null ? ratePerPcs * pcsCompleted : null;
 
   const handleSubmit = async () => {
-    if (!bundleId || !garmentType || pcsCompleted <= 0) {
+    if (!bundleId || !garmentType) {
       toast({ title: t("factory.forms.clipping.selectBundleGarmentPieces"), variant: "destructive" });
       return;
     }
@@ -71,10 +69,9 @@ export default function ClippingForm({ batchId, workerId, onSubmitted }: Departm
           lot_no: selectedBundle?.lot_no ?? null,
           bundle_no: selectedBundle?.bundle_no ?? null,
           garment_type: garmentType,
-          pcs_completed: pcsCompleted,
-          rate_per_pcs: ratePerPcs,
+          // Quantity and pay are recorded at END (rate x completed); START only keeps the rate.
+          rate_per_piece: ratePerPcs,
         },
-        totalCost: totalPay,
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -133,25 +130,11 @@ export default function ClippingForm({ batchId, workerId, onSubmitted }: Departm
           </span>
         </div>
 
-        <div>
-          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.buttonOps.piecesCompleted")}</Label>
-          <Input type="number" min="0" value={pcsCompleted}
-            onChange={(e) => setPcsCompleted(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
-        </div>
-
-        {totalPay !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.forms.clipping.totalPay")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalPay.toFixed(2)}</span>
-          </div>
-        )}
-
         <Button
           size="lg"
           className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl"
           onClick={handleSubmit}
-          disabled={submitting || !bundleId || !garmentType || pcsCompleted <= 0}
+          disabled={submitting || !bundleId || !garmentType}
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>

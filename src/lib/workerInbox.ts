@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
-import { closeDepartment, type Department } from "./departmentEntries";
+import { closeDepartment, recordInventoryMovement, stampEndCost, type Department } from "./departmentEntries";
 
-export type InboxMessageType = "batch_start_verification" | "batch_end_verification" | "worker_query";
+export type InboxMessageType = "batch_start_verification" | "batch_end_verification" | "entry_approval" | "worker_query";
 export type InboxMessageStatus = "pending" | "accepted" | "denied" | "reprocess" | "resolved";
 
 export interface InboxMessage {
@@ -23,6 +23,7 @@ export interface InboxMessage {
 const TYPE_PRIORITY: Record<InboxMessageType, number> = {
   batch_start_verification: 0,
   batch_end_verification: 0,
+  entry_approval: 0,
   worker_query: 1,
 };
 
@@ -119,6 +120,8 @@ export async function resolveEndVerification(
       .eq("batch_id", msg.batch_id)
       .eq("department", msg.department);
     if (error) throw error;
+    // Worker pay is only counted once the END is accepted (BUG-6).
+    await stampEndCost(msg.batch_id, msg.department, msg.worker_id);
   } else {
     // Denied or sent back for reprocessing: department stays open, worker resubmits the end scan.
     const { error } = await supabase
@@ -137,6 +140,87 @@ export async function resolveEndVerification(
       resolved_at: new Date().toISOString(),
       resolution_note: note ?? null,
     })
+    .eq("id", msg.id);
+  if (error) throw error;
+}
+
+/**
+ * Admin: approve or deny a stock-consuming entry (accessories/cutting). Stock is
+ * checked and deducted HERE, not when the worker saves (BUG-7) — offline scans
+ * may sync after stock is gone. Insufficient stock blocks approval.
+ */
+export async function resolveEntryApproval(
+  msg: InboxMessage,
+  decision: "accepted" | "denied",
+  adminId: string,
+  note?: string
+) {
+  const entryId = msg.payload?.entry_id;
+  if (typeof entryId !== "string" || !msg.batch_id || !msg.department) throw new Error("Message missing entry/batch/department");
+
+  const { data: entry, error: entryError } = await supabase
+    .from("department_entries")
+    .select("id, inventory_item_id, payload")
+    .eq("id", entryId)
+    .maybeSingle();
+  if (entryError) throw entryError;
+  if (!entry) throw new Error("The entry no longer exists");
+  const payload = (entry.payload as Record<string, unknown>) ?? {};
+
+  let stockStatus: string | null = null;
+  if (decision === "accepted") {
+    const qty = typeof payload.quantity === "number" ? payload.quantity : 0;
+    if (payload.stock_status === "pending" && entry.inventory_item_id && qty > 0) {
+      const { data: item, error: itemError } = await supabase
+        .from("inventory_items")
+        .select("name, unit, quantity_on_hand")
+        .eq("id", entry.inventory_item_id)
+        .maybeSingle();
+      if (itemError) throw itemError;
+      const onHand = Number(item?.quantity_on_hand ?? 0);
+      if (qty > onHand) {
+        throw new Error(`Insufficient stock for ${item?.name ?? "item"}: ${onHand} ${item?.unit ?? ""} available, ${qty} needed. Restock first.`);
+      }
+      await recordInventoryMovement(entry.inventory_item_id, qty, "out", msg.worker_id, `${msg.department} entry approved for batch ${msg.batch_id}`);
+    }
+    if (payload.stock_status === "pending") stockStatus = "deducted";
+
+    // Accessories is a single-entry stage (no START/END): the first approval clears it for the next department.
+    if (msg.department === "accessories") {
+      const existing = await supabase
+        .from("batch_department_status")
+        .select("batch_id")
+        .eq("batch_id", msg.batch_id)
+        .eq("department", "accessories")
+        .maybeSingle();
+      const closed = {
+        status: "closed",
+        closed_by: adminId,
+        closed_at: new Date().toISOString(),
+        start_verification_status: "accepted",
+        end_enabled: true,
+        end_verification_status: "accepted",
+      };
+      const { error } = existing.data
+        ? await supabase.from("batch_department_status").update(closed).eq("batch_id", msg.batch_id).eq("department", "accessories")
+        : await supabase.from("batch_department_status").insert({ batch_id: msg.batch_id, department: "accessories", opened_by: msg.worker_id, ...closed });
+      if (error) throw error;
+    }
+  } else if (payload.stock_status === "pending") {
+    stockStatus = "denied";
+  }
+
+  if (stockStatus) {
+    const { error } = await supabase
+      .from("department_entries")
+      .update({ payload: { ...payload, stock_status: stockStatus } })
+      .eq("id", entryId);
+    if (error) throw error;
+  }
+
+  const { error } = await supabase
+    .from("worker_inbox_messages")
+    .update({ status: decision, resolved_by: adminId, resolved_at: new Date().toISOString(), resolution_note: note ?? null })
     .eq("id", msg.id);
   if (error) throw error;
 }

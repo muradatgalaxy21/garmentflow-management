@@ -33,7 +33,6 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
   const [bundleId, setBundleId] = useState("");
   const [ratio, setRatio] = useState<Record<string, number> | null>(null);
   const [cartonsPacked, setCartonsPacked] = useState<number>(0);
-  const [pcsPerCarton, setPcsPerCarton] = useState<number>(0);
   const [matches, setMatches] = useState<InventoryMatch[]>([]);
   const [selectedItemId, setSelectedItemId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -68,10 +67,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
       .maybeSingle()
       .then(({ data }) => {
         const r = data?.ratio as Record<string, number> | undefined;
-        if (r) {
-          setRatio(r);
-          setPcsPerCarton(Object.values(r).reduce((sum, n) => sum + n, 0));
-        }
+        if (r) setRatio(r);
       });
 
     supabase
@@ -83,12 +79,9 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
 
   const selectedBundle = useMemo(() => bundles.find((b) => b.id === bundleId) || null, [bundles, bundleId]);
   const selectedItem = useMemo(() => matches.find((m) => m.id === selectedItemId) || null, [matches, selectedItemId]);
-  const expectedPerCarton = ratio ? Object.values(ratio).reduce((sum, n) => sum + n, 0) : null;
-  const ratioMismatch = expectedPerCarton !== null && pcsPerCarton > 0 && pcsPerCarton !== expectedPerCarton;
-  const totalCost = ratePerPiece !== null ? ratePerPiece * cartonsPacked * pcsPerCarton : null;
 
   const handleSubmit = async () => {
-    if (!bundleId || cartonsPacked <= 0 || pcsPerCarton <= 0) {
+    if (!bundleId || (selectedItem && cartonsPacked <= 0)) {
       toast({ title: t("factory.forms.packing.selectBundleCartonDetails"), variant: "destructive" });
       return;
     }
@@ -103,11 +96,11 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           bundle_id: bundleId,
           lot_no: selectedBundle?.lot_no ?? null,
           bundle_no: selectedBundle?.bundle_no ?? null,
-          cartons_packed: cartonsPacked,
-          pcs_per_carton: pcsPerCarton,
+          // Packed quantity and pay are recorded at END (rate x completed). cartons_used is only the packaging stock used.
+          cartons_used: selectedItem ? cartonsPacked : null,
+          rate_per_piece: ratePerPiece,
           ratio_snapshot: ratio,
         },
-        totalCost,
       });
       if (selectedItem) {
         await recordInventoryMovement(selectedItem.id, cartonsPacked, "out", workerId, `Used in packing entry for batch ${batchId}`);
@@ -155,25 +148,6 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           </p>
         </div>
 
-        <div>
-          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.piecesPerCarton")}</Label>
-          <Input type="number" min="0" value={pcsPerCarton}
-            onChange={(e) => setPcsPerCarton(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
-          {ratioMismatch && (
-            <p className="text-xs text-amber-700 mt-1">
-              {t("factory.forms.packing.ratioMismatch").replace("{n}", String(expectedPerCarton))}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.cartonsPacked")}</Label>
-          <Input type="number" min="0" value={cartonsPacked}
-            onChange={(e) => setCartonsPacked(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
-        </div>
-
         {matches.length > 0 && (
           <div>
             <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.packagingMaterial")}</Label>
@@ -192,10 +166,12 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           </div>
         )}
 
-        {totalCost !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
+        {selectedItem && (
+          <div>
+            <Label className="text-xs font-bold text-slate-700">{t("factory.forms.packing.cartonsPacked")}</Label>
+            <Input type="number" min="0" value={cartonsPacked}
+              onChange={(e) => setCartonsPacked(Math.max(0, parseInt(e.target.value) || 0))}
+              className="bg-white border-slate-300 text-center text-xl font-bold h-11 mt-1" />
           </div>
         )}
 
@@ -203,7 +179,7 @@ export default function PackingForm({ batchId, workerId, onSubmitted }: Departme
           size="lg"
           className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl"
           onClick={handleSubmit}
-          disabled={submitting || !bundleId || cartonsPacked <= 0 || pcsPerCarton <= 0}
+          disabled={submitting || !bundleId || (!!selectedItem && cartonsPacked <= 0)}
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>

@@ -16,7 +16,6 @@ export default function PrintingForm({ batchId, styleNumber, workerId, onSubmitt
   const { t } = useTranslation();
   const [rates, setRates] = useState<{ label: string; rate: number }[]>([]);
   const [color, setColor] = useState("");
-  const [totalQuantity, setTotalQuantity] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -28,10 +27,9 @@ export default function PrintingForm({ batchId, styleNumber, workerId, onSubmitt
   }, []);
 
   const perColorCost = useMemo(() => rates.find((r) => r.label === color)?.rate ?? null, [rates, color]);
-  const totalCost = perColorCost !== null ? perColorCost * totalQuantity : null;
 
   const handleSubmit = async () => {
-    if (!color.trim() || totalQuantity <= 0) {
+    if (!color.trim()) {
       toast({ title: t("factory.forms.printing.enterColorQty"), variant: "destructive" });
       return;
     }
@@ -41,8 +39,8 @@ export default function PrintingForm({ batchId, styleNumber, workerId, onSubmitt
         department: "printing",
         batchId,
         workerId,
-        payload: { color, per_color_cost: perColorCost, total_quantity: totalQuantity, style_no: styleNumber },
-        totalCost,
+        // Quantity and cost are recorded at END (rate x completed); START only keeps the rate.
+        payload: { color, rate_per_piece: perColorCost, style_no: styleNumber },
       });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
@@ -80,30 +78,16 @@ export default function PrintingForm({ batchId, styleNumber, workerId, onSubmitt
           </span>
         </div>
 
-        <div>
-          <Label className="text-xs font-bold text-slate-700">{t("factory.forms.printing.totalQuantity")}</Label>
-          <Input type="number" min="0" value={totalQuantity}
-            onChange={(e) => setTotalQuantity(Math.max(0, parseInt(e.target.value) || 0))}
-            className="bg-white border-slate-300 h-11 mt-1" />
-        </div>
-
         <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
           <span className="text-xs font-medium text-slate-500">{t("factory.common.styleNo")}</span>
           <span className="text-sm font-bold text-slate-800">{styleNumber}</span>
         </div>
 
-        {totalCost !== null && (
-          <div className="bg-white/80 p-3 rounded-lg border border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">{t("factory.common.totalCost")}</span>
-            <span className="text-sm font-bold text-slate-800">PKR {totalCost.toFixed(2)}</span>
-          </div>
-        )}
-
         <Button
           size="lg"
           className="w-full h-12 text-base font-bold bg-[#4675a8] hover:bg-[#38608b] text-white shadow-xs rounded-xl"
           onClick={handleSubmit}
-          disabled={submitting || !color.trim() || totalQuantity <= 0}
+          disabled={submitting || !color.trim()}
         >
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t("factory.common.save")}
         </Button>

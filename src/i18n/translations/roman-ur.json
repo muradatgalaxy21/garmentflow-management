@@ -166,6 +166,7 @@
       "sendFailed": "Bhejne mein nakami",
       "typeBatchStart": "Batch Shuru",
       "typeBatchEnd": "Batch Khatam",
+      "typeEntryApproval": "Entry Manzoori",
       "typeMyQuery": "Mera Sawal"
     },
     "restock": {

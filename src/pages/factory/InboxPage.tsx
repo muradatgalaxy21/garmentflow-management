@@ -14,6 +14,7 @@ import { fetchMyInboxMessages, sendWorkerQuery, type InboxMessage } from "@/lib/
 const typeConfig: Record<InboxMessage["type"], { labelKey: string; icon: typeof PlayCircle; color: string }> = {
   batch_start_verification: { labelKey: "factory.inbox.typeBatchStart", icon: PlayCircle, color: "text-blue-600" },
   batch_end_verification: { labelKey: "factory.inbox.typeBatchEnd", icon: CheckCircle2, color: "text-emerald-600" },
+  entry_approval: { labelKey: "factory.inbox.typeEntryApproval", icon: CheckCircle2, color: "text-amber-600" },
   worker_query: { labelKey: "factory.inbox.typeMyQuery", icon: MessageSquare, color: "text-slate-500" },
 };
 

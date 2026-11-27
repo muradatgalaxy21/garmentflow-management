@@ -7,7 +7,7 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/i18n/useTranslation";
-import { insertDepartmentEntry, recordInventoryMovement } from "@/lib/departmentEntries";
+import { insertDepartmentEntry, requestEntryApproval } from "@/lib/departmentEntries";
 import type { DepartmentFormProps } from "./types";
 
 interface FabricItem {
@@ -77,12 +77,13 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
     }
     setSubmitting(true);
     try {
-      await insertDepartmentEntry({
+      const entryId = await insertDepartmentEntry({
         department: "cutting",
         batchId,
         workerId,
         inventoryItemId: fabric.id,
         payload: {
+          stock_status: "pending", // fabric is deducted when admin approves (BUG-7)
           weight_per_layer: weightPerLayer,
           layer_size: layerSize,
           layers_qty: layersQty,
@@ -97,7 +98,14 @@ export default function CuttingForm({ batchId, styleNumber, workerId, onSubmitte
           quantity: totalWeight,
         },
       });
-      await recordInventoryMovement(fabric.id, totalWeight, "out", workerId, `Cutting entry for batch ${batchId}`);
+      await requestEntryApproval({
+        entryId,
+        department: "cutting",
+        batchId,
+        workerId,
+        styleNumber,
+        description: `${totalWeight} ${fabric.unit} of ${fabric.name}`,
+      });
       toast({ title: t("factory.common.entrySaved") });
       onSubmitted();
     } catch (err: any) {

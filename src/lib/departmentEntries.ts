@@ -66,14 +66,103 @@ export async function insertDepartmentEntry(params: {
   totalCost?: number | null;
   inventoryItemId?: string | null;
 }) {
-  const { error } = await supabase.from("department_entries").insert({
-    department: params.department,
-    batch_id: params.batchId,
+  const { data, error } = await supabase
+    .from("department_entries")
+    .insert({
+      department: params.department,
+      batch_id: params.batchId,
+      worker_id: params.workerId,
+      stage: params.stage ?? "start",
+      payload: params.payload,
+      total_cost: params.totalCost ?? null,
+      inventory_item_id: params.inventoryItemId ?? null,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+/**
+ * Departments where quantity is counted ONCE, at END (BUG-6): START asks no
+ * quantity and stores no cost; pay/cost = START rate x END quantity_completed,
+ * stamped on the END row when admin accepts the END.
+ */
+export const END_PAID_DEPARTMENTS: readonly Department[] = [
+  "sticker", "printing", "embroidery", "quality", "stitching",
+  "button_ops", "clipping", "press", "quality_final", "packing",
+];
+
+/** rate x completed pieces; null when the rate is unknown. Wasted pieces are unpaid. */
+export function computeEndCost(rate: unknown, completed: unknown): number | null {
+  if (typeof rate !== "number" || typeof completed !== "number") return null;
+  return rate * completed;
+}
+
+/** Cost to show/sum for an entry: legacy START rows of END-paid departments carry a stale total_cost — ignore it. */
+export function entryCost(e: { department: Department; stage: EntryStage; total_cost: number | null }): number | null {
+  if (e.stage === "start" && END_PAID_DEPARTMENTS.includes(e.department)) return null;
+  return e.total_cost;
+}
+
+/** Pieces to show/sum for an entry: START rows of END-paid departments hold no real piece count. */
+export function entryPieces(e: { department: Department; stage: EntryStage; payload: Record<string, unknown> }): number | null {
+  if (e.stage === "start" && END_PAID_DEPARTMENTS.includes(e.department)) return null;
+  return getEntryPieceCount(e.payload ?? {});
+}
+
+/** Rate chosen at this worker's latest START for the batch+department (stored in START payload.rate_per_piece). */
+export async function getStartRate(batchId: string, department: Department, workerId: string): Promise<number | null> {
+  const { data } = await supabase
+    .from("department_entries")
+    .select("payload")
+    .eq("batch_id", batchId)
+    .eq("department", department)
+    .eq("worker_id", workerId)
+    .eq("stage", "start")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const rate = (data?.payload as Record<string, unknown> | null)?.rate_per_piece;
+  return typeof rate === "number" ? rate : null;
+}
+
+/** On admin accept of an END: stamp total_cost = rate x quantity_completed on this worker's unstamped END rows. */
+export async function stampEndCost(batchId: string, department: Department, workerId: string) {
+  const { data, error } = await supabase
+    .from("department_entries")
+    .select("id, payload")
+    .eq("batch_id", batchId)
+    .eq("department", department)
+    .eq("worker_id", workerId)
+    .eq("stage", "end")
+    .is("total_cost", null);
+  if (error) throw error;
+  for (const row of data ?? []) {
+    const p = (row.payload as Record<string, unknown>) ?? {};
+    const cost = computeEndCost(p.rate_per_piece, p.quantity_completed);
+    if (cost === null) continue;
+    const { error: upErr } = await supabase.from("department_entries").update({ total_cost: cost }).eq("id", row.id);
+    if (upErr) throw upErr;
+  }
+}
+
+/** Files an inbox message asking admin to approve a stock-consuming entry (accessories/cutting). Stock is deducted only on approval. */
+export async function requestEntryApproval(params: {
+  entryId: string;
+  department: Department;
+  batchId: string;
+  workerId: string;
+  styleNumber?: string;
+  description: string;
+}) {
+  const { error } = await supabase.from("worker_inbox_messages").insert({
+    type: "entry_approval",
     worker_id: params.workerId,
-    stage: params.stage ?? "start",
-    payload: params.payload,
-    total_cost: params.totalCost ?? null,
-    inventory_item_id: params.inventoryItemId ?? null,
+    batch_id: params.batchId,
+    department: params.department,
+    message: `Batch ${params.styleNumber ?? params.batchId}, ${DEPARTMENT_LABELS[params.department]} entry: ${params.description}. Accept to deduct stock.`,
+    payload: { entry_id: params.entryId },
   });
   if (error) throw error;
 }
@@ -113,7 +202,9 @@ export async function deleteDepartmentEntryAndRestock(
 
   const payload = entry.payload ?? {};
   const qty = typeof payload.quantity === "number" ? payload.quantity : 0;
-  if (entry.inventory_item_id && qty > 0) {
+  // Entries still awaiting (or denied) approval never deducted stock — nothing to restock.
+  const stockTaken = payload.stock_status !== "pending" && payload.stock_status !== "denied";
+  if (entry.inventory_item_id && qty > 0 && stockTaken) {
     await recordInventoryMovement(entry.inventory_item_id, qty, "in", performedBy, "Restock — deleted work entry");
   }
 
@@ -313,7 +404,7 @@ const REPORT_NUMERIC_KEYS = [
 
 /** Priority order for picking the single "pieces done" number out of a department_entries payload — field names differ per department form. */
 const PIECE_COUNT_KEYS = [
-  "quantity_completed", "total_pcs", "pcs_completed", "pcs_pressed", "pcs", "quantity", "checked_qty", "pcs_count",
+  "quantity_completed", "total_pcs", "pcs_completed", "pcs_pressed", "pcs", "quantity", "total_quantity", "checked_qty", "pcs_count",
 ] as const;
 
 /** Best-effort "pieces" figure for a work entry, across every department's payload shape. Packing counts as cartons x pcs/carton. */

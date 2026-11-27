@@ -95,7 +95,8 @@ export default function DepartmentEntryPage() {
 
           const status = await getDepartmentStatus(batchData.id, dept);
           if (mode === "start") {
-            if (status?.status === "closed") {
+            // Accessories is a single-entry stage: more entries stay allowed after its first approval.
+            if (status?.status === "closed" && dept !== "accessories") {
               setBlockedReason(t("factory.departmentEntry.alreadyClosed"));
             }
           } else {
@@ -220,7 +221,7 @@ export default function DepartmentEntryPage() {
     styleNumber: batch.style_number,
     workerId: user.id,
     onSubmitted: async () => {
-      if (mode === "start") {
+      if (mode === "start" && department !== "accessories") {
         try {
           await openDepartment(batch.id, department, user.id, batch.style_number);
         } catch (err: any) {

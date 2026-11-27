@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { fmtDate } from "@/lib/format";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, getEntryPieceCount, type Department, type EntryStage } from "@/lib/departmentEntries";
+import { DEPARTMENT_LABELS, deleteDepartmentEntryAndRestock, entryPieces, type Department, type EntryStage } from "@/lib/departmentEntries";
 import DepartmentEntryDetailDialog, { type DepartmentEntryDetail } from "@/components/factory/DepartmentEntryDetailDialog";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -487,7 +487,7 @@ function WorkTable({ entries, onSelect }: { entries: WorkEntry[]; onSelect: (ent
               </Badge>
             </td>
             <td className="p-3 text-right font-mono">
-              {getEntryPieceCount(e.payload) ?? "—"}
+              {entryPieces(e) ?? "—"}
             </td>
           </tr>
         ))}

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/i18n/useTranslation";
-import { DEPARTMENT_LABELS, type Department, type EntryStage } from "@/lib/departmentEntries";
+import { DEPARTMENT_LABELS, entryCost, type Department, type EntryStage } from "@/lib/departmentEntries";
 
 export interface DepartmentEntryDetail {
   id: string;
@@ -61,10 +61,10 @@ export default function DepartmentEntryDetailDialog({
                     </span>
                   </div>
                 ))}
-                {entry.total_cost !== null && (
+                {entryCost(entry) !== null && (
                   <div className="flex items-center justify-between px-3 py-2 text-xs">
                     <span className="text-slate-500">{t("factory.detailDialog.totalCost")}</span>
-                    <span className="font-semibold text-slate-800">PKR {entry.total_cost}</span>
+                    <span className="font-semibold text-slate-800">PKR {entryCost(entry)}</span>
                   </div>
                 )}
               </div>
