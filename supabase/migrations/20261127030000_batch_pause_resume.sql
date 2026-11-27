@@ -75,3 +75,34 @@ CREATE TRIGGER block_entries_when_paused BEFORE INSERT ON public.department_entr
 DROP TRIGGER IF EXISTS block_entries_when_paused ON public.batch_tracking;
 CREATE TRIGGER block_entries_when_paused BEFORE INSERT ON public.batch_tracking
   FOR EACH ROW EXECUTE FUNCTION public.block_entries_when_paused();
+
+-- Same guard on every other table where work is recorded against a batch, so a paused batch
+-- cannot be bypassed through lot bundling, quality checks, department opening or dispatch.
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['batch_department_status', 'production_bundles', 'bundle_quality_checks', 'batch_dispatches'] LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS block_entries_when_paused ON public.%I', t);
+    EXECUTE format('CREATE TRIGGER block_entries_when_paused BEFORE INSERT ON public.%I
+                    FOR EACH ROW EXECUTE FUNCTION public.block_entries_when_paused()', t);
+  END LOOP;
+END $$;
+
+-- bundle_transfers has no batch_id: resolve it through the bundle.
+CREATE OR REPLACE FUNCTION public.block_transfers_when_paused()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.production_bundles b
+    JOIN public.production_batches pb ON pb.id = b.batch_id
+    WHERE b.id = NEW.bundle_id AND pb.status = 'paused'
+  ) THEN
+    RAISE EXCEPTION 'This batch is paused by admin. No new work can be logged until it is resumed.';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS block_transfers_when_paused ON public.bundle_transfers;
+CREATE TRIGGER block_transfers_when_paused BEFORE INSERT ON public.bundle_transfers
+  FOR EACH ROW EXECUTE FUNCTION public.block_transfers_when_paused();
+-- inventory_movements has no batch link, so it is not guarded here; stock moves always follow an
+-- entry on a guarded table (blocked above) or an admin approval.
