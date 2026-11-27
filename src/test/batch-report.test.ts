@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { generateBatchReport } from "@/lib/departmentEntries";
 
-let entryRows: { department: string; payload: Record<string, unknown> }[] = [];
+let entryRows: { department: string; payload: Record<string, unknown>; stage?: string; created_at?: string }[] = [];
 let checkRows: { latest_verdict: string }[] = [];
 let bundleCount = 0;
 
@@ -82,5 +82,22 @@ describe("generateBatchReport — stage 13 auto-generated batch report", () => {
       qualityVerdicts: { confirm: 0, alter: 0, reject: 0 },
       bundleCount: 0,
     });
+  });
+
+  it("reports earliest START and latest END timestamps per department; null when missing", async () => {
+    entryRows = [
+      { department: "press", stage: "start", created_at: "2026-11-03T09:00:00Z", payload: {} },
+      { department: "press", stage: "start", created_at: "2026-11-02T09:00:00Z", payload: {} },
+      { department: "press", stage: "end", created_at: "2026-11-05T09:00:00Z", payload: { pcs_pressed: 5 } },
+      { department: "press", stage: "end", created_at: "2026-11-06T09:00:00Z", payload: { pcs_pressed: 5 } },
+      { department: "cutting", stage: "start", created_at: "2026-11-01T09:00:00Z", payload: {} },
+    ];
+    checkRows = [];
+    bundleCount = 0;
+    const r = await generateBatchReport("batch-1");
+    const press = r.departments.find((d) => d.department === "press");
+    expect([press?.startDate, press?.endDate]).toEqual(["2026-11-02T09:00:00Z", "2026-11-06T09:00:00Z"]);
+    const cutting = r.departments.find((d) => d.department === "cutting");
+    expect([cutting?.startDate, cutting?.endDate]).toEqual(["2026-11-01T09:00:00Z", null]);
   });
 });

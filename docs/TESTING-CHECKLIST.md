@@ -99,8 +99,8 @@ Log in as each user and check what they can and can't see/do.
 
 | #   | Step                     | Expected                                    | Result |
 | --- | ------------------------ | ------------------------------------------- | ------ |
-| 6.1 | Log dispatch for a batch | Confirmation; Undo within 10 min removes it |        |
-| 6.2 | Batch report for B3      | Every department with pieces & dates        |        |
+| 6.1 | Log dispatch for a batch | Confirmation; Undo within 10 min removes it | 🔁 BUG-8 fixed, retest |
+| 6.2 | Batch report for B3      | Every department with pieces & dates        | 🔁 BUG-9 fixed, retest |
 
 ## 7. Inventory
 
@@ -192,6 +192,8 @@ Log in as each user and check what they can and can't see/do.
 | BUG-5 | 24-Nov-2026 | Client portal → Direct order                                                                  | Two orders placed ~16.7 min apart (or same ms window)           | Unique order number                                                                         | Number = `ORD-` + last 6 digits of Date.now(), wraps every ~16.7 min → collision possible                                                    | med                             | ✅ verified 25-Nov-2026 |
 | BUG-6 | 27-Nov-2026 | Worker floor → Department entry (START/END scans, all 11 costed forms e.g. [PrintingForm.tsx](../src/components/factory/department-forms/PrintingForm.tsx), [EndConfirmationForm.tsx](../src/components/factory/department-forms/EndConfirmationForm.tsx)) | Worker enters 50 pcs at START, then 20 completed (0 wasted) at END | Quantity is counted once, at END only. Pay = rate × END completed (admin-accepted). START asks no quantity | START stores its own quantity and `total_cost` = rate × START qty (50). END is a separate row, never compared to START; payout (Employees) sums START `total_cost`, so worker is paid for 50 while only 20 done. Pieces column shows "—" on printing START (`total_quantity` missing from piece keys) | **high (money)** | fixed 27-Nov-2026 - retest |
 | BUG-7 | 27-Nov-2026 | Worker floor → Accessories entry stock deduction ([AccessoriesForm.tsx](../src/components/factory/department-forms/AccessoriesForm.tsx), `recordInventoryMovement`) — found in 2.12 | Accessories worker saves an entry that uses stock, then check Inventory | Stock does not change when the worker logs the entry. It is deducted only after admin approves that entry, so offline workers can keep scanning and stock is checked at approval time | Stock is deducted the instant the worker saves (`inventory_movements` 'out'), before any admin approval. Offline scans queued then synced later can consume stock that is already gone | **high** | fixed 27-Nov-2026 - retest |
+| BUG-8 | 27-Nov-2026 | Admin → Dispatch ([DispatchPage.tsx](../src/pages/admin/DispatchPage.tsx), `batch_dispatches`) — found in 6.1 | Open Dispatch, open batch picker; dispatch a batch twice | Only completed batches with pieces left are listed, showing dispatched vs remaining pcs. Dispatch is in pieces, cannot exceed packed (packing END pcs, else batch qty) minus already dispatched. Enforced in DB too | Picker listed every batch (cancelled, not started, in production) and kept already-dispatched ones; nothing stopped re-dispatch or over-dispatch | **high** | fixed 27-Nov-2026 - retest (migration `20261127050000_dispatch_eligibility.sql`: `pcs_count` col, `dispatch_availability()`, `guard_dispatch` trigger). Old rows have no pcs, count as 0 dispatched |
+| BUG-9 | 27-Nov-2026 | Admin → Dispatch → Batch Pipeline Report ([departmentEntries.ts](../src/lib/departmentEntries.ts)) — found in 6.2 | Select B3 in the report | Each department shows pieces plus start and end dates | Pieces only, no dates | med | fixed 27-Nov-2026 - retest (start = earliest START entry, end = latest END entry, "—" if none. Report has no CSV/print export, so nothing else to update) |
 
 ## Improvement log
 
