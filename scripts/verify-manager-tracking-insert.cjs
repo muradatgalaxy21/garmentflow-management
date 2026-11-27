@@ -1,5 +1,5 @@
 // Manager On-Behalf insert into batch_tracking, against the TEST project (.env.staging).
-// Checks: admin can insert for another worker; staff without batches.update cannot;
+// Checks: admin can insert for another worker; viewer (no permissions) cannot;
 // a worker cannot insert for another worker. Cleans up its rows with the service role.
 // Run: node scripts/verify-manager-tracking-insert.cjs
 const proj = require("path").resolve(__dirname, "..");
@@ -11,13 +11,18 @@ const svc = createClient(URL, env.STAGING_SUPABASE_SERVICE_ROLE_KEY, { auth: { p
 const D = "mock.enen.test";
 async function as(who) {
   const c = createClient(URL, ANON, { auth: { persistSession: false } });
-  const { data, error } = await c.auth.signInWithPassword({ email: `${who}@${D}`, password: env.MOCK_PASSWORD });
+  const cred = who.startsWith("+") ? { phone: who } : { email: `${who}@${D}` };
+  const { data, error } = await c.auth.signInWithPassword({ ...cred, password: env.MOCK_PASSWORD });
   if (error) throw new Error(who + ": " + error.message);
   c.uid = data.user.id; return c;
 }
 const ok = (cond, msg) => { console.log((cond ? "PASS " : "FAIL ") + msg); if (!cond) process.exitCode = 1; };
 (async () => {
-  const [admin, staff, worker] = await Promise.all([as("admin"), as("staff"), as("worker")]);
+  // mock workers are phone-only (no password): give the TEST worker the mock password so it can sign in
+  const { data: ul } = await svc.auth.admin.listUsers({ perPage: 1000 });
+  const wu = ul.users.find((u) => u.phone === "923000000011");
+  await svc.auth.admin.updateUserById(wu.id, { password: env.MOCK_PASSWORD });
+  const [admin, viewer, worker] = await Promise.all([as("admin"), as("viewer"), as("+923000000011")]);
   // a different worker to act on behalf of
   const { data: others } = await svc.from("user_roles").select("user_id").eq("role", "worker").neq("user_id", worker.uid).limit(1);
   const target = others?.[0]?.user_id;
@@ -28,8 +33,8 @@ const ok = (cond, msg) => { console.log((cond ? "PASS " : "FAIL ") + msg); if (!
 
   let r = await admin.from("batch_tracking").insert(row(target)).select();
   ok(!r.error && r.data?.length === 1, "admin inserts for another worker" + (r.error ? " " + r.error.message : ""));
-  r = await staff.from("batch_tracking").insert(row(target)).select();
-  ok(!!r.error, "staff without batches.update cannot insert for another worker");
+  r = await viewer.from("batch_tracking").insert(row(target)).select();
+  ok(!!r.error, "viewer (no permissions) cannot insert for another worker");
   r = await worker.from("batch_tracking").insert(row(target)).select();
   ok(!!r.error, "worker cannot insert for another worker");
   r = await worker.from("batch_tracking").insert(row(worker.uid)).select();
