@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { mergeDepartmentSkills } from "@/lib/workerSkills";
 import { entryCost, entryPieces, type Department, type EntryStage } from "@/lib/departmentEntries";
 import { downloadCsv } from "@/lib/export";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
@@ -299,7 +300,7 @@ export default function EmployeesPage() {
       .update({
         full_name: editingProfile.full_name,
         employee_id: editingProfile.employee_id,
-        skills: editingProfile.skills,
+        skills: mergeDepartmentSkills(editingProfile.skills, editingProfile.department, editingProfile.department === "stitching" ? editingProfile.sub_department : null),
         department: editingProfile.department,
         sub_department: editingProfile.department === "stitching" ? editingProfile.sub_department : null,
       })

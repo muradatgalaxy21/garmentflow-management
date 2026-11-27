@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { mergeDepartmentSkills } from "@/lib/workerSkills";
 
 interface Batch {
   id: string;
@@ -33,6 +34,8 @@ interface WorkerProfile {
   id: string;
   full_name: string | null;
   skills: string[] | null;
+  department: string | null;
+  sub_department: string | null;
   employee_id: string | null;
 }
 
@@ -119,7 +122,7 @@ export default function MultiWorkerLogModal({
 
         const { data: pData } = await supabase
           .from("profiles")
-          .select("id, full_name, skills, employee_id")
+          .select("id, full_name, skills, department, sub_department, employee_id")
           .in("id", workerUserIds);
 
         setWorkers((pData as WorkerProfile[]) || []);
@@ -136,8 +139,10 @@ export default function MultiWorkerLogModal({
   const phaseObj = phases.find((p) => p.id === selectedPhase);
   const filteredWorkers = workers.filter((w) => {
     if (!phaseObj) return true;
-    if (!w.skills || w.skills.length === 0) return false; // No skills tagged — don't show under any phase
-    return w.skills.some(
+    // Skills = tagged skills + department-derived (works even before backfill)
+    const skills = mergeDepartmentSkills(w.skills, w.department, w.sub_department);
+    if (skills.length === 0) return false;
+    return skills.some(
       (s) => s.toLowerCase().includes(phaseObj.name.toLowerCase()) ||
              phaseObj.name.toLowerCase().includes(s.toLowerCase())
     );
@@ -333,7 +338,7 @@ export default function MultiWorkerLogModal({
             ) : filteredWorkers.length === 0 ? (
               <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-6 px-4 text-center">
                 <Users className="w-6 h-6 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Iss phase ke liye koi workers nahi miley.</p>
+                <p className="text-sm text-muted-foreground">{phaseObj ? `"${phaseObj.name}" phase ke liye koi workers nahi miley. Employees page se worker ki department set karein.` : "Iss phase ke liye koi workers nahi miley."}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto rounded-lg border p-2">

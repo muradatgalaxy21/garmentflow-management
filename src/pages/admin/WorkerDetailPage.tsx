@@ -1,3 +1,4 @@
+import { mergeDepartmentSkills } from "@/lib/workerSkills";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Briefcase, HardHat, Loader2, Shield, User as UserIcon, Wrench } from "lucide-react";
@@ -195,7 +196,7 @@ export default function WorkerDetailPage() {
       .from("profiles")
       .update({
         full_name: editing.full_name,
-        skills: editing.skills,
+        skills: mergeDepartmentSkills(editing.skills, editing.department),
         department: editing.department,
       })
       .eq("id", editing.id);
