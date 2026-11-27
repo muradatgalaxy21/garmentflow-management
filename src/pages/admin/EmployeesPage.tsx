@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Loader2, Shield, HardHat, UserPlus, Briefcase, Download, KeyRound } from "lucide-react";
+import { Loader2, Shield, HardHat, UserPlus, Briefcase, Download, KeyRound, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { normalizePkPhone } from "@/lib/phone";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { mergeDepartmentSkills } from "@/lib/workerSkills";
 import { entryCost, entryPieces, type Department, type EntryStage } from "@/lib/departmentEntries";
 import { downloadCsv } from "@/lib/export";
+import { unratedPcs } from "@/lib/unratedWork";
 import { WAGE_BEARING_DEPARTMENTS } from "@/lib/finance";
 import { ACTIONS, ACTION_LABELS, SECTIONS, type Action } from "@/lib/permissions";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -64,6 +65,8 @@ interface WorkerPayoutSummary {
   total_pieces: number;
   total_wasted: number;
   calculated_payout: number;
+  /** IMP-15: completed pcs with no rate set — pay is pending, NOT zero. */
+  unrated_pcs: number;
 }
 
 export default function EmployeesPage() {
@@ -200,6 +203,7 @@ export default function EmployeesPage() {
           total_pieces: 0,
           total_wasted: 0,
           calculated_payout: p.wage_type === "monthly_salary" ? Number(p.base_salary || 0) : 0,
+          unrated_pcs: 0,
         });
       }
     });
@@ -213,7 +217,8 @@ export default function EmployeesPage() {
           const rate = t.panel_rate_id
             ? panelRateMap.get(t.panel_rate_id) ?? 0
             : rateMap.get(`${t.batch_id}_${t.phase_id}`) || 0;
-          summary.calculated_payout += Number(t.quantity_completed || 0) * rate;
+          if (rate > 0) summary.calculated_payout += Number(t.quantity_completed || 0) * rate;
+          else summary.unrated_pcs += Number(t.quantity_completed || 0);
         }
       }
     });
@@ -228,6 +233,7 @@ export default function EmployeesPage() {
       summary.total_pieces += entryPieces({ ...row, payload: (e.payload as Record<string, unknown>) ?? {} }) ?? 0;
       if (summary.wage_type.includes("Dihaari")) {
         summary.calculated_payout += Number(entryCost({ ...row, total_cost: e.total_cost }) || 0);
+        summary.unrated_pcs += unratedPcs({ ...row, payload: e.payload });
       }
     });
 
@@ -819,8 +825,11 @@ export default function EmployeesPage() {
 
   function exportPayoutsCsv() {
     const rows: (string | number)[][] = [
-      ["Worker Name", "Wage Category", "Pieces Done", "Wasted Pcs", "Calculated Payout (PKR)"],
-      ...payouts.map((p) => [p.worker_name, p.wage_type, p.total_pieces, p.total_wasted, p.calculated_payout]),
+      ["Worker Name", "Wage Category", "Pieces Done", "Wasted Pcs", "Calculated Payout (PKR)", "Unrated Pcs (rate missing)", "Status"],
+      ...payouts.map((p) => [
+        p.worker_name, p.wage_type, p.total_pieces, p.total_wasted, p.calculated_payout,
+        p.unrated_pcs, p.unrated_pcs > 0 ? "INCOMPLETE - rate missing" : "OK",
+      ]),
     ];
     downloadCsv(`dihaari-salary-ledger-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   }
@@ -835,9 +844,22 @@ export default function EmployeesPage() {
     }
 
     const totalDihaariPayout = payouts.reduce((sum, p) => sum + p.calculated_payout, 0);
+    const unratedWorkers = payouts.filter((p) => p.unrated_pcs > 0);
+    const unratedTotal = unratedWorkers.reduce((sum, p) => sum + p.unrated_pcs, 0);
 
     return (
       <div className="space-y-4">
+        {unratedWorkers.length > 0 && (
+          <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="flex-1 min-w-[12rem]">
+              {unratedWorkers.length} {unratedWorkers.length === 1 ? "worker has" : "workers have"} {unratedTotal.toLocaleString()} pcs with no rate set. Their pay is pending, not zero. Totals below are incomplete.
+            </span>
+            {can("rates.manage") && (
+              <Button asChild size="sm" variant="outline" className="border-amber-500/50"><Link to="/admin/batches?rates=1">Set rates</Link></Button>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="py-4">
@@ -893,7 +915,16 @@ export default function EmployeesPage() {
                     <td className="p-3 font-mono">{p.total_pieces}</td>
                     <td className="p-3 font-mono text-danger">{p.total_wasted}</td>
                     <td className="p-3 text-right font-bold text-foreground">
-                      {pkr(p.calculated_payout)}
+                      {p.unrated_pcs > 0 && p.calculated_payout === 0 ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-600">Rate missing · {p.unrated_pcs.toLocaleString()} pcs</Badge>
+                      ) : (
+                        <>
+                          {pkr(p.calculated_payout)}
+                          {p.unrated_pcs > 0 && (
+                            <div className="mt-1"><Badge variant="outline" className="border-amber-500 text-amber-600 font-normal">+ {p.unrated_pcs.toLocaleString()} pcs rate missing</Badge></div>
+                          )}
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}

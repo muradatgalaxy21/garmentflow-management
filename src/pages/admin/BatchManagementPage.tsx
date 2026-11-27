@@ -37,6 +37,7 @@ import type { Permission } from "@/lib/permissions";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { stallCutoff } from "@/lib/dashboardMetrics";
 import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
+import { fetchUnrated, repriceUnrated } from "@/lib/unratedWork";
 import {
   STAGES, STATE_LABELS, batchProgress, batchState, isoDay, matchesDue,
   type BatchStateKey, type BlockReason, type DeptRow, type DueFilter,
@@ -132,7 +133,9 @@ export default function BatchManagementPage() {
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
   const confirm = useConfirm();
-  const { can, isAdmin } = useAuth();
+  const { can, isAdmin, user } = useAuth();
+  // IMP-15: batch -> department -> completed pcs with no rate set.
+  const [unrated, setUnrated] = useState<Map<string, Map<string, number>>>(new Map());
   const [pauseTarget, setPauseTarget] = useState<Batch | null>(null);
   const [pauseReason, setPauseReason] = useState("");
   const [pauseBusy, setPauseBusy] = useState(false);
@@ -166,6 +169,14 @@ export default function BatchManagementPage() {
       for (const r of statusRes.data ?? []) rowMap.set(r.batch_id, [...(rowMap.get(r.batch_id) ?? []), r]);
       setDeptRows(rowMap);
 
+      const un = new Map<string, Map<string, number>>();
+      for (const e of await fetchUnrated().catch(() => [])) {
+        const m = un.get(e.batch_id) ?? new Map<string, number>();
+        m.set(e.department, (m.get(e.department) ?? 0) + e.pcs);
+        un.set(e.batch_id, m);
+      }
+      setUnrated(un);
+
       // Shortfall: a material this batch uses (its fabric or worker-logged items) is at/below reorder level.
       // Same rule as Pipeline Status.
       const low = new Set(itemList.filter((i) => Number(i.quantity_on_hand) <= Number(i.reorder_level)).map((i) => i.id));
@@ -185,6 +196,14 @@ export default function BatchManagementPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // /admin/batches?rates=1 (from the payout ledger) opens the rates dialog once.
+  const ratesLinked = useRef(false);
+  useEffect(() => {
+    if (ratesLinked.current || searchParams.get("rates") !== "1" || !can("rates.manage")) return;
+    ratesLinked.current = true;
+    openDeptRates();
+  }, [searchParams]);
 
   // Deep link from Pipeline Status etc.: /admin/batches?batch=<id> opens that batch's detail view once.
   const deepLinked = useRef(false);
@@ -541,9 +560,19 @@ export default function BatchManagementPage() {
       toast({ title: "Failed to save rate", description: error.message, variant: "destructive" });
       return;
     }
+    // IMP-15: fill in earlier work logged before this rate existed.
+    try {
+      const { count } = await supabase.from("department_cost_rates").select("id", { count: "exact", head: true }).eq("department", newRateDept);
+      const res = await repriceUnrated(newRateDept as Department, newRateLabel.trim(), rateValue, count ?? 0, user?.id ?? "");
+      if (res.repriced > 0) toast({ title: `Rate saved. ${res.repriced} earlier ${res.repriced === 1 ? "entry" : "entries"} repriced.` });
+      else if (res.skipped > 0) toast({ title: "Rate saved", description: `${res.skipped} earlier entries could not be matched to this rate and stay flagged.` });
+    } catch (err) {
+      toast({ title: "Rate saved, repricing failed", description: (err as Error).message, variant: "destructive" });
+    }
     setNewRateLabel("");
     setNewRateValue("");
     openDeptRates();
+    load();
   };
 
   const deleteDeptRate = async (id: string) => {
@@ -743,6 +772,14 @@ export default function BatchManagementPage() {
                       </div>
                       <div className="min-w-0 space-y-1">
                         <StatusBadge tone={STATE_TONE[r.state]}>{STATE_LABELS[r.state]}</StatusBadge>
+                        {unrated.get(b.id) && (
+                          <div className="flex flex-wrap items-center gap-1 text-xs">
+                            <span className="rounded-md border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-400">
+                              Rate missing: {[...unrated.get(b.id)!].map(([d, n]) => `${DEPARTMENT_LABELS[d as Department] ?? d} ${n.toLocaleString()} pcs`).join(", ")}
+                            </span>
+                            {can("rates.manage") && <Button variant="link" size="sm" className="h-auto p-0" onClick={openDeptRates}>Set rates</Button>}
+                          </div>
+                        )}
                         {next && (
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                             <span>{next.text}</span>
