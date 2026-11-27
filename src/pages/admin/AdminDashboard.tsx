@@ -15,6 +15,7 @@ import AnalyticsWidget from "@/components/AnalyticsWidget";
 import { useAuth } from "@/hooks/useAuth";
 import { fmtDate } from "@/lib/format";
 import { stallCutoff } from "@/lib/dashboardMetrics";
+import { fetchUnrated } from "@/lib/unratedWork";
 import type { Permission } from "@/lib/permissions";
 
 interface Stats {
@@ -29,6 +30,8 @@ interface Stats {
   lowStock: string[]; // item names, worst first
   activeBatches: number;
   stalledBatches: string[]; // style numbers
+  unratedPcs: number;
+  unratedBatches: number;
 }
 
 const PERIODS = [
@@ -101,6 +104,8 @@ export default function AdminDashboard() {
             .map((b) => b.style_number);
         }
 
+        const unrated = await fetchUnrated().catch(() => []);
+
         const p = pendingRes.data?.[0];
         const o = overdueRes.data?.[0];
         setStats({
@@ -115,6 +120,8 @@ export default function AdminDashboard() {
           lowStock,
           activeBatches: batches.length,
           stalledBatches: stalled,
+          unratedPcs: unrated.reduce((n, e) => n + e.pcs, 0),
+          unratedBatches: new Set(unrated.map((e) => e.batch_id)).size,
         });
       } catch (err) {
         console.error("Dashboard load failed", err);
@@ -179,6 +186,15 @@ export default function AdminDashboard() {
       key: "stalled", icon: PauseCircle, to: "/admin/batches", cta: "Open Batches",
       title: `${plural(s.stalledBatches.length, "in-progress batch", "in-progress batches")} with no work logged in 24 hours`,
       detail: `${names(s.stalledBatches)} · Sundays not counted`,
+    });
+  }
+
+  if (s && can("rates.manage") && s.unratedPcs > 0) {
+    items.push({
+      key: "unrated", icon: AlertTriangle, to: "/admin/batches?rates=1", cta: "Set rates",
+      title: `${s.unratedPcs.toLocaleString()} pcs of worker output have no rate set`,
+      detail: `${plural(s.unratedBatches, "batch", "batches")} affected. Pay stays pending until a rate is set.`,
+      badge: <span className="rounded-md border border-amber-500/50 bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">Rate missing</span>,
     });
   }
 

@@ -17,6 +17,7 @@ import { fmtDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS } from "@/lib/departmentEntries";
+import { unratedPcs } from "@/lib/unratedWork";
 import {
   fetchInboxMessages,
   replyWorkerQuery,
@@ -367,8 +368,27 @@ function WorkerInboxTab() {
       );
     }
     if (m.status !== "pending" || !canAct) return null;
-    const decide = (fn: () => Promise<void>) =>
-      run(m.id, "Inbox decision applied", fn, { title: "Apply this decision?", description: "The worker is notified. You can undo it for 10 minutes." });
+    const decide = (fn: () => Promise<void>, ask?: { title: string; description: string }) =>
+      run(m.id, "Inbox decision applied", fn, ask ?? { title: "Apply this decision?", description: "The worker is notified. You can undo it for 10 minutes." });
+    // IMP-15: accepting an END with no rate would leave the worker's pay pending — warn, but allow.
+    const acceptEnd = async () => {
+      let unrated = 0;
+      try {
+        const { data } = await supabase
+          .from("department_entries").select("stage, department, payload")
+          .eq("batch_id", m.batch_id!).eq("department", m.department!).eq("worker_id", m.worker_id).eq("stage", "end");
+        unrated = (data ?? []).reduce((s, e) => s + unratedPcs(e), 0);
+      } catch { /* warn only; never block accept */ }
+      decide(
+        () => resolveEndVerification(m, "accepted", user!.id, n),
+        unrated > 0
+          ? {
+              title: "No rate set for this work",
+              description: `${unrated.toLocaleString()} pcs in ${DEPARTMENT_LABELS[m.department!]} have no rate, so this worker's pay stays pending until a rate is set (Batches > Department Rates). Accept anyway?`,
+            }
+          : undefined,
+      );
+    };
     const n = note.trim() || undefined;
     return (
       <div className="space-y-2 border-t pt-3">
@@ -395,7 +415,7 @@ function WorkerInboxTab() {
             </>
           ) : (
             <>
-              <Button size="sm" disabled={busy} onClick={() => decide(() => resolveEndVerification(m, "accepted", user.id, n))}>
+              <Button size="sm" disabled={busy} onClick={acceptEnd}>
                 Accept & Close
               </Button>
               <Button size="sm" variant="outline" disabled={busy} onClick={() => decide(() => resolveEndVerification(m, "reprocess", user.id, n))}>
