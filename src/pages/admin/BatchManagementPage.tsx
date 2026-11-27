@@ -842,9 +842,9 @@ export default function BatchManagementPage() {
 
       {/* Rate Configuration Dialog */}
       <Dialog open={!!rateDialogBatch} onOpenChange={(o) => !o && setRateDialogBatch(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
           <DialogHeader><DialogTitle>Set Rates - {rateDialogBatch?.style_number}</DialogTitle></DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1 min-h-0 overflow-y-auto px-1">
             {phases.map((p) =>
               p.id === cuttingPhase?.id ? (
                 <div key={p.id} className="space-y-2">
@@ -880,7 +880,11 @@ export default function BatchManagementPage() {
                   ))}
                   <Button
                     type="button" size="sm" variant="outline"
-                    onClick={() => setPanelRates((prev) => [...prev, { label: "", rate: "" }])}
+                    onClick={(e) => {
+                      setPanelRates((prev) => [...prev, { label: "", rate: "" }]);
+                      const btn = e.currentTarget;
+                      requestAnimationFrame(() => btn.scrollIntoView({ block: "nearest" }));
+                    }}
                   >
                     <Plus className="w-3.5 h-3.5 mr-1" /> Add panel rate
                   </Button>
