@@ -316,6 +316,10 @@ export default function EmployeesPage() {
     load();
   };
 
+  const [newRole, setNewRole] = useState<"worker" | "manager" | "staff">("worker");
+  const [newDept, setNewDept] = useState<string | null>(null);
+  const [newSub, setNewSub] = useState<string | null>(null);
+
   const createWorker = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -327,7 +331,11 @@ export default function EmployeesPage() {
     }
     setCreatingWorker(true);
     const { error } = await supabase.functions.invoke("admin-create-worker", {
-      body: { phone, fullName },
+      body: {
+        phone, fullName, role: newRole,
+        department: newRole === "worker" ? newDept : null,
+        subDepartment: newRole === "worker" && newDept === "stitching" ? newSub : null,
+      },
     });
     setCreatingWorker(false);
     if (error) {
@@ -336,6 +344,7 @@ export default function EmployeesPage() {
     }
     toast({ title: "Employee account created" });
     setCreateOpen(false);
+    setNewRole("worker"); setNewDept(null); setNewSub(null);
     load();
   };
 
@@ -359,6 +368,45 @@ export default function EmployeesPage() {
               <Label htmlFor="worker-phone" className="text-xs">Mobile Number</Label>
               <Input id="worker-phone" name="phone" type="tel" required placeholder="03001234567" className="mt-1" />
             </div>
+            <div>
+              <Label className="text-xs">Role</Label>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as typeof newRole)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="worker">Worker</SelectItem>
+                  {isAdmin && <SelectItem value="manager">Manager</SelectItem>}
+                  {isAdmin && <SelectItem value="staff">Staff</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            {newRole === "worker" && (
+              <div>
+                <Label className="text-xs">Department</Label>
+                <Select value={newDept ?? "none"} onValueChange={(v) => { setNewDept(v === "none" ? null : v); setNewSub(null); }}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned</SelectItem>
+                    {DEPARTMENTS.map((d) => (
+                      <SelectItem key={d} value={d} className="capitalize">{d.replace("_", " ")}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {newRole === "worker" && newDept === "stitching" && (
+              <div>
+                <Label className="text-xs">Sub-Department (Stitching Hall)</Label>
+                <Select value={newSub ?? "none"} onValueChange={(v) => setNewSub(v === "none" ? null : v)}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned</SelectItem>
+                    {SUB_DEPARTMENTS.map((d) => (
+                      <SelectItem key={d} value={d} className="capitalize">{d.replace("_", " ")}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={creatingWorker}>{creatingWorker ? "Creating..." : "Create Account"}</Button>

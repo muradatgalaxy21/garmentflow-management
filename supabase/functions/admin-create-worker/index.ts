@@ -10,6 +10,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const DEPARTMENTS = ["accessories", "cutting", "sticker", "printing", "embroidery", "quality", "lot_bundling", "stitching", "button_ops", "clipping", "press", "quality_final", "packing"];
+const SUB_DEPARTMENTS = ["singer", "overlock", "flatlock", "lock_stitch"];
+// 'admin' deliberately not creatable here.
+const ROLES = ["worker", "manager", "staff"];
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -52,7 +57,22 @@ serve(async (req: Request) => {
       });
     }
 
-    const { phone, fullName } = await req.json();
+    const { phone, fullName, role = "worker", department = null, subDepartment = null } = await req.json();
+    const bad = (error: string) =>
+      new Response(JSON.stringify({ error }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!ROLES.includes(role)) return bad("Invalid role");
+    if (department !== null && !DEPARTMENTS.includes(department)) return bad("Invalid department");
+    if (subDepartment !== null && (department !== "stitching" || !SUB_DEPARTMENTS.includes(subDepartment))) return bad("Invalid sub-department");
+    // Only a real admin may create non-worker accounts.
+    if (role !== "worker") {
+      const { data: isAdmin } = await admin.rpc("has_role", { _user_id: caller.id, _role: "admin" });
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Only an admin can assign this role" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     // Workers sign in by SMS OTP, so only a Pakistani mobile in E.164 is needed.
     if (typeof phone !== "string" || !/^\+923\d{9}$/.test(phone)) {
       return new Response(JSON.stringify({ error: "A valid Pakistani mobile number (+923XXXXXXXXX) is required" }), {
@@ -71,6 +91,19 @@ serve(async (req: Request) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Signup trigger made the profile + worker role. Apply role/department now;
+    // profiles trigger zz_profiles_auto_skills derives skills from department.
+    const uid = created.user.id;
+    if (department) {
+      const { error } = await admin.from("profiles").update({ department, sub_department: subDepartment }).eq("id", uid);
+      if (error) return bad(`Account created but department failed: ${error.message}`);
+    }
+    if (role !== "worker") {
+      await admin.from("user_roles").delete().eq("user_id", uid).eq("role", "worker");
+      const { error } = await admin.from("user_roles").insert({ user_id: uid, role });
+      if (error) return bad(`Account created but role failed: ${error.message}`);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
