@@ -81,7 +81,7 @@ export default function BatchPipelineStatusPage() {
       const { data: batchData } = await supabase
         .from("production_batches")
         .select("id, style_number, material_item_id, orders(order_number, party_name)")
-        .eq("status", "in_progress")
+        .in("status", ["in_progress", "paused"])
         .order("created_at", { ascending: false });
 
       const rows: BatchRow[] = ((batchData as any[]) ?? []).map((b) => ({

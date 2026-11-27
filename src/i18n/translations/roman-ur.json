@@ -197,6 +197,7 @@
       "scanBatchTitle": "Batch ka QR Code Scan Karein",
       "invalidQr": "Ghalat Batch QR",
       "lookupError": "Khirabi",
+      "batchPaused": "Yeh batch admin ne rok diya hai. Dobara shuru hone tak intezar karein.",
       "alreadyClosed": "Yeh department iss batch ke liye pehle hi band hai.",
       "notStartedYet": "Aap ne iss batch ke liye yeh department abhi shuru nahi kiya — pehle Batch Start Scan istemal karein.",
       "pendingVerification": "Aap ka batch end scan pehle hi jama ho chuka hai — admin ki tasdeeq ka intezaar hai.",

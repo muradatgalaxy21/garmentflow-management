@@ -53,12 +53,19 @@ export default function DepartmentEntryPage() {
       try {
         const { data: batchData, error } = await supabase
           .from("production_batches")
-          .select("id, style_number")
+          .select("id, style_number, status")
           .eq("qr_code_hash", qrHash.trim())
           .single();
 
         if (error || !batchData) {
           toast({ title: t("factory.departmentEntry.invalidQr"), variant: "destructive" });
+          setLookingUp(false);
+          return;
+        }
+
+        if ((batchData as { status?: string }).status === "paused") {
+          setBlockedReason(t("factory.departmentEntry.batchPaused"));
+          setBatch(batchData);
           setLookingUp(false);
           return;
         }

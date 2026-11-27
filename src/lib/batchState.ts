@@ -35,13 +35,14 @@ export function batchProgress(rows: DeptRow[]) {
   };
 }
 
-export type BatchStateKey = "not_started" | "in_progress" | "blocked" | "ready" | "completed" | "cancelled";
+export type BatchStateKey = "not_started" | "in_progress" | "blocked" | "paused" | "ready" | "completed" | "cancelled";
 export type BlockReason = "approval" | "shortfall" | "stalled";
 
 export const STATE_LABELS: Record<BatchStateKey, string> = {
   not_started: "Not started",
   in_progress: "In progress",
   blocked: "Blocked",
+  paused: "Paused",
   ready: "Ready to complete",
   completed: "Completed",
   cancelled: "Cancelled",
@@ -60,6 +61,7 @@ export function batchState(input: {
   const { status, rows } = input;
   if (status === "cancelled") return { state: "cancelled", reasons: [] };
   if (status === "completed") return { state: "completed", reasons: [] };
+  if (status === "paused") return { state: "paused", reasons: [] };
   if (batchProgress(rows).packingDone) return { state: "ready", reasons: [] };
   const reasons: BlockReason[] = [];
   if (rows.some((r) => r.start_verification_status === "pending" || r.end_verification_status === "pending")) reasons.push("approval");

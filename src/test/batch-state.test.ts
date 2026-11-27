@@ -24,6 +24,10 @@ describe("batchState", () => {
     expect(batchState({ ...base, status: "cancelled", stalled: true }).state).toBe("cancelled");
     expect(batchState({ ...base, status: "completed" }).state).toBe("completed");
   });
+  it("paused is never blocked or stalled", () => {
+    expect(batchState({ ...base, status: "paused", stalled: true, shortfall: true }))
+      .toEqual({ state: "paused", reasons: [] });
+  });
   it("packing closed = ready to complete, even if otherwise stalled", () => {
     expect(batchState({ ...base, rows: [row("packing", "closed")], stalled: true }).state).toBe("ready");
   });

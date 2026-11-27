@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Plus, Loader2, QrCode, Printer, Settings, Eye, Users, Coins, Trash2, Ban, Boxes, X, Layers,
-  CheckCircle2, Circle, CircleDot, Truck,
+  CheckCircle2, Circle, CircleDot, Truck, PauseCircle, PlayCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -81,7 +82,7 @@ interface TrackingEntry {
 interface DeptLog { id: string; department: string; stage: string; worker_name: string; created_at: string; }
 
 const STATE_TONE: Record<BatchStateKey, Tone> = {
-  not_started: "neutral", in_progress: "info", blocked: "warning", ready: "success", completed: "success", cancelled: "neutral",
+  not_started: "neutral", in_progress: "info", blocked: "warning", paused: "warning", ready: "success", completed: "success", cancelled: "neutral",
 };
 const REASON_TEXT: Record<BlockReason, string> = {
   approval: "Scan waiting for approval",
@@ -89,7 +90,7 @@ const REASON_TEXT: Record<BlockReason, string> = {
   stalled: "No work logged in 24 working hours",
 };
 type StatusFilter = "all" | "active" | BatchStateKey;
-const STATUS_FILTERS: StatusFilter[] = ["all", "active", "not_started", "in_progress", "blocked", "ready", "completed", "cancelled"];
+const STATUS_FILTERS: StatusFilter[] = ["all", "active", "not_started", "in_progress", "blocked", "paused", "ready", "completed", "cancelled"];
 
 export default function BatchManagementPage() {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -131,7 +132,10 @@ export default function BatchManagementPage() {
   const [newRateValue, setNewRateValue] = useState("");
   const { toast } = useToast();
   const confirm = useConfirm();
-  const { can } = useAuth();
+  const { can, isAdmin } = useAuth();
+  const [pauseTarget, setPauseTarget] = useState<Batch | null>(null);
+  const [pauseReason, setPauseReason] = useState("");
+  const [pauseBusy, setPauseBusy] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null);
 
@@ -261,6 +265,34 @@ export default function BatchManagementPage() {
       return;
     }
     setDeletingBatch(batch);
+  };
+
+  // Admin only (server enforces too). Pause needs a reason; both are logged and undoable for 10 min.
+  const pauseBatch = async () => {
+    if (!pauseTarget || !pauseReason.trim()) return;
+    setPauseBusy(true);
+    const b = pauseTarget;
+    const error = await withUndo(`Batch ${b.style_number} paused`, async () =>
+      (await supabase.rpc("set_batch_paused", { _batch_id: b.id, _paused: true, _reason: pauseReason.trim() })).error, load);
+    setPauseBusy(false);
+    if (error) { toast({ title: "Pause failed", description: error.message, variant: "destructive" }); return; }
+    setPauseTarget(null); setPauseReason("");
+    if (selectedBatch?.id === b.id) setSelectedBatch({ ...b, status: "paused" });
+    load();
+  };
+
+  const resumeBatch = async (b: Batch) => {
+    const ok = await confirm({
+      title: `Resume batch "${b.style_number}"?`,
+      description: "Workers can log new work on it again straight away.",
+      confirmLabel: "Resume",
+    });
+    if (!ok) return;
+    const error = await withUndo(`Batch ${b.style_number} resumed`, async () =>
+      (await supabase.rpc("set_batch_paused", { _batch_id: b.id, _paused: false })).error, load);
+    if (error) { toast({ title: "Resume failed", description: error.message, variant: "destructive" }); return; }
+    if (selectedBatch?.id === b.id) setSelectedBatch({ ...b, status: "in_progress" });
+    load();
   };
 
   const cancelBatch = async (batch: Batch) => {
@@ -725,7 +757,7 @@ export default function BatchManagementPage() {
                       </div>
                       <div className="flex items-center gap-1 md:justify-end">
                         {!finished && can("batches.update") ? (
-                          <Button size="sm" variant="outline" onClick={() => setMultiWorkerBatch(b)}>
+                          <Button size="sm" variant="outline" disabled={r.state === "paused"} title={r.state === "paused" ? "Batch is paused" : undefined} onClick={() => setMultiWorkerBatch(b)}>
                             <Users className="w-4 h-4 mr-1" /> Multi-Worker Log
                           </Button>
                         ) : (
@@ -740,6 +772,12 @@ export default function BatchManagementPage() {
                           {can("batches.update") && <DropdownMenuItem onSelect={() => openPackRatio(b)}><Boxes /> Pack ratio</DropdownMenuItem>}
                           {can("batches.update") && r.state === "ready" && (
                             <DropdownMenuItem onSelect={() => completeBatch(b)}><CheckCircle2 /> Mark completed</DropdownMenuItem>
+                          )}
+                          {isAdmin && r.state === "paused" && (
+                            <DropdownMenuItem onSelect={() => resumeBatch(b)}><PlayCircle /> Resume batch</DropdownMenuItem>
+                          )}
+                          {isAdmin && !finished && r.state !== "paused" && (
+                            <DropdownMenuItem onSelect={() => { setPauseReason(""); setPauseTarget(b); }}><PauseCircle /> Pause batch</DropdownMenuItem>
                           )}
                           {(can("batches.update") && !finished || can("batches.delete")) && <DropdownMenuSeparator />}
                           {can("batches.update") && !finished && (
@@ -1185,6 +1223,25 @@ export default function BatchManagementPage() {
           })()}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!pauseTarget} onOpenChange={(o) => { if (!o && !pauseBusy) setPauseTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Pause batch "{pauseTarget?.style_number}"?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Workers and managers can't log new work on it until you resume. Pending approvals can still be accepted or denied.
+          </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="pause-reason">Reason (required)</Label>
+            <Textarea id="pause-reason" rows={3} value={pauseReason} onChange={(e) => setPauseReason(e.target.value)} placeholder="e.g. Waiting for fabric, client hold" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={pauseBusy} onClick={() => setPauseTarget(null)}>Cancel</Button>
+            <Button disabled={pauseBusy || !pauseReason.trim()} onClick={pauseBatch}>
+              {pauseBusy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Pause batch
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Multi-Worker On-Behalf Entry Modal */}
       <MultiWorkerLogModal

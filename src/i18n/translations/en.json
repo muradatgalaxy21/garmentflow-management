@@ -197,6 +197,7 @@
       "scanBatchTitle": "Scan Batch QR Code",
       "invalidQr": "Invalid Batch QR",
       "lookupError": "Error",
+      "batchPaused": "This batch is paused by admin. Please wait until it is resumed.",
       "alreadyClosed": "This department is already closed for this batch.",
       "notStartedYet": "You haven't started this department for this batch yet — use Batch Start Scan first.",
       "pendingVerification": "Your batch end scan is already submitted — waiting on admin verification.",
