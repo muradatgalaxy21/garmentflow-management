@@ -93,7 +93,7 @@ Log in as each user and check what they can and can't see/do.
 | 5.3 | Multi-Worker Log (manual entry)                  | Entries recorded with correct pieces    | ✅     |
 | 5.4 | Cancel batch                                     | Confirmation; Undo works within 10 min  | ✅     |
 | 5.5 | Pipeline Status for B3                           | All departments closed                  | ✅     |
-| 5.6 | Payout ledger (Employees) for piece-rate workers | Payout = pieces × rate, checked by hand |        |
+| 5.6 | Payout ledger (Employees) for piece-rate workers | Payout = pieces × rate, checked by hand | ✅     |
 
 ## 6. Dispatch & reports
 
