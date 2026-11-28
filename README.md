@@ -42,6 +42,13 @@ This platform connects public marketing, client ordering, factory production tra
 - **Printable Batch QR Cards**: Generates dual Start and End QR cards for physical batch tracking on the factory floor.
 - **Dispatch and Batch Reporting**: Complete batch summaries aggregating pass rates, defects, material usage, and shipping details.
 
+- **Permission-Based Staff Access**: Admin picks exactly what each manager/staff member can see or change (orders, batches, pipeline, worker and client inboxes, rates, payroll, and each finance area). Every grant or removal is permanently logged and alerts all admins and the member.
+- **New-Request Alerts**: New RFQs and client direct orders raise a bell notification, an email, and a banner on every admin page until handled.
+- **Pause / Resume Batches**: Admin can pause a batch with a reason; workers cannot log new entries while it is paused.
+- **Finance Suite**: Vendors, purchase bills (total / paid / balance), receivables, expenses, and finance reports, each behind its own permission.
+- **Missing-Rate Warnings**: Work with no department rate is flagged instead of showing Rs 0; saving a rate re-prices affected work.
+- **Staff Helper Assistant**: In-app chat assistant for staff, backed by the `staff-assistant` edge function.
+
 ## Production Pipeline (13 Manufacturing Stages)
 
 1. **Accessories Forwarding and Checking**: Verify trim, zipper, button, and thread quantities.
@@ -66,6 +73,7 @@ This platform connects public marketing, client ordering, factory production tra
 - **Form Handling and Validation**: React Hook Form, Zod
 - **Backend and Database**: Supabase (PostgreSQL, Row-Level Security, Edge Functions, Authentication)
 - **Scanning and Media**: html5-qrcode, qrcode
+- **Email and SMS**: Resend (via `send-notification-email` edge function), phone OTP for worker sign-in
 - **Testing**: Vitest, Playwright
 
 ## Getting Started
@@ -117,8 +125,20 @@ This platform connects public marketing, client ordering, factory production tra
 - `src/components`: Reusable components including UI primitives, layout wrappers, and forms.
 - `src/hooks`: Custom React hooks for toast notifications, language switching, and camera controls.
 - `src/integrations`: Supabase client configuration and auto-generated database type definitions.
-- `src/lib`: Utility functions, unit conversion helpers, and class name utilities.
-- `src/pages`: Main application views for Public site, Client Portal, Factory Floor, and Admin Back Office.
+- `src/lib`: Utility functions, unit conversion helpers, batch/pipeline/dashboard logic, and class name utilities.
+- `src/pages`: Main application views for Public site, Client Portal (`portal/`), Factory Floor (`factory/`), and Admin Back Office (`admin/`, incl. `finance/`).
+- `src/i18n`: English, Urdu, and Roman Urdu translations.
+- `src/test`: Vitest unit tests.
+- `supabase/migrations`: Database schema, RLS policies, triggers, and RPCs.
+- `supabase/functions`: Edge functions (worker accounts, client codes, notifications, chat, staff assistant, daily summary).
+- `scripts`: Seed and verification scripts for the test project.
+- `plan.md`, `plans/`, `progress.md`: Architecture, sub-plans, and dated session log.
+- `docs/TESTING-CHECKLIST.md`: Manual test checklist with BUG/IMP items.
+
+## Environments
+
+- **Live** and **Test** run as separate Supabase projects. Develop and run migrations against Test first; never push untested migrations to Live.
+- `npm run dev` uses `.env`. For the Test project use `vite --mode staging` (port 8081) with a `.env.staging` file.
 
 ## License
 
