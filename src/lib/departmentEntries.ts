@@ -422,6 +422,9 @@ export function getEntryPieceCount(payload: Record<string, unknown>): number | n
 export interface DepartmentReportRow {
   department: Department;
   entryCount: number;
+  /** Earliest START / latest END entry timestamp (ISO); null when none logged. */
+  startDate: string | null;
+  endDate: string | null;
   totals: Record<string, number>;
 }
 
@@ -434,7 +437,7 @@ export interface BatchReport {
 /** Rolls up pass/waste/reject numbers per stage for a batch — stage 13's "auto-generated batch report". */
 export async function generateBatchReport(batchId: string): Promise<BatchReport> {
   const [{ data: entries }, { data: checks }, { count: bundleCount }] = await Promise.all([
-    supabase.from("department_entries").select("department, payload").eq("batch_id", batchId),
+    supabase.from("department_entries").select("department, payload, stage, created_at").eq("batch_id", batchId),
     // Latest verdict per bundle (same view BatchPipelineStatusPage uses) — querying
     // bundle_quality_checks directly would double-count bundles re-checked after "alter".
     supabase.from("bundle_quality_status").select("latest_verdict").eq("batch_id", batchId),
@@ -447,10 +450,14 @@ export async function generateBatchReport(batchId: string): Promise<BatchReport>
     const payload = (row.payload as Record<string, unknown>) ?? {};
     let entry = byDept.get(dept);
     if (!entry) {
-      entry = { department: dept, entryCount: 0, totals: {} };
+      entry = { department: dept, entryCount: 0, startDate: null, endDate: null, totals: {} };
       byDept.set(dept, entry);
     }
     entry.entryCount += 1;
+    const at = (row as { created_at?: string }).created_at;
+    const stage = (row as { stage?: string }).stage;
+    if (at && stage === "start" && (!entry.startDate || at < entry.startDate)) entry.startDate = at;
+    if (at && stage === "end" && (!entry.endDate || at > entry.endDate)) entry.endDate = at;
     for (const key of REPORT_NUMERIC_KEYS) {
       const val = payload[key];
       if (typeof val === "number") {

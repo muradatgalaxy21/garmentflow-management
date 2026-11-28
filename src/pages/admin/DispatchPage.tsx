@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DEPARTMENT_LABELS, QUALITY_VERDICT_LABELS, generateBatchReport, type BatchReport } from "@/lib/departmentEntries";
 import { formatBatchIdentity } from "@/lib/batchIdentity";
 import { fmtDate } from "@/lib/format";
+import { dispatchableBatches, type DispatchAvailability } from "@/lib/dispatch";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { EmptyState } from "@/components/admin/EmptyState";
 
@@ -36,6 +37,7 @@ interface Dispatch {
   carton_count: number;
   dispatch_note: string | null;
   created_at: string;
+  pcs_count: number | null;
 }
 
 export default function DispatchPage() {
@@ -44,12 +46,14 @@ export default function DispatchPage() {
   const { user, can } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
+  const [avail, setAvail] = useState<DispatchAvailability[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [batchId, setBatchId] = useState("");
   const [dispatchDate, setDispatchDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [carrier, setCarrier] = useState("");
   const [cartonCount, setCartonCount] = useState<number>(0);
+  const [pcsCount, setPcsCount] = useState<number>(0);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -61,9 +65,10 @@ export default function DispatchPage() {
 
   const load = async () => {
     setLoading(true);
-    const [batchRes, dispatchRes] = await Promise.all([
+    const [batchRes, dispatchRes, availRes] = await Promise.all([
       supabase.from("production_batches").select("id, style_number, total_quantity, orders(order_number, party_name, expected_delivery)").order("created_at", { ascending: false }),
       supabase.from("batch_dispatches").select("*").order("created_at", { ascending: false }),
+      supabase.rpc("dispatch_availability"),
     ]);
     setBatches(((batchRes.data as any[]) ?? []).map((b) => ({
       id: b.id,
@@ -74,6 +79,7 @@ export default function DispatchPage() {
       expected_delivery: b.orders?.expected_delivery ?? null,
     })));
     setDispatches((dispatchRes.data as Dispatch[]) ?? []);
+    setAvail((availRes.data as DispatchAvailability[]) ?? []);
     setLoading(false);
   };
 
@@ -84,15 +90,17 @@ export default function DispatchPage() {
     return b ? formatBatchIdentity(b.order_number, b.style_number, b.party_name) : id.slice(0, 8);
   };
 
-  const selected = batches.find((b) => b.id === batchId);
+  const eligible = dispatchableBatches(batches, avail);
+  const selected = eligible.find((b) => b.id === batchId);
   const batchDispatches = dispatches.filter((d) => d.batch_id === batchId);
   const dispatchedCartons = batchDispatches.reduce((n, d) => n + d.carton_count, 0);
   const errors = {
     batch: batchId ? "" : "Select a batch.",
     date: dispatchDate ? "" : "Choose a dispatch date.",
+    pcs: pcsCount >= 1 && (!selected || pcsCount <= selected.remaining) ? "" : selected ? `Enter 1 to ${selected.remaining} pieces.` : "Enter the pieces dispatched.",
     cartons: cartonCount >= 1 ? "" : "Enter a whole number of cartons, at least 1.",
   };
-  const valid = !errors.batch && !errors.date && !errors.cartons;
+  const valid = !errors.batch && !errors.date && !errors.cartons && !errors.pcs;
 
   const handleCreate = async () => {
     if (saving) return;
@@ -103,7 +111,7 @@ export default function DispatchPage() {
     const ok = await confirm({
       title: "Log this dispatch?",
       description: "You can undo it for 10 minutes.",
-      details: [["Batch", batchLabel(batchId)], ["Date", fmtDate(dispatchDate)], ["Cartons", String(cartonCount)], ["Carrier", carrier.trim() || "—"]],
+      details: [["Batch", batchLabel(batchId)], ["Date", fmtDate(dispatchDate)], ["Pieces", String(pcsCount)], ["Cartons", String(cartonCount)], ["Carrier", carrier.trim() || "—"]],
     });
     if (!ok) { setSaving(false); return; }
     const doneLabel = `${batchLabel(batchId)} · ${cartonCount} carton${cartonCount === 1 ? "" : "s"}`;
@@ -112,6 +120,7 @@ export default function DispatchPage() {
       dispatch_date: dispatchDate,
       carrier: carrier.trim() || null,
       carton_count: cartonCount,
+      pcs_count: pcsCount,
       dispatch_note: note.trim() || null,
       created_by: user?.id ?? null,
     })).error, load);
@@ -120,7 +129,7 @@ export default function DispatchPage() {
       toast({ title: "Failed to log dispatch", description: error.message, variant: "destructive" });
       return;
     }
-    setBatchId(""); setCarrier(""); setCartonCount(0); setNote(""); setTouched(false);
+    setBatchId(""); setCarrier(""); setCartonCount(0); setPcsCount(0); setNote(""); setTouched(false);
     setSuccess(doneLabel);
     load();
   };
@@ -146,13 +155,14 @@ export default function DispatchPage() {
               <Select value={batchId} onValueChange={(v) => { setBatchId(v); setSuccess(null); if (v !== reportBatchId) loadReport(v); }}>
                 <SelectTrigger className="mt-1" aria-required aria-invalid={touched && !!errors.batch}><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
-                  {batches.map((b) => (
+                  {eligible.map((b) => (
                     <SelectItem key={b.id} value={b.id}>
-                      {formatBatchIdentity(b.order_number, b.style_number, b.party_name)} ({b.total_quantity} pcs)
+                      {formatBatchIdentity(b.order_number, b.style_number, b.party_name)} ({b.dispatched} of {b.packed} pcs dispatched, {b.remaining} left)
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {!loading && eligible.length === 0 && <p className="text-xs text-muted-foreground mt-1">No batch is ready to dispatch. Only completed batches with pieces left can be dispatched. Mark a batch completed in Batches first.</p>}
               {touched && errors.batch && <p className="text-xs text-danger mt-1">{errors.batch}</p>}
             </div>
             <div>
@@ -163,6 +173,11 @@ export default function DispatchPage() {
             <div>
               <Label className="text-xs">Carrier / Vehicle</Label>
               <Input value={carrier} onChange={(e) => setCarrier(e.target.value)} placeholder="e.g. TCS, Truck #123" className="mt-1" />
+            </div>
+            <div>
+              <Label className="text-xs" htmlFor="dispatch-pcs">Pieces <span className="text-danger" aria-hidden>*</span></Label>
+              <Input id="dispatch-pcs" type="number" min="1" max={selected?.remaining} step="1" required inputMode="numeric" aria-invalid={touched && !!errors.pcs} value={pcsCount || ""} onChange={(e) => setPcsCount(Math.max(0, parseInt(e.target.value) || 0))} className="mt-1" />
+              {touched && errors.pcs ? <p className="text-xs text-danger mt-1">{errors.pcs}</p> : selected && <p className="text-xs text-muted-foreground mt-1">Up to {selected.remaining} left.</p>}
             </div>
             <div>
               <Label className="text-xs" htmlFor="dispatch-cartons">Carton Count <span className="text-danger" aria-hidden>*</span></Label>
@@ -180,7 +195,7 @@ export default function DispatchPage() {
             <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm space-y-1">
               <p className="font-medium text-foreground">{formatBatchIdentity(selected.order_number, selected.style_number, selected.party_name)}</p>
               <p className="text-muted-foreground">
-                {selected.total_quantity} pcs in batch · {dispatchedCartons} carton{dispatchedCartons === 1 ? "" : "s"} already dispatched in {batchDispatches.length} shipment{batchDispatches.length === 1 ? "" : "s"}
+                {selected.packed} pcs packed · {selected.dispatched} dispatched · {selected.remaining} left · {dispatchedCartons} carton{dispatchedCartons === 1 ? "" : "s"} in {batchDispatches.length} shipment{batchDispatches.length === 1 ? "" : "s"}
               </p>
               <p className="text-muted-foreground">Customer: {selected.party_name ?? "—"} · Expected delivery: {fmtDate(selected.expected_delivery)}</p>
             </div>
@@ -235,6 +250,7 @@ export default function DispatchPage() {
                       <div>
                         <span className="text-sm font-semibold text-foreground">{DEPARTMENT_LABELS[d.department]}</span>
                         <span className="text-xs text-muted-foreground ml-2">{d.entryCount} entries</span>
+                        <p className="text-xs text-muted-foreground">Started {fmtDate(d.startDate)} · Ended {fmtDate(d.endDate)}</p>
                       </div>
                       <div className="flex gap-2 flex-wrap">
                         {Object.entries(d.totals).map(([key, val]) => (
@@ -264,7 +280,7 @@ export default function DispatchPage() {
                   <span className="text-sm font-semibold text-foreground min-w-0 break-words">{batchLabel(d.batch_id)}</span>
                   <span className="text-sm text-muted-foreground text-right sm:text-left">{fmtDate(d.dispatch_date)}</span>
                   <span className="text-sm text-muted-foreground min-w-0 truncate">{d.carrier || "No carrier"}</span>
-                  <Badge variant="outline" className="justify-self-end">{d.carton_count} carton{d.carton_count === 1 ? "" : "s"}</Badge>
+                  <Badge variant="outline" className="justify-self-end">{d.pcs_count != null ? `${d.pcs_count} pcs · ` : ""}{d.carton_count} carton{d.carton_count === 1 ? "" : "s"}</Badge>
                 </div>
               ))}
             </div>

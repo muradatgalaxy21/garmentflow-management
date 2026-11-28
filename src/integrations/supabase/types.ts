@@ -200,6 +200,7 @@ export type Database = {
           batch_id: string
           carrier: string | null
           carton_count: number
+          pcs_count: number | null
           created_at: string
           created_by: string | null
           dispatch_date: string
@@ -210,6 +211,7 @@ export type Database = {
           batch_id: string
           carrier?: string | null
           carton_count: number
+          pcs_count?: number | null
           created_at?: string
           created_by?: string | null
           dispatch_date: string
@@ -220,6 +222,7 @@ export type Database = {
           batch_id?: string
           carrier?: string | null
           carton_count?: number
+          pcs_count?: number | null
           created_at?: string
           created_by?: string | null
           dispatch_date?: string
@@ -2006,6 +2009,10 @@ export type Database = {
       }
     }
     Functions: {
+      dispatch_availability: {
+        Args: { p_batch_id?: string }
+        Returns: { batch_id: string; packed_pcs: number; dispatched_pcs: number }[]
+      }
       can_manage_pay_of: { Args: { _target: string }; Returns: boolean }
       can_worker_enter_phase: {
         Args: { _phase_id: string; _worker_id: string }
