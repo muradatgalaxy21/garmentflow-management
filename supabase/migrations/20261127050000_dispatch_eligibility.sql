@@ -1,4 +1,4 @@
--- Dispatch eligibility (BUG-8): only 'completed' batches can be dispatched, in pieces,
+-- Dispatch eligibility (BUG-19): only 'completed' batches can be dispatched, in pieces,
 -- never more than packed minus already dispatched. Enforced in DB so the UI can't be bypassed.
 -- batch_dispatches.pcs_count is nullable only for rows logged before this migration.
 
