@@ -83,6 +83,23 @@ const today = new Date().toISOString().slice(0, 10);
     const st1 = await status("press");
     ok(st1.status === "open" && st1.end_verification_status === "none", "partial slip keeps the department open");
 
+    // Hardening: nobody can forge or edit an office_entry message outside the functions.
+    const { data: wl } = await svc.auth.admin.listUsers({ perPage: 1000 });
+    const wu = wl.users.find((u) => u.phone === "923000000011");
+    await svc.auth.admin.updateUserById(wu.id, { password: env.MOCK_PASSWORD });
+    const worker = createClient(URL, ANON, { auth: { persistSession: false } });
+    const { data: wsess } = await worker.auth.signInWithPassword({ phone: "+923000000011", password: env.MOCK_PASSWORD });
+    r = await worker.from("worker_inbox_messages").insert({ type: "office_entry", worker_id: wsess.user.id, batch_id: B, department: "press", message: "forged", payload: { entry_ids: rows1.map((e) => e.id), department_finished: true } });
+    ok(!!r.error, "worker cannot forge an office entry");
+    r = await slip(manager, "press", [{ worker_id: w1, completed: 7, wasted: 0 }]);
+    const msgEdit = r.data;
+    r = await manager.from("worker_inbox_messages").update({ payload: { entry_ids: rows1.map((e) => e.id), department_finished: true } }).eq("id", msgEdit).select();
+    ok(!!r.error || (r.data ?? []).length === 0, "manager cannot edit a pending slip payload");
+    r = await manager.from("worker_inbox_messages").update({ status: "accepted" }).eq("id", msgEdit).select();
+    ok(!!r.error || (r.data ?? []).length === 0, "manager cannot mark a slip accepted directly");
+    r = await rpc(admin, "resolve_office_entry", { _msg_id: msgEdit, _decision: "denied", _note: "" });
+    ok(!r.error, "admin still resolves normally" + (r.error ? " " + r.error.message : ""));
+
     // Slip 2 denied: rows deleted.
     r = await slip(manager, "press", [{ worker_id: w1, completed: 999, wasted: 0 }]);
     const msg2 = r.data;

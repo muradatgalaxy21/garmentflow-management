@@ -140,6 +140,8 @@ export async function stampEndCost(batchId: string, department: Department, work
   if (error) throw error;
   for (const row of data ?? []) {
     const p = (row.payload as Record<string, unknown>) ?? {};
+    // Office slip rows are paid only when the owner accepts that slip (resolve_office_entry).
+    if (p.office_entry === true && p.accepted !== true) continue;
     const cost = computeEndCost(p.rate_per_piece, p.quantity_completed);
     if (cost === null) continue;
     const { error: upErr } = await supabase.from("department_entries").update({ total_cost: cost }).eq("id", row.id);

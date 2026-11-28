@@ -78,7 +78,8 @@ export async function repriceUnrated(department: Department, label: string, rate
     const payload = { ...payloadOf(r.payload), rate_per_piece: rate, ...audit };
     const upd: { payload: typeof payload; total_cost?: number | null } = { payload };
     // Office slips are accepted one by one (payload.accepted) while the department stays open.
-    if (accepted.has(r.batch_id) || payloadOf(r.payload).accepted === true) upd.total_cost = computeEndCost(rate, payload.quantity_completed);
+    const pr = payloadOf(r.payload);
+    if (pr.office_entry === true ? pr.accepted === true : accepted.has(r.batch_id)) upd.total_cost = computeEndCost(rate, payload.quantity_completed);
     const { error } = await supabase.from("department_entries").update(upd as never).eq("id", r.id);
     if (error) throw error;
   }
