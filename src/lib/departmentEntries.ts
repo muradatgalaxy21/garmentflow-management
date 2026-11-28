@@ -108,7 +108,13 @@ export function entryCost(e: { department: Department; stage: EntryStage; total_
 /** Pieces to show/sum for an entry: START rows of END-paid departments hold no real piece count. */
 export function entryPieces(e: { department: Department; stage: EntryStage; payload: Record<string, unknown> }): number | null {
   if (e.stage === "start" && END_PAID_DEPARTMENTS.includes(e.department)) return null;
+  if (isPendingOfficeRow(e.payload)) return null;
   return getEntryPieceCount(e.payload ?? {});
+}
+
+/** Office slip row the owner has not accepted yet: counts for nothing (pieces or pay) until accepted. */
+export function isPendingOfficeRow(payload: Record<string, unknown> | null | undefined): boolean {
+  return payload?.office_entry === true && payload?.accepted !== true;
 }
 
 /** Rate chosen at this worker's latest START for the batch+department (stored in START payload.rate_per_piece). */
@@ -141,7 +147,7 @@ export async function stampEndCost(batchId: string, department: Department, work
   for (const row of data ?? []) {
     const p = (row.payload as Record<string, unknown>) ?? {};
     // Office slip rows are paid only when the owner accepts that slip (resolve_office_entry).
-    if (p.office_entry === true && p.accepted !== true) continue;
+    if (isPendingOfficeRow(p)) continue;
     const cost = computeEndCost(p.rate_per_piece, p.quantity_completed);
     if (cost === null) continue;
     const { error: upErr } = await supabase.from("department_entries").update({ total_cost: cost }).eq("id", row.id);
@@ -450,6 +456,7 @@ export async function generateBatchReport(batchId: string): Promise<BatchReport>
   for (const row of entries ?? []) {
     const dept = row.department as Department;
     const payload = (row.payload as Record<string, unknown>) ?? {};
+    if (isPendingOfficeRow(payload)) continue;
     let entry = byDept.get(dept);
     if (!entry) {
       entry = { department: dept, entryCount: 0, startDate: null, endDate: null, totals: {} };

@@ -13,9 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "@/components/admin/PageHeader";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { today } from "@/lib/finance";
+// Pakistan-local calendar date (the DB checks work_date against Asia/Karachi); finance.today() is UTC.
+const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
 import { formatBatchIdentity } from "@/lib/batchIdentity";
-import { checkDepartmentGate, DEPARTMENT_LABELS, getDepartmentStatus, type Department } from "@/lib/departmentEntries";
+import { DEPARTMENT_LABELS, getDepartmentStatus, type Department } from "@/lib/departmentEntries";
 import {
   OFFICE_DEPARTMENTS,
   defaultRateLabel,
@@ -100,10 +101,13 @@ export default function ManagerEntryPage() {
     let live = true;
     setChecking(true);
     (async () => {
-      const gate = await checkDepartmentGate(batch.id, department);
-      const status = await getDepartmentStatus(batch.id, department);
+      // Same gate function the save uses (department_gate_blocker), so screen and server agree.
+      const [{ data: blocker }, status] = await Promise.all([
+        supabase.rpc("department_gate_blocker", { _batch_id: batch.id, _department: department }),
+        getDepartmentStatus(batch.id, department),
+      ]);
       if (!live) return;
-      if (!gate.allowed) setBlocked(gate.reason ?? "An earlier department hasn't finished this batch.");
+      if (blocker) setBlocked(`Previous department "${DEPARTMENT_LABELS[blocker as Department] ?? blocker}" hasn't finished this batch yet.`);
       else if (status?.status === "closed") setBlocked("This department is already closed for this batch.");
       setChecking(false);
     })();
@@ -171,7 +175,7 @@ export default function ManagerEntryPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label htmlFor="me-batch">Batch</Label>
-              <Select value={batchId} onValueChange={setBatchId}>
+              <Select value={batchId} onValueChange={(v) => { setBatchId(v); setRows([emptyRow()]); }}>
                 <SelectTrigger id="me-batch"><SelectValue placeholder="Pick batch" /></SelectTrigger>
                 <SelectContent>
                   {batches.map((b) => (
@@ -195,6 +199,9 @@ export default function ManagerEntryPage() {
             </div>
           </div>
 
+          {batchId && batches.length > 0 && !batch && (
+            <p className="text-sm text-muted-foreground">That batch is completed or cancelled, so no work can be entered. Pick an in-progress batch.</p>
+          )}
           {checking && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Checking department…</p>}
           {blocked && (
             <Alert variant="destructive">

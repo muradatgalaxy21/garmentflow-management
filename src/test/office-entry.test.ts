@@ -62,3 +62,21 @@ describe("office entry (Manager Entry)", () => {
     expect(slipTotals([row({ completed: 5, wasted: 1 }), row({ completed: 7, wasted: 2 })])).toEqual({ completed: 12, wasted: 3 });
   });
 });
+
+import { entryPieces, isPendingOfficeRow } from "@/lib/departmentEntries";
+
+describe("pending office rows count for nothing until accepted", () => {
+  it("detects pending office rows", () => {
+    expect(isPendingOfficeRow({ office_entry: true })).toBe(true);
+    expect(isPendingOfficeRow({ office_entry: true, accepted: true })).toBe(false);
+    expect(isPendingOfficeRow({ quantity_completed: 5 })).toBe(false);
+    expect(isPendingOfficeRow(null)).toBe(false);
+  });
+
+  it("entryPieces ignores pending office ENDs, counts accepted ones and worker ENDs", () => {
+    const end = (payload: Record<string, unknown>) => entryPieces({ department: "press", stage: "end", payload });
+    expect(end({ office_entry: true, quantity_completed: 40 })).toBeNull();
+    expect(end({ office_entry: true, accepted: true, quantity_completed: 40 })).toBe(40);
+    expect(end({ quantity_completed: 12 })).toBe(12);
+  });
+});
