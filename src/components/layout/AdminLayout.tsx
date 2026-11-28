@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch, Wallet, Store, Receipt, HandCoins, BadgeDollarSign, FileBarChart } from "lucide-react";
+import { LayoutDashboard, Inbox, MessagesSquare, Package, ClipboardList, Users, HardHat, Factory, Truck, LogOut, Loader2, GitBranch, ClipboardPenLine, Wallet, Store, Receipt, HandCoins, BadgeDollarSign, FileBarChart } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ const adminNav: NavItem[] = [
   { title: "Inventory", url: "/admin/inventory", icon: Package, end: false, perm: "inventory.view" },
   { title: "Orders", url: "/admin/orders", icon: ClipboardList, end: false, perm: "orders.view" },
   { title: "Batches", url: "/admin/batches", icon: Factory, end: false, perm: "batches.view" },
+  { title: "Manager Entry", url: "/admin/manager-entry", icon: ClipboardPenLine, end: false, perm: "batches.update" },
   { title: "Pipeline Status", url: "/admin/pipeline-status", icon: GitBranch, end: false, perm: "pipeline.view" },
   { title: "Dispatch", url: "/admin/dispatch", icon: Truck, end: false, perm: "dispatch.view" },
   { title: "Employees", url: "/admin/employees", icon: HardHat, end: false, perm: "employees.view" },

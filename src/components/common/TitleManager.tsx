@@ -20,6 +20,7 @@ const EXACT_ROUTE_TITLES: Record<string, string> = {
   "/admin/inventory": "Inventory - Admin Portal - En En Garments",
   "/admin/orders": "Orders - Admin Portal - En En Garments",
   "/admin/batches": "Batches - Admin Portal - En En Garments",
+  "/admin/manager-entry": "Manager Entry - Admin Portal - En En Garments",
   "/admin/pipeline-status": "Pipeline Status - Admin Portal - En En Garments",
   "/admin/dispatch": "Dispatch & Shipping - Admin Portal - En En Garments",
   "/admin/clients": "Clients Directory - Admin Portal - En En Garments",

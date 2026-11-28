@@ -31,7 +31,7 @@ export default function StaffAssistant({ bottomOffset = "1.5rem" }: { bottomOffs
     setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
-  const suggestions = ["Order ORD-123 kahan tak pohncha?", "How do I add a manual (multi-worker) entry?", "Payment approve kaise hoti hai?"];
+  const suggestions = ["Order ORD-123 kahan tak pohncha?", "How do I enter a supervisor slip (Manager Entry)?", "Payment approve kaise hoti hai?"];
 
   return (
     <>

@@ -38,6 +38,7 @@ const ClientsPage = lazy(() => import("@/pages/admin/ClientsPage"));
 const EmployeesPage = lazy(() => import("@/pages/admin/EmployeesPage"));
 const WorkerDetailPage = lazy(() => import("@/pages/admin/WorkerDetailPage"));
 const AdminInboxPage = lazy(() => import("@/pages/admin/InboxPage"));
+const ManagerEntryPage = lazy(() => import("@/pages/admin/ManagerEntryPage"));
 const DispatchPage = lazy(() => import("@/pages/admin/DispatchPage"));
 const BatchPipelineStatusPage = lazy(() => import("@/pages/admin/BatchPipelineStatusPage"));
 const FinanceDashboard = lazy(() => import("@/pages/admin/finance/FinanceDashboard"));
@@ -122,6 +123,7 @@ const App = () => (
               <Route path="inventory" element={gate("inventory.view", <InventoryPage />)} />
               <Route path="orders" element={gate("orders.view", <OrdersAdminPage />)} />
               <Route path="batches" element={gate("batches.view", <BatchManagementPage />)} />
+              <Route path="manager-entry" element={gate("batches.update", <ManagerEntryPage />)} />
               <Route path="pipeline-status" element={gate("pipeline.view", <BatchPipelineStatusPage />)} />
               <Route path="dispatch" element={gate("dispatch.view", <DispatchPage />)} />
               <Route path="clients" element={gate("clients.view", <ClientsPage />)} />

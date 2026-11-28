@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Plus, Loader2, QrCode, Printer, Settings, Eye, Users, Coins, Trash2, Ban, Boxes, X, Layers,
   CheckCircle2, Circle, CircleDot, Truck, PauseCircle, PlayCircle,
@@ -21,7 +21,6 @@ import {
   Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import MultiWorkerLogModal from "@/components/factory/MultiWorkerLogModal";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { StatusBadge, type Tone } from "@/components/admin/StatusBadge";
@@ -38,6 +37,7 @@ import { fmtDate, fmtDateTime } from "@/lib/format";
 import { stallCutoff } from "@/lib/dashboardMetrics";
 import { DEPARTMENT_LABELS, type Department } from "@/lib/departmentEntries";
 import { fetchUnrated, repriceUnrated } from "@/lib/unratedWork";
+import { SKIP_LABELS, setStageSkip, undoStageSkip, type SkipReason } from "@/lib/officeEntry";
 import {
   STAGES, STATE_LABELS, batchProgress, batchState, isoDay, matchesDue,
   type BatchStateKey, type BlockReason, type DeptRow, type DueFilter,
@@ -80,7 +80,7 @@ interface TrackingEntry {
   quantity_completed: number; quantity_wasted: number;
   notes: string | null; created_at: string;
 }
-interface DeptLog { id: string; department: string; stage: string; worker_name: string; created_at: string; }
+interface DeptLog { id: string; department: string; stage: string; worker_name: string; created_at: string; entered_by: string | null; work_date: string | null; }
 
 const STATE_TONE: Record<BatchStateKey, Tone> = {
   not_started: "neutral", in_progress: "info", blocked: "warning", paused: "warning", ready: "success", completed: "success", cancelled: "neutral",
@@ -102,7 +102,12 @@ export default function BatchManagementPage() {
   const [shortfall, setShortfall] = useState<Set<string>>(new Set());
   const [stalled, setStalled] = useState<Set<string>>(new Set());
   const [dispatches, setDispatches] = useState<Dispatch[]>([]);
-  const [multiWorkerBatch, setMultiWorkerBatch] = useState<Batch | null>(null);
+  const navigate = useNavigate();
+  const openEntry = (b: Batch) => navigate(`/admin/manager-entry?batch=${b.id}`);
+  const [skipTarget, setSkipTarget] = useState<{ batch: Batch; label: string; department: Department } | null>(null);
+  const [skipReason, setSkipReason] = useState<SkipReason>("before_system");
+  const [skipNote, setSkipNote] = useState("");
+  const [skipBusy, setSkipBusy] = useState(false);
 
   const [searchParams] = useSearchParams();
   const [q, setQ] = useState("");
@@ -151,7 +156,7 @@ export default function BatchManagementPage() {
         supabase.from("orders").select("id, order_number, product_summary, party_name, expected_delivery"),
         supabase.from("inventory_items").select("id, name, sku, quantity_on_hand, reorder_level"),
         supabase.from("production_phases").select("id, name, sequence_order").order("sequence_order"),
-        supabase.from("batch_department_status").select("batch_id, department, status, start_verification_status, end_verification_status"),
+        supabase.from("batch_department_status").select("batch_id, department, status, start_verification_status, end_verification_status, skip_reason"),
         supabase.from("department_entries").select("batch_id, inventory_item_id").not("inventory_item_id", "is", null),
         supabase.from("batch_tracking").select("batch_id").gte("created_at", since),
         supabase.from("department_entries").select("batch_id").gte("created_at", since),
@@ -409,14 +414,14 @@ export default function BatchManagementPage() {
         .order("created_at", { ascending: false }),
       supabase
         .from("department_entries")
-        .select("id, department, stage, worker_id, created_at")
+        .select("id, department, stage, worker_id, created_at, entered_by, work_date")
         .eq("batch_id", batch.id)
         .order("created_at", { ascending: false }),
       supabase.from("batch_pack_ratios").select("ratio").eq("batch_id", batch.id).maybeSingle(),
     ]);
     setDetailRatio((ratio?.ratio as Record<string, number>) ?? null);
 
-    const workerIds = [...new Set([...(tracking ?? []), ...(entries ?? [])].map((t) => t.worker_id))];
+    const workerIds = [...new Set([...(tracking ?? []).map((t) => t.worker_id), ...(entries ?? []).flatMap((e) => [e.worker_id, e.entered_by].filter(Boolean) as string[])])];
     const workerMap = new Map<string, string>();
     if (workerIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", workerIds);
@@ -441,8 +446,37 @@ export default function BatchManagementPage() {
         stage: e.stage,
         worker_name: workerMap.get(e.worker_id) ?? "—",
         created_at: e.created_at,
+        entered_by: e.entered_by ? workerMap.get(e.entered_by) ?? "office" : null,
+        work_date: e.work_date,
       }))
     );
+  };
+
+  const saveSkip = async () => {
+    if (!skipTarget) return;
+    setSkipBusy(true);
+    try {
+      await setStageSkip(skipTarget.batch.id, skipTarget.department, skipReason, skipNote);
+      toast({ title: `${skipTarget.label}: ${SKIP_LABELS[skipReason]}` });
+      setSkipTarget(null);
+      await load();
+    } catch (err: any) {
+      toast({ title: "Could not mark the stage", description: err.message, variant: "destructive" });
+    } finally {
+      setSkipBusy(false);
+    }
+  };
+
+  const undoSkip = async (batch: Batch, department: Department, label: string) => {
+    const ok = await confirm({ title: `Undo the mark on ${label}?`, description: "The stage goes back to not started. Later departments that already have work keep it." });
+    if (!ok) return;
+    try {
+      await undoStageSkip(batch.id, department);
+      toast({ title: `${label}: mark removed` });
+      await load();
+    } catch (err: any) {
+      toast({ title: "Could not undo", description: err.message, variant: "destructive" });
+    }
   };
 
   const cuttingPhase = phases.find((p) => p.name === "Cutting");
@@ -625,7 +659,7 @@ export default function BatchManagementPage() {
           text: r.reasons.map((x) => REASON_TEXT[x]).join(" · "),
           action: r.reasons[0] === "approval" ? linkBtn("/admin/inbox", "Review in Inbox", "inbox.view")
             : r.reasons[0] === "shortfall" ? linkBtn("/admin/inventory", "Open Inventory", "inventory.view")
-            : can("batches.update") ? <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setMultiWorkerBatch(r.b)}>Log work</Button> : null,
+            : can("batches.update") ? <Button variant="link" size="sm" className="h-auto p-0" onClick={() => openEntry(r.b)}>Log work</Button> : null,
         };
       case "not_started":
         return { text: "No stage started yet", action: <Button variant="link" size="sm" className="h-auto p-0" onClick={() => showQr(r.b)}>Print QR labels</Button> };
@@ -794,8 +828,8 @@ export default function BatchManagementPage() {
                       </div>
                       <div className="flex items-center gap-1 md:justify-end">
                         {!finished && can("batches.update") ? (
-                          <Button size="sm" variant="outline" disabled={r.state === "paused"} title={r.state === "paused" ? "Batch is paused" : undefined} onClick={() => setMultiWorkerBatch(b)}>
-                            <Users className="w-4 h-4 mr-1" /> Multi-Worker Log
+                          <Button size="sm" variant="outline" disabled={r.state === "paused"} title={r.state === "paused" ? "Batch is paused" : undefined} onClick={() => openEntry(b)}>
+                            <Users className="w-4 h-4 mr-1" /> Manager Entry
                           </Button>
                         ) : (
                           <Button size="sm" variant="outline" onClick={() => openDetail(b)}>
@@ -1122,8 +1156,8 @@ export default function BatchManagementPage() {
                       </div>
                     )}
                     {!finished && can("batches.update") && (
-                      <Button size="sm" variant="outline" onClick={() => setMultiWorkerBatch(selectedBatch)}>
-                        <Users className="w-4 h-4 mr-1" /> Multi-Worker Log
+                      <Button size="sm" variant="outline" disabled={r.state === "paused"} onClick={() => openEntry(selectedBatch)}>
+                        <Users className="w-4 h-4 mr-1" /> Manager Entry
                       </Button>
                     )}
                   </div>
@@ -1134,17 +1168,31 @@ export default function BatchManagementPage() {
                       <ProgressBar done={r.progress.done} total={r.progress.total} />
                     </div>
                     <ol className="space-y-1">
-                      {r.progress.stages.map((s, i) => (
-                        <li key={s.key} className="flex items-center gap-2">
-                          {s.status === "done" ? <CheckCircle2 className="h-4 w-4 text-success shrink-0" aria-hidden />
-                            : s.status === "open" ? <CircleDot className="h-4 w-4 text-info shrink-0" aria-hidden />
-                            : <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" aria-hidden />}
-                          <span className={s.status === "none" ? "text-muted-foreground" : "text-foreground"}>{i + 1}. {s.label}</span>
-                          <span className="ml-auto text-xs text-muted-foreground">
-                            {s.status === "done" ? "Done" : s.status === "open" ? "In progress" : ""}
-                          </span>
-                        </li>
-                      ))}
+                      {r.progress.stages.map((s, i) => {
+                        const skipped = (deptRows.get(selectedBatch.id) ?? []).find((d) => s.departments.includes(d.department as Department) && d.skip_reason);
+                        return (
+                          <li key={s.key} className="flex items-center gap-2 min-h-7">
+                            {s.status === "done" ? <CheckCircle2 className={`h-4 w-4 shrink-0 ${skipped ? "text-muted-foreground" : "text-success"}`} aria-hidden />
+                              : s.status === "open" ? <CircleDot className="h-4 w-4 text-info shrink-0" aria-hidden />
+                              : <Circle className="h-4 w-4 text-muted-foreground/50 shrink-0" aria-hidden />}
+                            <span className={s.status === "none" ? "text-muted-foreground" : "text-foreground"}>{i + 1}. {s.label}</span>
+                            <span className="ml-auto flex items-center gap-1 text-xs text-muted-foreground">
+                              {skipped ? (
+                                <>
+                                  <StatusBadge tone="neutral">{SKIP_LABELS[skipped.skip_reason as SkipReason]}</StatusBadge>
+                                  {isAdmin && !finished && (
+                                    <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => undoSkip(selectedBatch, skipped.department as Department, s.label)}>Undo</Button>
+                                  )}
+                                </>
+                              ) : s.status === "done" ? "Done" : s.status === "open" ? "In progress" : isAdmin && !finished ? (
+                                <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => { setSkipReason("before_system"); setSkipNote(""); setSkipTarget({ batch: selectedBatch, label: s.label, department: s.departments[0] }); }}>
+                                  Mark done / not needed
+                                </Button>
+                              ) : ""}
+                            </span>
+                          </li>
+                        );
+                      })}
                     </ol>
                   </section>
 
@@ -1158,8 +1206,8 @@ export default function BatchManagementPage() {
                           <ul className="divide-y divide-border rounded-md border border-border">
                             {deptLogs.map((e) => (
                               <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-x-3 px-3 py-2">
-                                <span className="text-foreground">{e.department} <span className="text-muted-foreground">· {e.stage === "end" ? "End" : "Start"} · {e.worker_name}</span></span>
-                                <span className="text-xs text-muted-foreground">{fmtDateTime(e.created_at)}</span>
+                                <span className="text-foreground">{e.department} <span className="text-muted-foreground">· {e.stage === "end" ? "End" : "Start"} · {e.worker_name}{e.entered_by && <> · entered by {e.entered_by}</>}</span></span>
+                                <span className="text-xs text-muted-foreground">{e.work_date ? <>Work {fmtDate(e.work_date)} · saved </> : null}{fmtDateTime(e.created_at)}</span>
                               </li>
                             ))}
                           </ul>
@@ -1280,19 +1328,33 @@ export default function BatchManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Multi-Worker On-Behalf Entry Modal */}
-      <MultiWorkerLogModal
-        batch={multiWorkerBatch}
-        phases={phases}
-        open={!!multiWorkerBatch}
-        onOpenChange={(o) => !o && setMultiWorkerBatch(null)}
-        onSuccess={() => {
-          load();
-          if (selectedBatch && multiWorkerBatch && selectedBatch.id === multiWorkerBatch.id) {
-            openDetail(selectedBatch);
-          }
-        }}
-      />
+      {/* Opening position: mark a stage done before the system started, or not needed for this batch (admin only) */}
+      <Dialog open={!!skipTarget} onOpenChange={(o) => { if (!o && !skipBusy) setSkipTarget(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Mark "{skipTarget?.label}" for {skipTarget?.batch.style_number}</DialogTitle></DialogHeader>
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">No pieces and no pay are recorded. The stage counts as finished so the next department can start. You can undo it later.</p>
+            <div className="space-y-1.5">
+              <Label htmlFor="skip-reason">Reason</Label>
+              <Select value={skipReason} onValueChange={(v) => setSkipReason(v as SkipReason)}>
+                <SelectTrigger id="skip-reason"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="before_system">Done before system (work was done on paper)</SelectItem>
+                  <SelectItem value="not_needed">Not needed for this batch</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="skip-note">Note (optional)</Label>
+              <Textarea id="skip-note" rows={2} value={skipNote} onChange={(e) => setSkipNote(e.target.value)} placeholder="e.g. Cut in October, register page 12" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" disabled={skipBusy} onClick={() => setSkipTarget(null)}>Cancel</Button>
+            <Button disabled={skipBusy} onClick={saveSkip}>{skipBusy && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Mark {SKIP_LABELS[skipReason].toLowerCase()}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {deletingBatch && (
         <DeleteConfirmDialog

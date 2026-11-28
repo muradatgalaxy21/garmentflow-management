@@ -14,6 +14,7 @@ export interface DeptRow {
   status: string; // open | closed
   start_verification_status: string; // pending | accepted | denied
   end_verification_status: string; // none | pending | accepted | denied | reprocess
+  skip_reason?: string | null; // before_system | not_needed (opening position / stage not used)
 }
 
 export type StageStatus = "done" | "open" | "none";

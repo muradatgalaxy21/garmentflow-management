@@ -15,6 +15,8 @@ const typeConfig: Record<InboxMessage["type"], { labelKey: string; icon: typeof 
   batch_start_verification: { labelKey: "factory.inbox.typeBatchStart", icon: PlayCircle, color: "text-blue-600" },
   batch_end_verification: { labelKey: "factory.inbox.typeBatchEnd", icon: CheckCircle2, color: "text-emerald-600" },
   entry_approval: { labelKey: "factory.inbox.typeEntryApproval", icon: CheckCircle2, color: "text-amber-600" },
+  // Office slips are filed under the office user, never a worker; label only for completeness.
+  office_entry: { labelKey: "factory.inbox.typeEntryApproval", icon: CheckCircle2, color: "text-amber-600" },
   worker_query: { labelKey: "factory.inbox.typeMyQuery", icon: MessageSquare, color: "text-slate-500" },
 };
 
