@@ -158,6 +158,8 @@ export type Database = {
           end_verification_status: string
           opened_at: string
           opened_by: string | null
+          skip_note: string | null
+          skip_reason: string | null
           start_verification_status: string
           status: string
         }
@@ -170,6 +172,8 @@ export type Database = {
           end_verification_status?: string
           opened_at?: string
           opened_by?: string | null
+          skip_note?: string | null
+          skip_reason?: string | null
           start_verification_status?: string
           status?: string
         }
@@ -182,6 +186,8 @@ export type Database = {
           end_verification_status?: string
           opened_at?: string
           opened_by?: string | null
+          skip_note?: string | null
+          skip_reason?: string | null
           start_verification_status?: string
           status?: string
         }
@@ -200,34 +206,34 @@ export type Database = {
           batch_id: string
           carrier: string | null
           carton_count: number
-          pcs_count: number | null
           created_at: string
           created_by: string | null
           dispatch_date: string
           dispatch_note: string | null
           id: string
+          pcs_count: number | null
         }
         Insert: {
           batch_id: string
           carrier?: string | null
           carton_count: number
-          pcs_count?: number | null
           created_at?: string
           created_by?: string | null
           dispatch_date: string
           dispatch_note?: string | null
           id?: string
+          pcs_count?: number | null
         }
         Update: {
           batch_id?: string
           carrier?: string | null
           carton_count?: number
-          pcs_count?: number | null
           created_at?: string
           created_by?: string | null
           dispatch_date?: string
           dispatch_note?: string | null
           id?: string
+          pcs_count?: number | null
         }
         Relationships: [
           {
@@ -263,6 +269,41 @@ export type Database = {
             foreignKeyName: "batch_pack_ratios_batch_id_fkey"
             columns: ["batch_id"]
             isOneToOne: true
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_pause_log: {
+        Row: {
+          action: string
+          batch_id: string
+          by_user: string
+          created_at: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          action: string
+          batch_id: string
+          by_user: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          action?: string
+          batch_id?: string
+          by_user?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_pause_log_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
             referencedRelation: "production_batches"
             referencedColumns: ["id"]
           },
@@ -399,6 +440,47 @@ export type Database = {
             columns: ["phase_id"]
             isOneToOne: false
             referencedRelation: "production_phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      batch_stage_skip_log: {
+        Row: {
+          action: string
+          batch_id: string
+          by_user: string
+          created_at: string
+          department: string
+          id: string
+          note: string | null
+          reason: string
+        }
+        Insert: {
+          action: string
+          batch_id: string
+          by_user: string
+          created_at?: string
+          department: string
+          id?: string
+          note?: string | null
+          reason: string
+        }
+        Update: {
+          action?: string
+          batch_id?: string
+          by_user?: string
+          created_at?: string
+          department?: string
+          id?: string
+          note?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batch_stage_skip_log_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -875,33 +957,39 @@ export type Database = {
           batch_id: string
           created_at: string
           department: string
+          entered_by: string | null
           id: string
           inventory_item_id: string | null
           payload: Json
           stage: string
           total_cost: number | null
+          work_date: string | null
           worker_id: string
         }
         Insert: {
           batch_id: string
           created_at?: string
           department: string
+          entered_by?: string | null
           id?: string
           inventory_item_id?: string | null
           payload: Json
           stage?: string
           total_cost?: number | null
+          work_date?: string | null
           worker_id: string
         }
         Update: {
           batch_id?: string
           created_at?: string
           department?: string
+          entered_by?: string | null
           id?: string
           inventory_item_id?: string | null
           payload?: Json
           stage?: string
           total_cost?: number | null
+          work_date?: string | null
           worker_id?: string
         }
         Relationships: [
@@ -2009,10 +2097,6 @@ export type Database = {
       }
     }
     Functions: {
-      dispatch_availability: {
-        Args: { p_batch_id?: string }
-        Returns: { batch_id: string; packed_pcs: number; dispatched_pcs: number }[]
-      }
       can_manage_pay_of: { Args: { _target: string }; Returns: boolean }
       can_worker_enter_phase: {
         Args: { _phase_id: string; _worker_id: string }
@@ -2028,9 +2112,22 @@ export type Database = {
         Args: { _month: string; _note?: string }
         Returns: undefined
       }
+      department_gate_blocker: {
+        Args: { _batch_id: string; _department: string }
+        Returns: string
+      }
+      dept_skills: { Args: { _dept: string; _sub: string }; Returns: string[] }
       discard_finance_draft: {
         Args: { _id: string; _table: string }
         Returns: undefined
+      }
+      dispatch_availability: {
+        Args: { p_batch_id?: string }
+        Returns: {
+          batch_id: string
+          dispatched_pcs: number
+          packed_pcs: number
+        }[]
       }
       finance_area: { Args: { _table: string }; Returns: string }
       finance_check_table: { Args: { _table: string }; Returns: undefined }
@@ -2076,6 +2173,10 @@ export type Database = {
         Args: { _batch_id: string; _phase_id: string }
         Returns: boolean
       }
+      merge_dept_skills: {
+        Args: { _dept: string; _skills: string[]; _sub: string }
+        Returns: string[]
+      }
       my_recent_actions: {
         Args: never
         Returns: {
@@ -2113,12 +2214,45 @@ export type Database = {
         Args: { _month: string; _note: string }
         Returns: undefined
       }
+      resolve_office_entry: {
+        Args: { _decision: string; _msg_id: string; _note?: string }
+        Returns: undefined
+      }
       server_now: { Args: never; Returns: string }
+      set_batch_paused: {
+        Args: { _batch_id: string; _paused: boolean; _reason?: string }
+        Returns: undefined
+      }
+      set_stage_skip: {
+        Args: {
+          _batch_id: string
+          _department: string
+          _note?: string
+          _reason: string
+        }
+        Returns: undefined
+      }
+      submit_office_entry: {
+        Args: {
+          _batch_id: string
+          _department: string
+          _finished: boolean
+          _notes: string
+          _rate_label: string
+          _rows: Json
+          _work_date: string
+        }
+        Returns: string
+      }
       tag_my_changes: {
         Args: { _label: string; _since: string }
         Returns: string
       }
       undo_action: { Args: { _action_id: string }; Returns: undefined }
+      undo_stage_skip: {
+        Args: { _batch_id: string; _department: string; _note?: string }
+        Returns: undefined
+      }
       users_with_roles: {
         Args: { _roles: Database["public"]["Enums"]["app_role"][] }
         Returns: string[]

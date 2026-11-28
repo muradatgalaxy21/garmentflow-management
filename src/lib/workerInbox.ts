@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { closeDepartment, recordInventoryMovement, stampEndCost, type Department } from "./departmentEntries";
 
-export type InboxMessageType = "batch_start_verification" | "batch_end_verification" | "entry_approval" | "worker_query";
+export type InboxMessageType = "batch_start_verification" | "batch_end_verification" | "entry_approval" | "office_entry" | "worker_query";
 export type InboxMessageStatus = "pending" | "accepted" | "denied" | "reprocess" | "resolved";
 
 export interface InboxMessage {
@@ -24,6 +24,7 @@ const TYPE_PRIORITY: Record<InboxMessageType, number> = {
   batch_start_verification: 0,
   batch_end_verification: 0,
   entry_approval: 0,
+  office_entry: 0,
   worker_query: 1,
 };
 

@@ -41,7 +41,8 @@ Top up an existing accessory or register a new variant. Fabric restock is admin/
 ## Batches
 - New Batch (Batches > Add) under an order. Print QR Labels (START and END cards).
 - Piece Rates and Department Rates set what workers earn per piece. Only people with the "Piece & department rates: Manage" permission can change them. Pack Ratio sets the size mix.
-- Multi-Worker Log (manual entry): open the batch, choose Multi-Worker Log, pick the phase, enter pieces completed/wasted per worker, save. Use this when work was not scanned on the floor.
+- Manager Entry (manual entry from a supervisor's paper slip): sidebar Manager Entry (or Manager Entry on a batch). Pick batch, department, work date (past dates allowed), then one row per worker: pieces done, wasted (cutting: panel + panels done). Tick "Department finished" on the last slip. Saving sends it to the owner's Inbox; ONLY the owner (admin) accepts (pay counts, department closes if ticked) or denies (rows deleted). Needs Batches edit permission. Accessories is not entered here.
+- Running orders / stages a batch does not use: on the batch detail, the owner uses "Mark done / not needed" on a stage (Done before system, or Not needed). No pieces, no pay; undoable. Needed so the next department's gate opens.
 - Cancel batch asks for confirmation and can be undone for 10 minutes.
 
 ## Pipeline Status

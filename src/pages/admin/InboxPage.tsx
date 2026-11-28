@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Loader2, PlayCircle, CheckCircle2, MessageSquare, RotateCcw, Inbox } from "lucide-react";
+import { Loader2, PlayCircle, CheckCircle2, MessageSquare, RotateCcw, Inbox, ClipboardPenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { DEPARTMENT_LABELS } from "@/lib/departmentEntries";
 import { unratedPcs } from "@/lib/unratedWork";
+import { resolveOfficeEntry } from "@/lib/officeEntry";
 import {
   fetchInboxMessages,
   replyWorkerQuery,
@@ -40,6 +41,7 @@ const typeConfig: Record<InboxMessage["type"], { label: string; icon: typeof Pla
   batch_start_verification: { label: "Batch start", icon: PlayCircle },
   batch_end_verification: { label: "Batch end", icon: CheckCircle2 },
   entry_approval: { label: "Entry approval", icon: CheckCircle2 },
+  office_entry: { label: "Office entry", icon: ClipboardPenLine },
   worker_query: { label: "Query", icon: MessageSquare },
 };
 
@@ -269,8 +271,12 @@ function QueryActions({ open, canAct, busy, draft, setDraft, onReply, onResolve,
   );
 }
 
+interface OfficeSlipRow { worker_id: string; completed: number; wasted: number; rate: number | null; rate_label: string | null }
+const officeRows = (m: InboxMessage): OfficeSlipRow[] =>
+  m.type === "office_entry" && Array.isArray(m.payload?.rows) ? (m.payload.rows as OfficeSlipRow[]) : [];
+
 function WorkerInboxTab() {
-  const { user, can } = useAuth();
+  const { user, can, isAdmin } = useAuth();
   const { toast } = useToast();
   const confirm = useConfirm();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
@@ -284,7 +290,7 @@ function WorkerInboxTab() {
       const data = await fetchInboxMessages(100);
       setMessages(data);
       const [p, b] = await Promise.all([
-        lookupNames("profiles", uniq(data.map((m) => m.worker_id))),
+        lookupNames("profiles", uniq(data.flatMap((m) => [m.worker_id, ...officeRows(m).map((r) => r.worker_id)]))),
         lookupNames("production_batches", uniq(data.map((m) => m.batch_id))),
       ]);
       setNames({ p, b });
@@ -331,7 +337,7 @@ function WorkerInboxTab() {
       label: cfg.label,
       icon: cfg.icon,
       status: m.status,
-      sender: names.p[m.worker_id] ?? "Worker",
+      sender: names.p[m.worker_id] ?? (m.type === "office_entry" ? "Office" : "Worker"),
       context,
       message: m.message,
       reply: m.resolution_note,
@@ -365,6 +371,44 @@ function WorkerInboxTab() {
           }
           onReopen={() => run(m.id, "Worker query reopened", () => reopenWorkerQuery(m))}
         />
+      );
+    }
+    if (m.type === "office_entry") {
+      const rows = officeRows(m);
+      const finishedSlip = m.payload?.department_finished === true;
+      const n = note.trim() || undefined;
+      const decideOffice = (decision: "accepted" | "denied") =>
+        run(m.id, decision === "accepted" ? "Office entry accepted" : "Office entry denied", () => resolveOfficeEntry(m.id, decision, n), {
+          title: decision === "accepted" ? "Accept this slip?" : "Deny this slip?",
+          description: decision === "accepted"
+            ? `Pay is counted for these rows${finishedSlip ? " and the department closes" : ""}. This cannot be undone here.`
+            : "The slip's rows are deleted so they never count. The manager re-enters it correctly. This cannot be undone.",
+        });
+      return (
+        <div className="space-y-3 border-t pt-3">
+          <ul className="divide-y divide-border rounded-md border border-border text-sm">
+            {rows.map((r, i) => (
+              <li key={i} className="flex flex-wrap items-baseline justify-between gap-x-3 px-3 py-1.5">
+                <span className="text-foreground">{names.p[r.worker_id] ?? "Worker"}{r.rate_label && r.rate_label !== "default" ? <span className="text-muted-foreground"> · {r.rate_label}</span> : null}</span>
+                <span className="text-muted-foreground">{r.completed} done · {r.wasted} wasted{typeof r.rate === "number" ? ` · Rs ${(r.rate * r.completed).toLocaleString()}` : " · no rate"}</span>
+              </li>
+            ))}
+          </ul>
+          {typeof m.payload?.notes === "string" && <p className="text-sm text-muted-foreground">Note: {m.payload.notes}</p>}
+          {finishedSlip && <p className="text-sm text-foreground">Manager marked the department finished: accepting closes it.</p>}
+          {m.status === "pending" && (isAdmin ? (
+            <>
+              <Label htmlFor="inbox-note">Note (optional)</Label>
+              <Textarea id="inbox-note" value={note} onChange={(e) => setNotes((s) => ({ ...s, [m.id]: e.target.value }))} rows={2} />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={busy} onClick={() => decideOffice("accepted")}>{finishedSlip ? "Accept & Close" : "Accept"}</Button>
+                <Button size="sm" variant="destructive" disabled={busy} onClick={() => decideOffice("denied")}>Deny</Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Waiting for the owner to accept.</p>
+          ))}
+        </div>
       );
     }
     if (m.status !== "pending" || !canAct) return null;

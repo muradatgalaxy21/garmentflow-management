@@ -61,7 +61,8 @@ export async function repriceUnrated(department: Department, label: string, rate
     const ids = new Set((data ?? []).map((p) => p.id));
     rows = all.filter((e) => ids.has(e.worker_id));
   } else if (rateCountInDept !== 1) {
-    return { repriced: 0, skipped: all.length };
+    // Office slips store the label they were priced with, so those can still be matched.
+    rows = all.filter((e) => payloadOf(e.payload).rate_label === label);
   }
   if (rows.length === 0) return { repriced: 0, skipped: all.length - rows.length };
 
@@ -76,7 +77,9 @@ export async function repriceUnrated(department: Department, label: string, rate
   for (const r of rows) {
     const payload = { ...payloadOf(r.payload), rate_per_piece: rate, ...audit };
     const upd: { payload: typeof payload; total_cost?: number | null } = { payload };
-    if (accepted.has(r.batch_id)) upd.total_cost = computeEndCost(rate, payload.quantity_completed);
+    // Office slips are accepted one by one (payload.accepted) while the department stays open.
+    const pr = payloadOf(r.payload);
+    if (pr.office_entry === true ? pr.accepted === true : accepted.has(r.batch_id)) upd.total_cost = computeEndCost(rate, payload.quantity_completed);
     const { error } = await supabase.from("department_entries").update(upd as never).eq("id", r.id);
     if (error) throw error;
   }
